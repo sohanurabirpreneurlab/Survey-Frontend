@@ -1,4 +1,5 @@
 import { Slot } from "@radix-ui/react-slot";
+import { forwardRef } from "react";
 import type { ButtonHTMLAttributes, PropsWithChildren } from "react";
 
 import { cn } from "../../lib/cn";
@@ -24,22 +25,20 @@ const sizeClassMap = {
   sm: "button-sm"
 } as const;
 
-export const Button = ({
-  asChild,
-  children,
-  className,
-  size = "md",
-  variant = "primary",
-  ...props
-}: ButtonProps) => {
-  const Comp = asChild ? Slot : "button";
+export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
+  ({ asChild, children, className, size = "md", variant = "primary", ...props }, ref) => {
+    const Comp = asChild ? Slot : "button";
 
-  return (
-    <Comp
-      className={cn(variantClassMap[variant], sizeClassMap[size], className)}
-      {...props}
-    >
-      {children}
-    </Comp>
-  );
-};
+    return (
+      <Comp
+        className={cn(variantClassMap[variant], sizeClassMap[size], className)}
+        ref={ref}
+        {...props}
+      >
+        {children}
+      </Comp>
+    );
+  }
+);
+
+Button.displayName = "Button";

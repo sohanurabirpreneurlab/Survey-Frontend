@@ -1,10 +1,11 @@
 import { env } from "./env";
+import { toast } from "../state/toast-store";
 
 export type ApiSuccessResponse<T> = {
   success: true;
   message: string;
   data: T;
-  meta: {
+  meta: Record<string, unknown> & {
     requestId: string | null;
   };
 };
@@ -44,8 +45,10 @@ export class ApiError extends Error {
 }
 
 type RequestOptions = {
+  baseUrl?: string;
   method?: "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
   body?: unknown;
+  credentials?: RequestCredentials;
   token?: string;
   headers?: HeadersInit;
 };
@@ -54,9 +57,37 @@ const defaultHeaders: HeadersInit = {
   "Content-Type": "application/json"
 };
 
+let lastSessionExpiryToastAt = 0;
+
+const maybeShowSessionExpiryToast = (status: number, payload: ApiErrorResponse) => {
+  if (status !== 401) {
+    return;
+  }
+
+  if (!["AUTHENTICATION_REQUIRED", "AUTH_SESSION_EXPIRED", "INVALID_AUTH_TOKEN"].includes(payload.error.code)) {
+    return;
+  }
+
+  if (Date.now() - lastSessionExpiryToastAt < 5000) {
+    return;
+  }
+
+  lastSessionExpiryToastAt = Date.now();
+  toast.danger("Session expired", "Please log in again to continue.");
+};
+
 export const apiRequest = async <T>(path: string, options: RequestOptions = {}): Promise<T> => {
-  const response = await fetch(`${env.apiBaseUrl}${path}`, {
+  const payload = await apiRequestWithMeta<T>(path, options);
+  return payload.data;
+};
+
+export const apiRequestWithMeta = async <T>(
+  path: string,
+  options: RequestOptions = {}
+): Promise<ApiSuccessResponse<T>> => {
+  const response = await fetch(`${options.baseUrl ?? env.apiBaseUrl}${path}`, {
     method: options.method ?? "GET",
+    credentials: options.credentials,
     headers: {
       ...defaultHeaders,
       ...(options.token ? { Authorization: `Bearer ${options.token}` } : {}),
@@ -68,8 +99,9 @@ export const apiRequest = async <T>(path: string, options: RequestOptions = {}):
   const payload = (await response.json()) as ApiSuccessResponse<T> | ApiErrorResponse;
 
   if (!response.ok || !payload.success) {
+    maybeShowSessionExpiryToast(response.status, payload as ApiErrorResponse);
     throw new ApiError(response.status, payload as ApiErrorResponse);
   }
 
-  return payload.data;
+  return payload;
 };

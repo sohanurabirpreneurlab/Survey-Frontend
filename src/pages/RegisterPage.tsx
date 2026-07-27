@@ -1,3 +1,4 @@
+import { useQuery } from "@tanstack/react-query";
 import { CheckCircle2 } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
@@ -6,6 +7,7 @@ import { Card } from "../components/ui/card";
 import { Field, InlineNotice } from "../components/ui/field";
 import { Input } from "../components/ui/input";
 import { Button } from "../components/ui/button";
+import { listPublicOrganizationsRequest } from "../features/auth/auth-api";
 import { getApiErrorMessage, useRegisterForm, useRegisterMutation } from "../features/auth/use-auth-mutations";
 
 export const RegisterPage = () => {
@@ -13,6 +15,10 @@ export const RegisterPage = () => {
   const [completed, setCompleted] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const mutation = useRegisterMutation(() => setCompleted(true));
+  const organizationsQuery = useQuery({
+    queryFn: listPublicOrganizationsRequest,
+    queryKey: ["public-organizations"]
+  });
 
   const handleSubmit = form.handleSubmit(async (values) => {
     setFormError(null);
@@ -64,6 +70,30 @@ export const RegisterPage = () => {
           <Input autoComplete="email" placeholder="you@company.com" {...form.register("email")} />
         </Field>
 
+        <Field error={form.formState.errors.organizationId?.message} label="Organization">
+          <select
+            className="input"
+            defaultValue=""
+            disabled={organizationsQuery.isLoading || organizationsQuery.isError}
+            {...form.register("organizationId")}
+          >
+            <option value="">Select organization</option>
+            {organizationsQuery.data?.map((organization) => (
+              <option key={organization.organizationId} value={organization.organizationId}>
+                {organization.organizationName}
+              </option>
+            ))}
+          </select>
+        </Field>
+
+        {organizationsQuery.isLoading ? <InlineNotice>Loading organizations...</InlineNotice> : null}
+        {organizationsQuery.isError ? (
+          <InlineNotice tone="danger">Organizations could not be loaded. Try refreshing the page.</InlineNotice>
+        ) : null}
+        {!organizationsQuery.isLoading && !organizationsQuery.isError && organizationsQuery.data?.length === 0 ? (
+          <InlineNotice tone="danger">No organizations are available for registration yet.</InlineNotice>
+        ) : null}
+
         <Field
           error={form.formState.errors.password?.message}
           hint="Use 10+ characters with uppercase, lowercase, a number, and a symbol."
@@ -72,7 +102,10 @@ export const RegisterPage = () => {
           <Input autoComplete="new-password" placeholder="Create a secure password" type="password" {...form.register("password")} />
         </Field>
 
-        <Button disabled={mutation.isPending} type="submit">
+        <Button
+          disabled={mutation.isPending || organizationsQuery.isLoading || organizationsQuery.isError || organizationsQuery.data?.length === 0}
+          type="submit"
+        >
           {mutation.isPending ? "Submitting..." : "Create account"}
         </Button>
       </form>

@@ -11,6 +11,7 @@ export const registerSchema = z.object({
     .min(2, "Full name must be at least 2 characters.")
     .max(120, "Full name must be 120 characters or fewer.")
     .regex(/^[A-Za-z0-9.' -]+$/, "Use letters, numbers, spaces, apostrophes, periods, or hyphens only."),
+  organizationId: z.string().uuid("Select an organization."),
   password: z
     .string()
     .min(10, "Password must be at least 10 characters.")

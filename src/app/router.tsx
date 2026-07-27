@@ -1,16 +1,42 @@
+import { lazy, Suspense } from "react";
 import { Navigate } from "react-router-dom";
 
 import { AccountStatusPage } from "../pages/AccountStatusPage";
+import { AdminDashboardPage } from "../pages/AdminDashboardPage";
+import { AdminLayout } from "../components/layouts/AdminLayout";
+import { AdminRoute } from "../features/admin/AdminRoute";
+import { AuditLogsPage } from "../pages/AuditLogsPage";
+import { CreateSurveyPage } from "../pages/CreateSurveyPage";
 import { DashboardPage } from "../pages/DashboardPage";
 import { LoginPage } from "../pages/LoginPage";
+import { OrganizationDetailsPage } from "../pages/OrganizationDetailsPage";
+import { OrganizationsPage } from "../pages/OrganizationsPage";
+import { PendingApprovalsPage } from "../pages/PendingApprovalsPage";
+import { PublicSurveyPage, InvitationSurveyPage } from "../pages/PublicSurveyPage";
 import { RegisterPage } from "../pages/RegisterPage";
 import { SettingsPage } from "../pages/SettingsPage";
-import { SurveysPage } from "../pages/SurveysPage";
+import { RestoreScreen } from "../components/restore-screen";
 import { AuthGate, PublicOnlyGate, StateGate } from "../features/auth/auth-routes";
 import { AuthLayout } from "../components/layouts/AuthLayout";
 import { DashboardLayout } from "../components/layouts/DashboardLayout";
-import { RestoreScreen } from "../components/restore-screen";
 import { useAuth } from "../features/auth/use-auth";
+import { AdminUsersPage } from "../pages/AdminUsersPage";
+import { AdminUserDetailsPage } from "../pages/AdminUserDetailsPage";
+import { SurveysPage } from "../pages/SurveysPage";
+
+const SurveyBuilderPage = lazy(() =>
+  import("../pages/SurveyBuilderPage").then((module) => ({ default: module.SurveyBuilderPage }))
+);
+const SurveyPreviewPage = lazy(() =>
+  import("../pages/SurveyPreviewPage").then((module) => ({ default: module.SurveyPreviewPage }))
+);
+const SurveyResponsesPage = lazy(() =>
+  import("../pages/SurveyResponsesPage").then((module) => ({ default: module.SurveyResponsesPage }))
+);
+
+const LazyRoute = ({ children }: { children: React.ReactNode }) => (
+  <Suspense fallback={<RestoreScreen message="Loading survey workspace..." />}>{children}</Suspense>
+);
 
 function RootRedirect() {
   return <RootRedirectContent />;
@@ -46,6 +72,14 @@ export const appRoutes = [
   {
     path: "/",
     element: <RootRedirect />
+  },
+  {
+    path: "/s/:publicSlug",
+    element: <PublicSurveyPage />
+  },
+  {
+    path: "/i/:token",
+    element: <InvitationSurveyPage />
   },
   {
     element: <PublicOnlyGate />,
@@ -113,7 +147,51 @@ export const appRoutes = [
         children: [
           { index: true, element: <DashboardPage /> },
           { path: "surveys", element: <SurveysPage /> },
+          { path: "surveys/new", element: <CreateSurveyPage /> },
+          {
+            path: "surveys/:surveyId/builder",
+            element: (
+              <LazyRoute>
+                <SurveyBuilderPage />
+              </LazyRoute>
+            )
+          },
+          {
+            path: "surveys/:surveyId/preview",
+            element: (
+              <LazyRoute>
+                <SurveyPreviewPage />
+              </LazyRoute>
+            )
+          },
+          {
+            path: "surveys/:surveyId/responses",
+            element: (
+              <LazyRoute>
+                <SurveyResponsesPage />
+              </LazyRoute>
+            )
+          },
+          { path: "surveys/:surveyId/settings", element: <Navigate replace to="../builder" /> },
           { path: "settings", element: <SettingsPage /> }
+        ]
+      }
+    ]
+  },
+  {
+    element: <AdminRoute />,
+    children: [
+      {
+        path: "/admin",
+        element: <AdminLayout />,
+        children: [
+          { index: true, element: <AdminDashboardPage /> },
+          { path: "pending-approvals", element: <PendingApprovalsPage /> },
+          { path: "users", element: <AdminUsersPage /> },
+          { path: "users/:userId", element: <AdminUserDetailsPage /> },
+          { path: "organizations", element: <OrganizationsPage /> },
+          { path: "organizations/:organizationId", element: <OrganizationDetailsPage /> },
+          { path: "audit-logs", element: <AuditLogsPage /> }
         ]
       }
     ]

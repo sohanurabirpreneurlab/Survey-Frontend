@@ -8,16 +8,27 @@ import {
   refreshRequest
 } from "./auth-api";
 import { authStorage } from "./auth-storage";
-import type { AccessState, AuthUser, CurrentUserResponse, LoginResponse, PersistedSession } from "./auth.types";
+import type {
+  AccessState,
+  AuthOrganization,
+  AuthUser,
+  CurrentUserResponse,
+  LoginResponse,
+  PersistedSession,
+  PlatformRole
+} from "./auth.types";
 
 type AuthStatus = "restoring" | "authenticated" | "unauthenticated";
 
 type AuthContextValue = {
   accessState: AccessState | null;
   accessToken: string | null;
+  isPlatformAdmin: boolean;
   isAuthenticated: boolean;
   isRestoring: boolean;
   logout: () => Promise<void>;
+  organizations: AuthOrganization[];
+  platformRole: PlatformRole | null;
   restoreSession: () => Promise<void>;
   setAuthenticatedSession: (payload: LoginResponse | CurrentUserResponse, persisted?: PersistedSession) => void;
   user: AuthUser | null;
@@ -32,11 +43,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [accessState, setAccessState] = useState<AccessState | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [isPlatformAdmin, setIsPlatformAdmin] = useState(false);
+  const [organizations, setOrganizations] = useState<AuthOrganization[]>([]);
+  const [platformRole, setPlatformRole] = useState<PlatformRole | null>(null);
 
   const clearSession = () => {
     authStorage.clear();
     setAccessState(null);
     setAccessToken(null);
+    setIsPlatformAdmin(false);
+    setOrganizations([]);
+    setPlatformRole(null);
     setStatus("unauthenticated");
     setUser(null);
   };
@@ -47,6 +64,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   ) => {
     setUser(payload.user);
     setAccessState(accessStateFor(payload));
+    setIsPlatformAdmin(payload.isPlatformAdmin);
+    setOrganizations(payload.organizations);
+    setPlatformRole(payload.platformRole);
     setStatus("authenticated");
 
     if (persisted) {
@@ -109,14 +129,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     () => ({
       accessState,
       accessToken,
+      isPlatformAdmin,
       isAuthenticated: status === "authenticated",
       isRestoring: status === "restoring",
       logout,
+      organizations,
+      platformRole,
       restoreSession,
       setAuthenticatedSession,
       user
     }),
-    [accessState, accessToken, status, user]
+    [accessState, accessToken, isPlatformAdmin, organizations, platformRole, status, user]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

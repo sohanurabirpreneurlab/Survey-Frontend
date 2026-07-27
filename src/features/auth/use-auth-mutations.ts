@@ -28,7 +28,8 @@ export const useRegisterForm = () =>
     defaultValues: {
       email: "",
       fullName: "",
-      password: ""
+      organizationId: "",
+      password: "",
     },
     mode: "onBlur",
     reValidateMode: "onChange",

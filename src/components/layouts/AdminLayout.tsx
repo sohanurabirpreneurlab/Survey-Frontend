@@ -7,8 +7,6 @@ import {
   LogOut,
   Menu,
   PanelsTopLeft,
-  Settings,
-  ShieldCheck,
   Users,
   X
 } from "lucide-react";
@@ -18,28 +16,25 @@ import { BrandMark } from "../brand-mark";
 import { Button } from "../ui/button";
 import { useAuth } from "../../features/auth/use-auth";
 
-const navItems = [
-  { to: "/app", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/app/surveys", label: "Surveys", icon: PanelsTopLeft },
-  { to: "/app/settings", label: "Settings", icon: Settings }
-];
-
 const adminNavItems = [
-  { to: "/admin", label: "Admin Dashboard", icon: ShieldCheck },
+  { to: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { to: "/admin/pending-approvals", label: "Pending Approvals", icon: Clock3 },
   { to: "/admin/users", label: "Users", icon: Users },
   { to: "/admin/organizations", label: "Organizations", icon: Building2 },
   { to: "/admin/audit-logs", label: "Audit Logs", icon: History }
 ];
 
-const NavigationContent = () => {
+const AdminNavigationContent = () => {
   const auth = useAuth();
 
   return (
     <div className="dashboard-sidebar-inner">
-      <BrandMark />
-      <nav className="sidebar-nav" aria-label="Primary">
-        {navItems.map((item) => (
+      <div className="admin-sidebar-brand">
+        <BrandMark />
+        <span className="admin-badge">Platform Admin</span>
+      </div>
+      <nav aria-label="Admin" className="sidebar-nav">
+        {adminNavItems.map((item) => (
           <NavLink
             key={item.to}
             className={({ isActive }) => `sidebar-link ${isActive ? "sidebar-link-active" : ""}`}
@@ -50,43 +45,32 @@ const NavigationContent = () => {
           </NavLink>
         ))}
       </nav>
-      {auth.isPlatformAdmin ? (
-        <div className="sidebar-admin-group">
-          <div className="admin-sidebar-brand">
-            <span className="admin-badge">Platform Admin</span>
-          </div>
-          <nav className="sidebar-nav" aria-label="Admin">
-            {adminNavItems.map((item) => (
-              <NavLink
-                key={item.to}
-                className={({ isActive }) => `sidebar-link ${isActive ? "sidebar-link-active" : ""}`}
-                to={item.to}
-              >
-                <item.icon size={18} />
-                <span>{item.label}</span>
-              </NavLink>
-            ))}
-          </nav>
-        </div>
-      ) : null}
       <div className="sidebar-footer">
         <div className="sidebar-user-card">
           <p className="sidebar-user-name">{auth.user?.fullName}</p>
           <p className="sidebar-user-email">{auth.user?.email}</p>
         </div>
-        <Button className="sidebar-logout" onClick={auth.logout} size="sm" variant="ghost">
-          <LogOut size={16} />
-          Sign out
-        </Button>
+        <div className="admin-workspace-switch">
+          <Button asChild size="sm" variant="secondary">
+            <NavLink to="/app">
+              <PanelsTopLeft size={16} />
+              Business Workspace
+            </NavLink>
+          </Button>
+          <Button className="sidebar-logout" onClick={auth.logout} size="sm" variant="ghost">
+            <LogOut size={16} />
+            Sign out
+          </Button>
+        </div>
       </div>
     </div>
   );
 };
 
-export const DashboardLayout = () => (
-  <div className="dashboard-shell">
-    <aside className="dashboard-sidebar">
-      <NavigationContent />
+export const AdminLayout = () => (
+  <div className="dashboard-shell admin-shell">
+    <aside className="dashboard-sidebar admin-sidebar">
+      <AdminNavigationContent />
     </aside>
     <div className="dashboard-main-shell">
       <header className="dashboard-topbar">
@@ -108,7 +92,7 @@ export const DashboardLayout = () => (
                   </button>
                 </Dialog.Close>
               </div>
-              <NavigationContent />
+              <AdminNavigationContent />
             </Dialog.Content>
           </Dialog.Portal>
         </Dialog.Root>
