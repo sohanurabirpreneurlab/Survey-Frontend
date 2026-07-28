@@ -1424,10 +1424,92 @@ input {
   padding: 18px;
 }
 
+.survey-runtime-header {
+  display: grid;
+  gap: 14px;
+  padding: 8px 0 0;
+}
+
+.survey-runtime-header h2 {
+  margin: 0;
+}
+
+.survey-runtime-header p {
+  color: var(--text-muted);
+  line-height: 1.8;
+  margin: 0;
+  max-width: 64ch;
+}
+
 .survey-runtime-section {
   display: grid;
   gap: 16px;
   padding: 20px;
+}
+
+.survey-runtime-confirmation {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(244, 249, 255, 0.98) 100%);
+  display: grid;
+  gap: 18px;
+  padding: 28px;
+}
+
+.survey-runtime-confirmation-badge {
+  align-items: center;
+  background: var(--success-soft);
+  border: 1px solid rgba(21, 115, 71, 0.15);
+  border-radius: 999px;
+  color: var(--success);
+  display: inline-flex;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  padding: 8px 14px;
+  text-transform: uppercase;
+  width: fit-content;
+}
+
+.survey-runtime-confirmation-copy {
+  display: grid;
+  gap: 10px;
+}
+
+.survey-runtime-confirmation-copy h3 {
+  font-size: clamp(1.6rem, 2vw, 2rem);
+  line-height: 1.15;
+  margin: 0;
+}
+
+.survey-runtime-confirmation-copy p {
+  color: var(--text-muted);
+  line-height: 1.8;
+  margin: 0;
+  max-width: 58ch;
+}
+
+.survey-runtime-confirmation-meta {
+  align-items: start;
+  background: rgba(24, 79, 190, 0.05);
+  border: 1px solid rgba(24, 79, 190, 0.1);
+  border-radius: 18px;
+  display: grid;
+  gap: 6px;
+  padding: 16px 18px;
+}
+
+.survey-runtime-confirmation-label {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.survey-runtime-confirmation-meta strong {
+  color: var(--text);
+  font-size: 1rem;
+  line-height: 1.5;
 }
 
 .survey-runtime-section-head span {

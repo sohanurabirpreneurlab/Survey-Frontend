@@ -48,6 +48,7 @@ type RequestOptions = {
   baseUrl?: string;
   method?: "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
   body?: unknown;
+  cache?: RequestCache;
   credentials?: RequestCredentials;
   token?: string;
   headers?: HeadersInit;
@@ -86,6 +87,7 @@ export const apiRequestWithMeta = async <T>(
   options: RequestOptions = {}
 ): Promise<ApiSuccessResponse<T>> => {
   const response = await fetch(`${options.baseUrl ?? env.apiBaseUrl}${path}`, {
+    cache: options.cache,
     method: options.method ?? "GET",
     credentials: options.credentials,
     headers: {

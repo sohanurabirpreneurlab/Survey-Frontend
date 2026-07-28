@@ -119,6 +119,7 @@ const RespondentSurveyRuntime = ({ accessMode }: { accessMode: AccessMode }) => 
   const params = useParams();
   const publicSlug = params.publicSlug;
   const token = params.token;
+  const [requestNonce] = useState(() => crypto.randomUUID());
   const [answers, setAnswers] = useState<Record<string, unknown>>({});
   const [submittedAt, setSubmittedAt] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
@@ -126,11 +127,14 @@ const RespondentSurveyRuntime = ({ accessMode }: { accessMode: AccessMode }) => 
   const surveyQuery = useQuery({
     enabled: accessMode === "public" ? Boolean(publicSlug) : Boolean(token),
     queryFn: () =>
-      apiRequest<PublicSurvey>(accessMode === "public" ? `/s/${publicSlug}` : `/i/${token}`, {
+      apiRequest<PublicSurvey>(
+        `${accessMode === "public" ? `/s/${publicSlug}` : `/i/${token}`}?session=${requestNonce}`,
+        {
         baseUrl: env.backendBaseUrl,
+        cache: "no-store",
         credentials: "include"
       }),
-    queryKey: ["respondent", "survey", accessMode, publicSlug ?? token ?? ""]
+    queryKey: ["respondent", "survey", accessMode, publicSlug ?? token ?? "", requestNonce]
   });
 
   const responseQuery = useQuery({
@@ -291,9 +295,15 @@ const RespondentSurveyRuntime = ({ accessMode }: { accessMode: AccessMode }) => 
 
         {submittedAt ? (
           <Card className="survey-runtime-confirmation">
-            <h3>Response submitted</h3>
-            <p>{survey.settings.confirmationMessage ?? "Your response has been submitted."}</p>
-            <span>Submitted {formatDateTime(submittedAt)}</span>
+            <div className="survey-runtime-confirmation-badge">Submission complete</div>
+            <div className="survey-runtime-confirmation-copy">
+              <h3>Response submitted</h3>
+              <p>{survey.settings.confirmationMessage ?? "Your response has been submitted."}</p>
+            </div>
+            <div className="survey-runtime-confirmation-meta">
+              <span className="survey-runtime-confirmation-label">Submitted</span>
+              <strong>{formatDateTime(submittedAt)}</strong>
+            </div>
           </Card>
         ) : (
           <>
