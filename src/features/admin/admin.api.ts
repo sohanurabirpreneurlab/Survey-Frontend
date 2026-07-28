@@ -10,6 +10,7 @@ import type {
   ApproveUserResult,
   AuditLogRecord,
   PaginationMeta,
+  UpdateAdminUserProfileResult,
   UpdateUserRoleResult
 } from "./admin.types";
 
@@ -81,6 +82,20 @@ export const updateAdminUserRoleRequest = (
 ) =>
   apiRequest<UpdateUserRoleResult>(`/admin/users/${userId}/role`, {
     body: { platformRole },
+    method: "PATCH",
+    token
+  });
+
+export const updateAdminUserProfileRequest = (
+  token: string,
+  userId: string,
+  payload: {
+    fullName: string;
+    organizationId: string | null;
+  }
+) =>
+  apiRequest<UpdateAdminUserProfileResult>(`/admin/users/${userId}/profile`, {
+    body: payload,
     method: "PATCH",
     token
   });

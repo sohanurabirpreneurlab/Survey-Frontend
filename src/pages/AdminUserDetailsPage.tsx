@@ -15,9 +15,12 @@ import { useAuth } from "../features/auth/use-auth";
 import {
   approveAdminUserRequest,
   getAdminUserRequest,
+  listAdminOrganizationsRequest,
   reactivateAdminUserRequest,
   rejectAdminUserRequest,
   suspendAdminUserRequest
+  ,
+  updateAdminUserProfileRequest
 } from "../features/admin/admin.api";
 import { adminKeys } from "../features/admin/admin.keys";
 import { formatDateTime, formatRelativeTime } from "../features/surveys/surveys.utils";
@@ -28,6 +31,11 @@ const approveSchema = z.object({
 
 const reasonSchema = z.object({
   reason: z.string().trim().max(300).optional()
+});
+
+const profileSchema = z.object({
+  fullName: z.string().trim().min(2, "Full name is required.").max(120),
+  organizationId: z.string().uuid("Select a valid organization.").nullable()
 });
 
 export const AdminUserDetailsPage = () => {
@@ -41,10 +49,22 @@ export const AdminUserDetailsPage = () => {
     queryFn: () => getAdminUserRequest(token, userId),
     queryKey: adminKeys.user(userId)
   });
+  const organizationsQuery = useQuery({
+    enabled: Boolean(token),
+    queryFn: async () => {
+      const result = await listAdminOrganizationsRequest(token, { limit: 100, page: 1 });
+      return result.items;
+    },
+    queryKey: adminKeys.organizations({ limit: 100, page: 1 })
+  });
 
   const approveForm = useForm<z.infer<typeof approveSchema>>({
     defaultValues: { organizationName: "" },
     resolver: zodResolver(approveSchema)
+  });
+  const profileForm = useForm<z.infer<typeof profileSchema>>({
+    defaultValues: { fullName: "", organizationId: null },
+    resolver: zodResolver(profileSchema)
   });
   const reasonForm = useForm<z.infer<typeof reasonSchema>>({
     defaultValues: { reason: "" },
@@ -90,11 +110,28 @@ export const AdminUserDetailsPage = () => {
       toast.success("Account reactivated");
     }
   });
+  const updateProfileMutation = useMutation({
+    mutationFn: (values: z.infer<typeof profileSchema>) =>
+      updateAdminUserProfileRequest(token, userId, values),
+    onSuccess: async () => {
+      await invalidate();
+      toast.success("User updated", "Name and organization details were saved.");
+    },
+    onError: (error) =>
+      toast.danger("Update failed", error instanceof ApiError ? error.message : "Please try again.")
+  });
 
   const detail = userQuery.data;
 
   if (detail && !approveForm.getValues("organizationName")) {
     approveForm.setValue("organizationName", detail.user.organizationName ?? "");
+  }
+
+  if (detail && !profileForm.getValues("fullName")) {
+    profileForm.reset({
+      fullName: detail.user.fullName,
+      organizationId: detail.user.organizationId ?? null
+    });
   }
 
   if (userQuery.isLoading || !detail) {
@@ -124,6 +161,36 @@ export const AdminUserDetailsPage = () => {
       <section className="survey-grid">
         <Card className="survey-card">
           <h2>Account</h2>
+          <form
+            className="builder-settings-stack"
+            onSubmit={profileForm.handleSubmit(async (values) => {
+              await updateProfileMutation.mutateAsync(values);
+            })}
+          >
+            <Field error={profileForm.formState.errors.fullName?.message} label="Full name">
+              <Input {...profileForm.register("fullName")} />
+            </Field>
+            <Field error={profileForm.formState.errors.organizationId?.message} label="Organization">
+              <select
+                className="input"
+                {...profileForm.register("organizationId", {
+                  setValueAs: (value) => (value ? value : null)
+                })}
+              >
+                <option value="">No organization</option>
+                {organizationsQuery.data?.map((organization) => (
+                  <option key={organization.organizationId} value={organization.organizationId}>
+                    {organization.name}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <div className="survey-dialog-actions">
+              <Button disabled={updateProfileMutation.isPending} size="sm" type="submit">
+                {updateProfileMutation.isPending ? "Saving..." : "Save profile"}
+              </Button>
+            </div>
+          </form>
           <div className="settings-details">
             <div className="settings-item">
               <span className="settings-label">Status</span>

@@ -33,7 +33,7 @@ export const DashboardPage = () => {
             Keep an eye on what is still in draft, what is already live, and where your next survey action should happen.
           </p>
         </div>
-        <div className="dashboard-hero-aside">
+        {/* <div className="dashboard-hero-aside">
           <div className="dashboard-hero-chip">
             {auth.organizations.length === 1 ? auth.organizations[0]?.organizationName : `${auth.organizations.length} organizations`}
           </div>
@@ -44,7 +44,7 @@ export const DashboardPage = () => {
               <ArrowRight size={16} />
             </Link>
           </Button>
-        </div>
+        </div> */}
       </section>
 
       <section className="dashboard-grid">

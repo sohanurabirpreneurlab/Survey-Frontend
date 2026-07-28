@@ -117,3 +117,7 @@ export type CreateAdminOrganizationResult = {
     slug: string;
   };
 };
+
+export type UpdateAdminUserProfileResult = {
+  user: AdminUserDetail;
+};
