@@ -65,6 +65,9 @@ const changeMessage = (error: unknown) => {
 const reindexItems = <T extends { position: number }>(items: T[]) =>
   items.map((item, index) => ({ ...item, position: index }));
 
+const createTempId = (prefix: string) =>
+  `temp-${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+
 export const useSurveyBuilder = (surveyId: string) => {
   const auth = useAuth();
   const queryClient = useQueryClient();
@@ -304,18 +307,56 @@ export const useSurveyBuilder = (surveyId: string) => {
       return;
     }
 
-    const section = await createSectionRequest(token, surveyId, {
+    const tempId = createTempId("section");
+    const optimisticSection: SurveySection = {
+      createdAt: new Date().toISOString(),
       description: null,
+      id: tempId,
       position: definition.sections.length,
-      title: "Untitled section"
-    });
+      stableKey: tempId,
+      surveyVersionId: definition.version.id,
+      title: "Untitled section",
+      updatedAt: new Date().toISOString()
+    };
+
     setDefinition({
       ...definition,
-      sections: [...definition.sections, section]
+      sections: [...definition.sections, optimisticSection]
     });
-    setSelectedSectionId(section.id);
+    setSelectedSectionId(tempId);
     setSelectedQuestionId(null);
-    return section;
+
+    try {
+      const section = await createSectionRequest(token, surveyId, {
+        description: null,
+        position: definition.sections.length,
+        title: "Untitled section"
+      });
+
+      setDefinition((current) =>
+        current
+          ? {
+              ...current,
+              sections: current.sections.map((item) => (item.id === tempId ? section : item))
+            }
+          : current
+      );
+      setSelectedSectionId((current) => (current === tempId ? section.id : current));
+      return section;
+    } catch (error) {
+      setDefinition((current) =>
+        current
+          ? {
+              ...current,
+              sections: current.sections.filter((item) => item.id !== tempId)
+            }
+          : current
+      );
+      setSelectedSectionId((current) => (current === tempId ? null : current));
+      setSaveState("failed");
+      setSaveMessage(changeMessage(error));
+      throw error;
+    }
   };
 
   const updateSection = (sectionId: string, patch: Partial<SurveySection>) => {
@@ -423,25 +464,69 @@ export const useSurveyBuilder = (surveyId: string) => {
 
     const sectionQuestions = definition.questions.filter((question) => question.sectionId === sectionId);
     const type: Question["type"] = "short_text";
-    const question = await createQuestionRequest(token, surveyId, {
+    const tempId = createTempId("question");
+    const optimisticQuestion: Question = {
+      createdAt: new Date().toISOString(),
       description: null,
       displayLogic: {},
-      options: [],
+      id: tempId,
       position: sectionQuestions.length,
       required: false,
       sectionId,
       settings: {},
+      stableKey: tempId,
+      surveyVersionId: definition.version.id,
       title: "Untitled question",
       type,
+      updatedAt: new Date().toISOString(),
       validation: defaultQuestionValidation(type)
-    });
+    };
 
     setDefinition({
       ...definition,
-      questions: [...definition.questions, question]
+      questions: [...definition.questions, optimisticQuestion]
     });
     setSelectedSectionId(sectionId);
-    setSelectedQuestionId(question.id);
+    setSelectedQuestionId(tempId);
+
+    try {
+      const question = await createQuestionRequest(token, surveyId, {
+        description: null,
+        displayLogic: {},
+        options: [],
+        position: sectionQuestions.length,
+        required: false,
+        sectionId,
+        settings: {},
+        title: "Untitled question",
+        type,
+        validation: defaultQuestionValidation(type)
+      });
+
+      setDefinition((current) =>
+        current
+          ? {
+              ...current,
+              questions: current.questions.map((item) => (item.id === tempId ? question : item))
+            }
+          : current
+      );
+      setSelectedQuestionId((current) => (current === tempId ? question.id : current));
+      return question;
+    } catch (error) {
+      setDefinition((current) =>
+        current
+          ? {
+              ...current,
+              questions: current.questions.filter((item) => item.id !== tempId)
+            }
+          : current
+      );
+      setSelectedQuestionId((current) => (current === tempId ? null : current));
+      setSaveState("failed");
+      setSaveMessage(changeMessage(error));
+      throw error;
+    }
   };
 
   const updateQuestion = (
