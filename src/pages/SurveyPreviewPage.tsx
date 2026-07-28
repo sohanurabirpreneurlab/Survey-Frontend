@@ -95,6 +95,7 @@ export const SurveyPreviewPage = () => {
           Opens: {formatDateTime(surveyQuery.data.opensAt) ?? "Immediately"} | Closes:{" "}
           {formatDateTime(surveyQuery.data.closesAt) ?? "No closing date"}
         </span>
+        {surveyQuery.data.access.message ? <span>{surveyQuery.data.access.message}</span> : null}
       </Card>
 
       <div className={mode === "mobile" ? "survey-preview-shell survey-preview-shell-mobile" : "survey-preview-shell"}>
@@ -148,10 +149,10 @@ export const SurveyPreviewPage = () => {
             </section>
           ))}
 
-          <Card className="survey-runtime-confirmation">
+          {/* <Card className="survey-runtime-confirmation">
             <h3>Confirmation screen preview</h3>
             <p>{definition.version.settings.confirmationMessage}</p>
-          </Card>
+          </Card> */}
         </Card>
       </div>
     </div>

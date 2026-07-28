@@ -14,10 +14,15 @@ import {
   FileClock,
   FilePlus2,
   FolderKanban,
+  Globe2,
+  Layers3,
   MailPlus,
   MoreHorizontal,
+  PencilLine,
   RefreshCw,
   Search,
+  ShieldAlert,
+  Sparkles,
   X
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -25,6 +30,7 @@ import { Link, useSearchParams } from "react-router-dom";
 
 import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
+import { Input } from "../components/ui/input";
 import { ApiError } from "../lib/api";
 import { cn } from "../lib/cn";
 import { toast } from "../state/toast-store";
@@ -42,7 +48,7 @@ import {
 } from "../features/surveys/surveys.api";
 import { surveyKeys } from "../features/surveys/surveys.keys";
 import { SurveyStatusBadge } from "../features/surveys/SurveyStatusBadge";
-import { accessModeLabels, formatDateTime, formatRelativeTime } from "../features/surveys/surveys.utils";
+import { accessModeLabels, ensureDateOrder, formatDateTime, formatRelativeTime } from "../features/surveys/surveys.utils";
 import type {
   InvitationListItem,
   OrganizationSummary,
@@ -104,6 +110,16 @@ const useSurveyList = (token: string, organizationId: string | undefined, page: 
     queryKey: surveyKeys.list({ organizationId, page })
   });
 
+const toLocalDateTimeValue = (value: string | null) => {
+  if (!value) {
+    return "";
+  }
+
+  const date = new Date(value);
+  const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return localDate.toISOString().slice(0, 16);
+};
+
 const SurveyActions = ({
   survey,
   token
@@ -112,50 +128,99 @@ const SurveyActions = ({
   token: string;
 }) => {
   const queryClient = useQueryClient();
-  const [confirmAction, setConfirmAction] = useSearchParams();
   const [shareOpen, setShareOpen] = useState(false);
-  const pendingAction = confirmAction.get("action");
-  const pendingSurveyId = confirmAction.get("surveyId");
-  const isOpen = pendingSurveyId === survey.id && Boolean(pendingAction);
+  const [draftDialogOpen, setDraftDialogOpen] = useState(false);
+  const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
+  const [openMode, setOpenMode] = useState<"immediate" | "scheduled">(survey.opensAt ? "scheduled" : "immediate");
+  const [closeMode, setCloseMode] = useState<"none" | "scheduled">(survey.closesAt ? "scheduled" : "none");
+  const [opensAtValue, setOpensAtValue] = useState(toLocalDateTimeValue(survey.opensAt));
+  const [closesAtValue, setClosesAtValue] = useState(toLocalDateTimeValue(survey.closesAt));
+  const [scheduleError, setScheduleError] = useState<string | null>(null);
+  const [isSavingSchedule, setIsSavingSchedule] = useState(false);
+  const [isClosingNow, setIsClosingNow] = useState(false);
 
-  const onClose = () => {
-    setConfirmAction((current) => {
-      current.delete("action");
-      current.delete("surveyId");
-      return current;
-    });
+  const resetScheduleState = () => {
+    setOpenMode(survey.opensAt ? "scheduled" : "immediate");
+    setCloseMode(survey.closesAt ? "scheduled" : "none");
+    setOpensAtValue(toLocalDateTimeValue(survey.opensAt));
+    setClosesAtValue(toLocalDateTimeValue(survey.closesAt));
+    setScheduleError(null);
   };
 
-  const onLifecycleAction = async () => {
+  const onCreateDraft = async () => {
     try {
-      if (pendingAction === "close") {
-        await closeSurveyRequest(token, survey.id);
-        toast.success("Survey closed", "Respondents can no longer submit new answers.");
-      }
-
-      if (pendingAction === "reopen") {
-        await reopenSurveyRequest(token, survey.id);
-        toast.success("Survey reopened", "The published survey is available again.");
-      }
-
-      if (pendingAction === "draft") {
-        await createDraftRequest(token, survey.id);
-        toast.success("Draft created", "A new draft version is ready for editing.");
-      }
-
+      await createDraftRequest(token, survey.id);
+      toast.success("Draft created", "A new draft version is ready for editing.");
       await queryClient.invalidateQueries({ queryKey: surveyKeys.all });
-      onClose();
+      setDraftDialogOpen(false);
     } catch (error) {
       toast.danger("Action failed", error instanceof ApiError ? error.message : "Please try again.");
     }
   };
 
-  const actionLabel =
-    pendingAction === "close"
-      ? "Close survey"
-      : pendingAction === "reopen"
-        ? "Reopen survey"
-        : "Create draft version";
+  const saveSchedule = async (options?: { closeImmediately?: boolean }) => {
+    const nextOpensAt = openMode === "scheduled" ? opensAtValue : "";
+    const nextClosesAt = closeMode === "scheduled" ? closesAtValue : "";
+
+    if (openMode === "scheduled" && !nextOpensAt) {
+      setScheduleError("Opening date and time is required when opening later is selected.");
+      return;
+    }
+
+    if (closeMode === "scheduled" && !nextClosesAt) {
+      setScheduleError("Closing date and time is required when scheduling a closing time.");
+      return;
+    }
+
+    const nextOpensAtIso = openMode === "scheduled" ? new Date(nextOpensAt).toISOString() : null;
+    const nextClosesAtIso = closeMode === "scheduled" ? new Date(nextClosesAt).toISOString() : null;
+
+    if (!ensureDateOrder(nextOpensAtIso, nextClosesAtIso)) {
+      setScheduleError("Closing time must be after opening time.");
+      return;
+    }
+
+    setScheduleError(null);
+
+    try {
+      if (options?.closeImmediately) {
+        setIsClosingNow(true);
+      } else {
+        setIsSavingSchedule(true);
+      }
+
+      await updateSurveyRequest(token, survey.id, {
+        accessMode: survey.accessMode,
+        closesAt: options?.closeImmediately ? null : nextClosesAtIso,
+        opensAt: nextOpensAtIso,
+        responseLimit: survey.responseLimit,
+        slug: survey.slug
+      });
+
+      if (options?.closeImmediately) {
+        await closeSurveyRequest(token, survey.id);
+        toast.success("Survey closed", "Respondents can no longer submit new answers.");
+      } else if (survey.status === "closed") {
+        await reopenSurveyRequest(token, survey.id);
+        toast.success(
+          "Survey reopened",
+          openMode === "scheduled"
+            ? "The survey was reopened with an updated opening schedule."
+            : "The survey is available again."
+        );
+      } else {
+        toast.success("Availability updated", "Opening and closing times were updated.");
+      }
+
+      await queryClient.invalidateQueries({ queryKey: surveyKeys.all });
+      setScheduleDialogOpen(false);
+    } catch (error) {
+      toast.danger("Action failed", error instanceof ApiError ? error.message : "Please try again.");
+    } finally {
+      setIsClosingNow(false);
+      setIsSavingSchedule(false);
+    }
+  };
 
   return (
     <>
@@ -188,7 +253,7 @@ const SurveyActions = ({
             {survey.status === "published" && !survey.currentDraftVersionId ? (
               <DropdownMenu.Item
                 className="survey-menu-item"
-                onSelect={() => setConfirmAction({ action: "draft", surveyId: survey.id })}
+                onSelect={() => setDraftDialogOpen(true)}
               >
                 <FilePlus2 size={15} />
                 Create new draft version
@@ -197,7 +262,10 @@ const SurveyActions = ({
             {survey.status === "published" ? (
               <DropdownMenu.Item
                 className="survey-menu-item survey-menu-item-danger"
-                onSelect={() => setConfirmAction({ action: "close", surveyId: survey.id })}
+                onSelect={() => {
+                  resetScheduleState();
+                  setScheduleDialogOpen(true);
+                }}
               >
                 <Clock3 size={15} />
                 Close survey
@@ -206,7 +274,10 @@ const SurveyActions = ({
             {survey.status === "closed" ? (
               <DropdownMenu.Item
                 className="survey-menu-item"
-                onSelect={() => setConfirmAction({ action: "reopen", surveyId: survey.id })}
+                onSelect={() => {
+                  resetScheduleState();
+                  setScheduleDialogOpen(true);
+                }}
               >
                 <RefreshCw size={15} />
                 Reopen survey
@@ -216,17 +287,13 @@ const SurveyActions = ({
         </DropdownMenu.Portal>
       </DropdownMenu.Root>
 
-      <AlertDialog.Root open={isOpen} onOpenChange={(open) => (!open ? onClose() : undefined)}>
+      <AlertDialog.Root open={draftDialogOpen} onOpenChange={setDraftDialogOpen}>
         <AlertDialog.Portal>
           <AlertDialog.Overlay className="dialog-overlay" />
           <AlertDialog.Content className="survey-dialog">
-            <AlertDialog.Title>{actionLabel}</AlertDialog.Title>
+            <AlertDialog.Title>Create draft version</AlertDialog.Title>
             <AlertDialog.Description className="survey-dialog-copy">
-              {pendingAction === "close"
-                ? "Closing a survey stops new submissions without changing the published version."
-                : pendingAction === "reopen"
-                  ? "Reopening restores access to the current published version."
-                  : "Published surveys are immutable. This creates a new editable draft version from the published version."}
+              Published surveys are immutable. This creates a new editable draft version from the published version.
             </AlertDialog.Description>
             <div className="survey-dialog-actions">
               <AlertDialog.Cancel asChild>
@@ -235,14 +302,114 @@ const SurveyActions = ({
                 </Button>
               </AlertDialog.Cancel>
               <AlertDialog.Action asChild>
-                <Button onClick={onLifecycleAction} size="sm">
-                  {actionLabel}
+                <Button onClick={() => void onCreateDraft()} size="sm">
+                  Create draft version
                 </Button>
               </AlertDialog.Action>
             </div>
           </AlertDialog.Content>
         </AlertDialog.Portal>
       </AlertDialog.Root>
+      <Dialog.Root
+        onOpenChange={(open) => {
+          if (!open) {
+            resetScheduleState();
+          }
+          setScheduleDialogOpen(open);
+        }}
+        open={scheduleDialogOpen}
+      >
+        <Dialog.Portal>
+          <Dialog.Overlay className="dialog-overlay" />
+          <Dialog.Content className="survey-dialog">
+            <div className="mobile-nav-header">
+              <Dialog.Title>{survey.status === "closed" ? "Reopen survey" : "Close survey"}</Dialog.Title>
+              <Dialog.Close asChild>
+                <button aria-label="Close scheduling dialog" className="mobile-nav-close" type="button">
+                  <X size={18} />
+                </button>
+              </Dialog.Close>
+            </div>
+            <div className="share-dialog-stack">
+              <p className="survey-dialog-copy">
+                {survey.status === "closed"
+                  ? "Update the opening and closing schedule before reopening the survey."
+                  : "Choose whether the survey should keep running on a schedule or close right away."}
+              </p>
+              <div className="share-unpublished-state">
+                <div>
+                  <strong>Current schedule</strong>
+                  <p className="survey-dialog-copy">Opens: {formatDateTime(survey.opensAt) ?? "Immediately"}</p>
+                  <p className="survey-dialog-copy">Closes: {formatDateTime(survey.closesAt) ?? "No closing date"}</p>
+                </div>
+              </div>
+              <div className="survey-schedule-grid">
+                <Card className="survey-schedule-card">
+                  <span className="field-label">Opening</span>
+                  <label className="survey-radio-inline">
+                    <input checked={openMode === "immediate"} onChange={() => setOpenMode("immediate")} type="radio" />
+                    <span>Open immediately</span>
+                  </label>
+                  <label className="survey-radio-inline">
+                    <input checked={openMode === "scheduled"} onChange={() => setOpenMode("scheduled")} type="radio" />
+                    <span>Open later</span>
+                  </label>
+                  {openMode === "scheduled" ? (
+                    <label className="field">
+                      <span className="field-label">Opens at</span>
+                      <Input onChange={(event) => setOpensAtValue(event.target.value)} type="datetime-local" value={opensAtValue} />
+                    </label>
+                  ) : null}
+                </Card>
+                <Card className="survey-schedule-card">
+                  <span className="field-label">Closing</span>
+                  <label className="survey-radio-inline">
+                    <input checked={closeMode === "none"} onChange={() => setCloseMode("none")} type="radio" />
+                    <span>No closing date</span>
+                  </label>
+                  <label className="survey-radio-inline">
+                    <input checked={closeMode === "scheduled"} onChange={() => setCloseMode("scheduled")} type="radio" />
+                    <span>Close later</span>
+                  </label>
+                  {closeMode === "scheduled" ? (
+                    <label className="field">
+                      <span className="field-label">Closes at</span>
+                      <Input onChange={(event) => setClosesAtValue(event.target.value)} type="datetime-local" value={closesAtValue} />
+                    </label>
+                  ) : null}
+                </Card>
+              </div>
+              {scheduleError ? <p className="field-error">{scheduleError}</p> : null}
+              <div className="survey-dialog-actions">
+                <Button onClick={() => setScheduleDialogOpen(false)} size="sm" variant="secondary">
+                  Cancel
+                </Button>
+                <Button
+                  disabled={isSavingSchedule || isClosingNow}
+                  onClick={() => void saveSchedule()}
+                  size="sm"
+                >
+                  {isSavingSchedule
+                    ? "Saving..."
+                    : survey.status === "closed"
+                      ? "Save and reopen"
+                      : "Save schedule"}
+                </Button>
+                {survey.status === "published" ? (
+                  <Button
+                    disabled={isSavingSchedule || isClosingNow}
+                    onClick={() => void saveSchedule({ closeImmediately: true })}
+                    size="sm"
+                    variant="danger"
+                  >
+                    {isClosingNow ? "Closing..." : "Close immediately"}
+                  </Button>
+                ) : null}
+              </div>
+            </div>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
       <ShareSurveyDialog onOpenChange={setShareOpen} open={shareOpen} survey={survey} token={token} />
     </>
   );
@@ -342,6 +509,7 @@ const ShareSurveyDialog = ({
   });
 
   const invitationItems = invitationsQuery.data ?? [];
+  const isPublished = Boolean(survey.publishedVersionId);
   const hasPendingShareModeChange = shareQuery.data
     ? selectedAccessMode !== shareQuery.data.accessMode
     : false;
@@ -462,6 +630,20 @@ const ShareSurveyDialog = ({
                 <p className="survey-dialog-copy">Sharing mode: {accessModeLabels[shareQuery.data.accessMode]}</p>
               </div>
 
+              {!isPublished ? (
+                <div className="share-unpublished-state">
+                  <div className="share-unpublished-icon">
+                    <ShieldAlert size={18} />
+                  </div>
+                  <div>
+                    <strong>Publish this survey before sharing</strong>
+                    <p className="survey-dialog-copy">
+                      The dialog is open so you can see the sharing rules, but links and invitations stay disabled until a published version exists.
+                    </p>
+                  </div>
+                </div>
+              ) : null}
+
               <div className="share-dialog-stack">
                 <span className="field-label">Sharing method</span>
                 <div className="share-mode-grid" role="radiogroup" aria-label="Survey sharing method">
@@ -481,8 +663,10 @@ const ShareSurveyDialog = ({
                       aria-checked={selectedAccessMode === option.value}
                       className={cn(
                         "share-mode-card",
+                        !isPublished && "share-mode-card-disabled",
                         selectedAccessMode === option.value && "share-mode-card-active"
                       )}
+                      disabled={!isPublished}
                       key={option.value}
                       onClick={() => setSelectedAccessMode(option.value)}
                       role="radio"
@@ -499,7 +683,7 @@ const ShareSurveyDialog = ({
                 {hasPendingShareModeChange ? (
                   <div className="survey-dialog-actions">
                     <Button
-                      disabled={updateShareModeMutation.isPending}
+                      disabled={!isPublished || updateShareModeMutation.isPending}
                       onClick={() => void handleUpdateSharingMethod()}
                       size="sm"
                     >
@@ -509,7 +693,7 @@ const ShareSurveyDialog = ({
                 ) : null}
               </div>
 
-              {selectedAccessMode === "public" ? (
+              {isPublished && selectedAccessMode === "public" ? (
                 <div className="share-dialog-stack">
                   <div className="share-link-box">
                     <span className="field-label">Public link</span>
@@ -528,7 +712,7 @@ const ShareSurveyDialog = ({
                 </div>
               ) : null}
 
-              {selectedAccessMode === "invite_only" ? (
+              {isPublished && selectedAccessMode === "invite_only" ? (
                 <div className="share-dialog-stack">
                   <div>
                     <span className="field-label">Invite respondents</span>
@@ -618,6 +802,17 @@ const InvitationRow = ({ invitation }: { invitation: InvitationListItem }) => (
 );
 
 const SurveyPrimaryAction = ({ survey }: { survey: SurveySummary }) => {
+  if (!survey.access.canEdit) {
+    return (
+      <Button asChild size="sm">
+        <Link to={`/app/surveys/${survey.id}/preview`}>
+          Preview access
+          <ArrowRight size={16} />
+        </Link>
+      </Button>
+    );
+  }
+
   if (survey.currentDraftVersionId) {
     return (
       <Button asChild size="sm">
@@ -637,6 +832,18 @@ const SurveyPrimaryAction = ({ survey }: { survey: SurveySummary }) => {
       </Link>
     </Button>
   );
+};
+
+const SurveyAccessPill = ({ survey }: { survey: SurveySummary }) => {
+  if (survey.access.isCrossOrganizationPreview) {
+    return <span className="survey-access-pill survey-access-pill-warning">Cross-org preview</span>;
+  }
+
+  if (!survey.access.canEdit) {
+    return <span className="survey-access-pill survey-access-pill-muted">Read only</span>;
+  }
+
+  return <span className="survey-access-pill survey-access-pill-success">Editable</span>;
 };
 
 export const SurveysPage = () => {
@@ -822,8 +1029,12 @@ export const SurveysPage = () => {
             <Card className="survey-card" key={survey.id}>
               <div className="survey-card-head">
                 <div>
+                  <div className="survey-card-kicker">
+                    <SurveyAccessPill survey={survey} />
+                    <span>{accessModeLabels[survey.accessMode]}</span>
+                  </div>
                   <h2>{survey.title ?? "Untitled survey"}</h2>
-                  <p>{survey.description || "No description yet."}</p>
+                  <p>{survey.description || "No description yet. Add a clear outcome-focused summary to make this card more useful."}</p>
                 </div>
                 <div className="survey-card-head-meta">
                   <SurveyStatusBadge status={survey.status} />
@@ -852,6 +1063,8 @@ export const SurveysPage = () => {
                   <dd>{formatDateTime(survey.closesAt) ?? "No closing date"}</dd>
                 </div>
               </dl>
+
+              {survey.access.message ? <div className="survey-card-note">{survey.access.message}</div> : null}
 
               <div className="survey-card-actions">
                 <SurveyPrimaryAction survey={survey} />

@@ -430,6 +430,11 @@ input {
 
 .dashboard-sidebar {
   border-right: 1px solid rgba(193, 210, 234, 0.8);
+  background:
+    radial-gradient(circle at top left, rgba(24, 79, 190, 0.12), transparent 28%),
+    linear-gradient(180deg, rgba(247, 250, 255, 0.96) 0%, rgba(240, 245, 252, 0.96) 100%);
+  min-width: 0;
+  overflow: hidden;
   padding: 24px;
 }
 
@@ -438,11 +443,14 @@ input {
   flex-direction: column;
   gap: 28px;
   height: 100%;
+  min-width: 0;
+  width: 100%;
 }
 
 .sidebar-nav {
   display: grid;
   gap: 8px;
+  min-width: 0;
 }
 
 .sidebar-admin-group {
@@ -459,11 +467,13 @@ input {
   gap: 12px;
   min-height: 48px;
   padding: 0 14px;
+  transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease, transform 160ms ease;
 }
 
 .sidebar-link:hover {
   background: white;
   text-decoration: none;
+  transform: translateX(2px);
 }
 
 .sidebar-link-active {
@@ -481,17 +491,72 @@ input {
   display: grid;
   gap: 14px;
   margin-top: auto;
+  min-width: 0;
+  width: 100%;
 }
 
 .sidebar-user-card {
-  background: rgba(255, 255, 255, 0.72);
+  background: rgba(255, 255, 255, 0.9);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
+  box-sizing: border-box;
+  display: grid;
+  gap: 12px;
+  min-width: 0;
   padding: 16px;
+  width: 100%;
 }
 
 .sidebar-logout {
+  color: var(--danger);
   justify-content: flex-start;
+}
+
+.sidebar-logout:hover:not(:disabled) {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.sidebar-user-head {
+  align-items: flex-start;
+  display: flex;
+  gap: 12px;
+  min-width: 0;
+}
+
+.sidebar-user-avatar {
+  align-items: center;
+  background: linear-gradient(180deg, #e9f0ff 0%, #dfe9ff 100%);
+  border: 1px solid rgba(24, 79, 190, 0.12);
+  border-radius: 14px;
+  color: var(--primary-strong);
+  display: inline-flex;
+  flex: 0 0 auto;
+  height: 36px;
+  justify-content: center;
+  width: 36px;
+}
+
+.sidebar-user-copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  width: 100%;
+}
+
+.sidebar-user-name,
+.sidebar-user-email,
+.sidebar-user-role {
+  overflow-wrap: anywhere;
+}
+
+.sidebar-user-role {
+  color: var(--text-faint);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  margin: 0;
+  text-transform: uppercase;
 }
 
 .dashboard-main-shell {
@@ -638,6 +703,14 @@ input {
   padding: 16px;
 }
 
+.settings-inline-meta {
+  align-items: center;
+  color: var(--text-soft);
+  display: inline-flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+
 .settings-label {
   color: var(--text-faint);
   font-size: 0.84rem;
@@ -779,7 +852,59 @@ input {
 .survey-card {
   display: grid;
   gap: 18px;
+  overflow: hidden;
   padding: 22px;
+  position: relative;
+}
+
+.survey-card::before {
+  background: linear-gradient(90deg, rgba(24, 79, 190, 0.16), rgba(24, 79, 190, 0));
+  content: "";
+  height: 1px;
+  left: 22px;
+  position: absolute;
+  right: 22px;
+  top: 0;
+}
+
+.survey-card-kicker {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.survey-card-kicker span:last-child {
+  color: var(--text-faint);
+  font-size: 0.84rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.survey-access-pill {
+  align-items: center;
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 5px 10px;
+}
+
+.survey-access-pill-success {
+  background: var(--success-soft);
+  color: var(--success);
+}
+
+.survey-access-pill-muted {
+  background: var(--surface-muted);
+  color: var(--text-soft);
+}
+
+.survey-access-pill-warning {
+  background: var(--warning-soft);
+  color: var(--warning);
 }
 
 .survey-card-head,
@@ -839,6 +964,17 @@ input {
   gap: 10px 16px;
 }
 
+.survey-card-meta span {
+  background: var(--surface-muted);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text-soft);
+  display: inline-flex;
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 7px 12px;
+}
+
 .survey-card-stats {
   display: grid;
   gap: 14px;
@@ -856,6 +992,14 @@ input {
 .survey-card-stats dd,
 .builder-publish-summary dd {
   margin: 0;
+}
+
+.survey-card-note {
+  background: linear-gradient(180deg, rgba(255, 247, 230, 0.8) 0%, rgba(255, 251, 240, 0.96) 100%);
+  border: 1px solid rgba(154, 92, 0, 0.18);
+  border-radius: 14px;
+  color: var(--warning);
+  padding: 12px 14px;
 }
 
 .survey-badge {
@@ -1361,6 +1505,46 @@ input {
   width: fit-content;
 }
 
+.dashboard-hero-split {
+  align-items: flex-start;
+}
+
+.dashboard-hero-aside {
+  align-items: flex-start;
+  display: grid;
+  gap: 10px;
+  justify-items: end;
+}
+
+.dashboard-hero-chip {
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text-soft);
+  font-size: 0.86rem;
+  font-weight: 700;
+  padding: 8px 12px;
+}
+
+.dashboard-card-kicker {
+  color: var(--text);
+  font-size: 0.94rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.dashboard-task-list {
+  display: grid;
+  gap: 10px;
+}
+
+.dashboard-task-item {
+  background: var(--surface-muted);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 12px 14px;
+}
+
 .admin-workspace-switch {
   display: grid;
   gap: 10px;
@@ -1469,6 +1653,11 @@ input {
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
+.share-mode-card-disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 .share-mode-card strong {
   color: var(--text);
 }
@@ -1489,6 +1678,28 @@ input {
 .share-mode-card-active {
   background: var(--primary-soft);
   border-color: var(--primary);
+}
+
+.share-unpublished-state {
+  align-items: flex-start;
+  background: var(--warning-soft);
+  border: 1px solid rgba(154, 92, 0, 0.18);
+  border-radius: var(--radius-md);
+  display: flex;
+  gap: 12px;
+  padding: 16px;
+}
+
+.share-unpublished-icon {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 12px;
+  color: var(--warning);
+  display: inline-flex;
+  flex: 0 0 auto;
+  height: 34px;
+  justify-content: center;
+  width: 34px;
 }
 
 .share-chip-box {
@@ -1688,6 +1899,10 @@ input {
     flex-direction: column;
   }
 
+  .dashboard-hero-aside {
+    justify-items: start;
+  }
+
   .survey-card-stats {
     grid-template-columns: 1fr;
   }
@@ -1708,6 +1923,7 @@ input {
   .survey-runtime-question,
   .survey-runtime-confirmation {
     padding: 18px;
+    box-sizing: border-box;
   }
 
   .survey-preview-shell {

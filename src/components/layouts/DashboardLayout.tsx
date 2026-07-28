@@ -1,5 +1,6 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import {
+  BadgeCheck,
   Building2,
   Clock3,
   History,
@@ -12,7 +13,7 @@ import {
   Users,
   X
 } from "lucide-react";
-import { NavLink, Outlet } from "react-router-dom";
+import { NavLink, Outlet, useLocation } from "react-router-dom";
 
 import { BrandMark } from "../brand-mark";
 import { Button } from "../ui/button";
@@ -34,17 +35,19 @@ const adminNavItems = [
 
 const NavigationContent = () => {
   const auth = useAuth();
+  const location = useLocation();
+
+  const linkClassName = (itemTo: string, exact = false) => {
+    const isActive = exact ? location.pathname === itemTo : location.pathname === itemTo || location.pathname.startsWith(`${itemTo}/`);
+    return `sidebar-link ${isActive ? "sidebar-link-active" : ""}`;
+  };
 
   return (
     <div className="dashboard-sidebar-inner">
       <BrandMark />
       <nav className="sidebar-nav" aria-label="Primary">
         {navItems.map((item) => (
-          <NavLink
-            key={item.to}
-            className={({ isActive }) => `sidebar-link ${isActive ? "sidebar-link-active" : ""}`}
-            to={item.to}
-          >
+          <NavLink key={item.to} className={linkClassName(item.to, item.to === "/app")} to={item.to}>
             <item.icon size={18} />
             <span>{item.label}</span>
           </NavLink>
@@ -57,11 +60,7 @@ const NavigationContent = () => {
           </div>
           <nav className="sidebar-nav" aria-label="Admin">
             {adminNavItems.map((item) => (
-              <NavLink
-                key={item.to}
-                className={({ isActive }) => `sidebar-link ${isActive ? "sidebar-link-active" : ""}`}
-                to={item.to}
-              >
+              <NavLink key={item.to} className={linkClassName(item.to, item.to === "/admin")} to={item.to}>
                 <item.icon size={18} />
                 <span>{item.label}</span>
               </NavLink>
@@ -71,8 +70,16 @@ const NavigationContent = () => {
       ) : null}
       <div className="sidebar-footer">
         <div className="sidebar-user-card">
-          <p className="sidebar-user-name">{auth.user?.fullName}</p>
-          <p className="sidebar-user-email">{auth.user?.email}</p>
+          <div className="sidebar-user-head">
+            <div className="sidebar-user-avatar">
+              <BadgeCheck size={16} />
+            </div>
+            <div className="sidebar-user-copy">
+              <p className="sidebar-user-name">{auth.user?.fullName}</p>
+              <p className="sidebar-user-email">{auth.user?.email}</p>
+              <p className="sidebar-user-role">{auth.platformRole === "admin" ? "Platform Admin" : "Business Owner"}</p>
+            </div>
+          </div>
         </div>
         <Button className="sidebar-logout" onClick={auth.logout} size="sm" variant="ghost">
           <LogOut size={16} />

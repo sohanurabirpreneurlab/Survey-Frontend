@@ -37,6 +37,13 @@ export type SurveyVersionSettings = {
 
 export type Survey = {
   accessMode: SurveyAccessMode;
+  access: {
+    canEdit: boolean;
+    canRead: boolean;
+    isCrossOrganizationPreview: boolean;
+    message: string | null;
+    reason: "admin" | "organization_edit" | "organization_read_only" | "cross_organization_preview";
+  };
   closesAt: string | null;
   createdAt: string;
   createdBy: string;

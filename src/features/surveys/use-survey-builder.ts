@@ -173,7 +173,9 @@ export const useSurveyBuilder = (surveyId: string) => {
     }
   }, [definition, selectedQuestionId, selectedSectionId]);
 
-  const isEditable = Boolean(survey?.currentDraftVersionId && definition?.version.status === "draft");
+  const isEditable = Boolean(
+    survey?.access.canEdit && survey.currentDraftVersionId && definition?.version.status === "draft"
+  );
 
   const flushPendingSaves = async () => {
     pendingTimersRef.current.forEach((timerId) => window.clearTimeout(timerId));
@@ -242,6 +244,10 @@ export const useSurveyBuilder = (surveyId: string) => {
   };
 
   const updateSurveyFields = (patch: Partial<Survey>) => {
+    if (!survey?.access.canEdit) {
+      return;
+    }
+
     setSurvey((current) => (current ? mergeSurvey(current, patch) : current));
     const nextSurvey = survey ? mergeSurvey(survey, patch) : null;
 
@@ -265,7 +271,7 @@ export const useSurveyBuilder = (surveyId: string) => {
   };
 
   const updateDraftFields = (patch: Partial<SurveyVersion> & { settings?: Partial<SurveyVersionSettings> }) => {
-    if (!definition) {
+    if (!definition || !survey?.access.canEdit) {
       return;
     }
 
@@ -313,7 +319,7 @@ export const useSurveyBuilder = (surveyId: string) => {
   };
 
   const updateSection = (sectionId: string, patch: Partial<SurveySection>) => {
-    if (!definition) {
+    if (!definition || !survey?.access.canEdit) {
       return;
     }
 
@@ -356,7 +362,7 @@ export const useSurveyBuilder = (surveyId: string) => {
   };
 
   const deleteSection = async (sectionId: string) => {
-    if (!definition) {
+    if (!definition || !survey?.access.canEdit) {
       return;
     }
 
@@ -378,7 +384,7 @@ export const useSurveyBuilder = (surveyId: string) => {
   };
 
   const moveSection = async (sectionId: string, direction: -1 | 1) => {
-    if (!definition) {
+    if (!definition || !survey?.access.canEdit) {
       return;
     }
 
@@ -443,7 +449,7 @@ export const useSurveyBuilder = (surveyId: string) => {
     patch: Partial<Question>,
     options?: { confirmRemoveOptions?: boolean }
   ) => {
-    if (!definition) {
+    if (!definition || !survey?.access.canEdit) {
       return;
     }
 
@@ -504,7 +510,7 @@ export const useSurveyBuilder = (surveyId: string) => {
   };
 
   const deleteQuestion = async (questionId: string) => {
-    if (!definition) {
+    if (!definition || !survey?.access.canEdit) {
       return;
     }
 
@@ -518,7 +524,7 @@ export const useSurveyBuilder = (surveyId: string) => {
   };
 
   const moveQuestion = async (questionId: string, direction: -1 | 1) => {
-    if (!definition) {
+    if (!definition || !survey?.access.canEdit) {
       return;
     }
 
@@ -570,7 +576,7 @@ export const useSurveyBuilder = (surveyId: string) => {
   };
 
   const addOption = async (questionId: string) => {
-    if (!definition) {
+    if (!definition || !survey?.access.canEdit) {
       return;
     }
 
@@ -590,7 +596,7 @@ export const useSurveyBuilder = (surveyId: string) => {
   };
 
   const updateOption = (questionId: string, optionId: string, patch: Partial<QuestionOption>) => {
-    if (!definition) {
+    if (!definition || !survey?.access.canEdit) {
       return;
     }
 
@@ -630,7 +636,7 @@ export const useSurveyBuilder = (surveyId: string) => {
   };
 
   const deleteOption = async (questionId: string, optionId: string) => {
-    if (!definition) {
+    if (!definition || !survey?.access.canEdit) {
       return;
     }
 
@@ -642,7 +648,7 @@ export const useSurveyBuilder = (surveyId: string) => {
   };
 
   const moveOption = async (questionId: string, optionId: string, direction: -1 | 1) => {
-    if (!definition) {
+    if (!definition || !survey?.access.canEdit) {
       return;
     }
 

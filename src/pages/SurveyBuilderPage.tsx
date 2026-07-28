@@ -582,6 +582,25 @@ export const SurveyBuilderPage = () => {
     );
   }
 
+  if (builder.survey.access.isCrossOrganizationPreview) {
+    return (
+      <Card className="dashboard-empty-state">
+        <div>
+          <h2>Preview only for this survey</h2>
+          <p>{builder.survey.access.message ?? "This survey belongs to another organization."}</p>
+        </div>
+        <div className="survey-dialog-actions">
+          <Button asChild size="sm" variant="secondary">
+            <Link to="/app/surveys">Back to Surveys</Link>
+          </Button>
+          <Button asChild size="sm">
+            <Link to={`/app/surveys/${surveyId}/preview`}>Open Preview</Link>
+          </Button>
+        </div>
+      </Card>
+    );
+  }
+
   const onPublish = async () => {
     setPublishErrors([]);
     await builder.flushPendingSaves();
@@ -696,19 +715,23 @@ export const SurveyBuilderPage = () => {
                 </AlertDialog.Content>
               </AlertDialog.Portal>
             </AlertDialog.Root>
-          ) : (
-              <Button
-                disabled={builder.createDraftMutation.isPending}
-                onClick={() => void builder.createDraftMutation.mutateAsync(undefined)}
-                size="sm"
-              >
-                Create new draft version
-            </Button>
-          )}
+          ) : builder.survey.access.canEdit ? (
+               <Button
+                 disabled={builder.createDraftMutation.isPending}
+                 onClick={() => void builder.createDraftMutation.mutateAsync(undefined)}
+                 size="sm"
+               >
+                 Create new draft version
+             </Button>
+          ) : null}
         </div>
       </header>
 
-      {!builder.isEditable ? (
+      {builder.survey.access.message ? (
+        <InlineNotice>{builder.survey.access.message}</InlineNotice>
+      ) : null}
+
+      {!builder.isEditable && builder.survey.access.canEdit ? (
         <InlineNotice icon={<CheckCircle2 size={16} />}>
           This version is published and cannot be edited directly. Create a new draft version to continue editing.
         </InlineNotice>
