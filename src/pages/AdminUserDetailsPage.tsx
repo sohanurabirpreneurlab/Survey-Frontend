@@ -146,12 +146,12 @@ export const AdminUserDetailsPage = () => {
 
         <Card className="survey-card">
           <h2>Actions</h2>
-          <div className="builder-settings-stack">
+          <div className="survey-dialog-actions">
             {user.accountStatus === "pending" ? (
               <>
                 <AlertDialog.Root>
                   <AlertDialog.Trigger asChild>
-                    <Button>Approve account</Button>
+                    <Button size="sm">Approve account</Button>
                   </AlertDialog.Trigger>
                   <AlertDialog.Portal>
                     <AlertDialog.Overlay className="dialog-overlay" />
@@ -186,7 +186,7 @@ export const AdminUserDetailsPage = () => {
 
                 <AlertDialog.Root>
                   <AlertDialog.Trigger asChild>
-                    <Button variant="danger">Reject registration</Button>
+                    <Button size="sm" variant="danger">Reject registration</Button>
                   </AlertDialog.Trigger>
                   <AlertDialog.Portal>
                     <AlertDialog.Overlay className="dialog-overlay" />
@@ -222,12 +222,69 @@ export const AdminUserDetailsPage = () => {
             ) : null}
 
             {user.accountStatus === "approved" ? (
-              <Button onClick={() => void suspendMutation.mutateAsync(null)} variant="danger">
-                Suspend account
-              </Button>
+              <AlertDialog.Root>
+                <AlertDialog.Trigger asChild>
+                  <Button size="sm" variant="danger">Suspend account</Button>
+                </AlertDialog.Trigger>
+                <AlertDialog.Portal>
+                  <AlertDialog.Overlay className="dialog-overlay" />
+                  <AlertDialog.Content className="survey-dialog">
+                    <AlertDialog.Title>Suspend account</AlertDialog.Title>
+                    <AlertDialog.Description className="survey-dialog-copy">
+                      Are you sure you want to suspend this account? The user will lose application access until reactivated.
+                    </AlertDialog.Description>
+                    <div className="survey-dialog-actions">
+                      <AlertDialog.Cancel asChild>
+                        <Button size="sm" type="button" variant="secondary">
+                          Cancel
+                        </Button>
+                      </AlertDialog.Cancel>
+                      <AlertDialog.Action asChild>
+                        <Button
+                          disabled={suspendMutation.isPending}
+                          onClick={() => void suspendMutation.mutateAsync(null)}
+                          size="sm"
+                          variant="danger"
+                        >
+                          {suspendMutation.isPending ? "Suspending..." : "Yes, suspend"}
+                        </Button>
+                      </AlertDialog.Action>
+                    </div>
+                  </AlertDialog.Content>
+                </AlertDialog.Portal>
+              </AlertDialog.Root>
             ) : null}
             {user.accountStatus === "suspended" ? (
-              <Button onClick={() => void reactivateMutation.mutateAsync()}>Reactivate account</Button>
+              <AlertDialog.Root>
+                <AlertDialog.Trigger asChild>
+                  <Button size="sm">Reactivate account</Button>
+                </AlertDialog.Trigger>
+                <AlertDialog.Portal>
+                  <AlertDialog.Overlay className="dialog-overlay" />
+                  <AlertDialog.Content className="survey-dialog">
+                    <AlertDialog.Title>Reactivate account</AlertDialog.Title>
+                    <AlertDialog.Description className="survey-dialog-copy">
+                      Are you sure you want to reactivate this account? The user will regain access immediately.
+                    </AlertDialog.Description>
+                    <div className="survey-dialog-actions">
+                      <AlertDialog.Cancel asChild>
+                        <Button size="sm" type="button" variant="secondary">
+                          Cancel
+                        </Button>
+                      </AlertDialog.Cancel>
+                      <AlertDialog.Action asChild>
+                        <Button
+                          disabled={reactivateMutation.isPending}
+                          onClick={() => void reactivateMutation.mutateAsync()}
+                          size="sm"
+                        >
+                          {reactivateMutation.isPending ? "Reactivating..." : "Yes, reactivate"}
+                        </Button>
+                      </AlertDialog.Action>
+                    </div>
+                  </AlertDialog.Content>
+                </AlertDialog.Portal>
+              </AlertDialog.Root>
             ) : null}
           </div>
         </Card>

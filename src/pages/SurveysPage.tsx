@@ -1103,12 +1103,12 @@ export const SurveysPage = () => {
         </Card>
       ) : null}
 
-      <Card className="survey-route-note">
+      {/* <Card className="survey-route-note">
         <FolderKanban size={18} />
         <p>
           The survey list only loads summary data. Builder details, responses, and analytics stay on their own routes.
         </p>
-      </Card>
+      </Card> */}
     </div>
   );
 };
