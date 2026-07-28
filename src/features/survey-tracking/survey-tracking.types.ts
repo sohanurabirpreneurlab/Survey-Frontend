@@ -1,0 +1,90 @@
+import type {
+  PaginationMeta,
+  Question,
+  QuestionOption,
+  SurveyAccessMode,
+  SurveySection,
+  SurveyStatus,
+  SurveyVersion
+} from "../surveys/surveys.types";
+
+export type SurveyTrackingSummary = {
+  accessMode: SurveyAccessMode;
+  createdAt: string;
+  id: string;
+  inProgressResponseCount: number;
+  invitationCompletedCount: number;
+  invitationCount: number;
+  invitationOpenedCount: number;
+  invitationSentCount: number;
+  isPrivate: boolean;
+  organizationId: string;
+  organizationName: string;
+  status: SurveyStatus;
+  submittedResponseCount: number;
+  title: string | null;
+  updatedAt: string;
+};
+
+export type SurveyTrackingInvitationRecipient = {
+  completedAt: string | null;
+  createdAt: string;
+  email: string | null;
+  expiresAt: string | null;
+  firstOpenedAt: string | null;
+  id: string;
+  lastOpenedAt: string | null;
+  responseCount: number;
+  startedAt: string | null;
+  status: string;
+  surveyId: string;
+  updatedAt: string;
+};
+
+export type SurveyTrackingResponseItem = {
+  accessSource: "invitation" | "public";
+  invitationId: string | null;
+  lastSavedAt: string;
+  respondentEmail: string | null;
+  responseId: string;
+  responseStatus: "in_progress" | "submitted" | "invalidated" | "deleted";
+  sessionCreatedAt: string;
+  sessionId: string;
+  sessionStatus: "active" | "submitted" | "revoked" | "expired";
+  submittedAt: string | null;
+  surveyId: string;
+  surveyVersionId: string;
+};
+
+export type SurveyTrackingResponsePreview = {
+  answers: Array<{
+    optionIds: string[];
+    questionId: string;
+    questionStableKey: string;
+    valueBoolean: boolean | null;
+    valueDate: string | null;
+    valueJson: unknown;
+    valueNumber: number | null;
+    valueText: string | null;
+    valueTimestamp: string | null;
+  }>;
+  definition: {
+    options: QuestionOption[];
+    questions: Question[];
+    sections: SurveySection[];
+    version: SurveyVersion;
+  };
+  response: SurveyTrackingResponseItem;
+  survey: {
+    accessMode: SurveyAccessMode;
+    id: string;
+    organizationId: string;
+    status: SurveyStatus;
+    title: string | null;
+  };
+};
+
+export type SurveyTrackingListResponse = {
+  items: SurveyTrackingSummary[];
+  pagination: PaginationMeta;
+};

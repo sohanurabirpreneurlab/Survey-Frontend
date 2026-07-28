@@ -22,6 +22,7 @@ import { DashboardLayout } from "../components/layouts/DashboardLayout";
 import { useAuth } from "../features/auth/use-auth";
 import { AdminUsersPage } from "../pages/AdminUsersPage";
 import { AdminUserDetailsPage } from "../pages/AdminUserDetailsPage";
+import { SurveyTrackingPage } from "../pages/SurveyTrackingPage";
 import { SurveysPage } from "../pages/SurveysPage";
 
 const SurveyBuilderPage = lazy(() =>
@@ -32,6 +33,14 @@ const SurveyPreviewPage = lazy(() =>
 );
 const SurveyResponsesPage = lazy(() =>
   import("../pages/SurveyResponsesPage").then((module) => ({ default: module.SurveyResponsesPage }))
+);
+const SurveyTrackingResponsesPage = lazy(() =>
+  import("../pages/SurveyTrackingResponsesPage").then((module) => ({ default: module.SurveyTrackingResponsesPage }))
+);
+const SurveyTrackingResponsePreviewPage = lazy(() =>
+  import("../pages/SurveyTrackingResponsePreviewPage").then((module) => ({
+    default: module.SurveyTrackingResponsePreviewPage
+  }))
 );
 
 const LazyRoute = ({ children }: { children: React.ReactNode }) => (
@@ -147,6 +156,23 @@ export const appRoutes = [
         children: [
           { index: true, element: <DashboardPage /> },
           { path: "surveys", element: <SurveysPage /> },
+          { path: "tracking-surveys", element: <SurveyTrackingPage /> },
+          {
+            path: "tracking-surveys/:surveyId/responses",
+            element: (
+              <LazyRoute>
+                <SurveyTrackingResponsesPage />
+              </LazyRoute>
+            )
+          },
+          {
+            path: "tracking-surveys/:surveyId/responses/:responseId",
+            element: (
+              <LazyRoute>
+                <SurveyTrackingResponsePreviewPage />
+              </LazyRoute>
+            )
+          },
           { path: "surveys/new", element: <CreateSurveyPage /> },
           {
             path: "surveys/:surveyId/builder",

@@ -8,6 +8,7 @@ import {
   LogOut,
   Menu,
   PanelsTopLeft,
+  ScanSearch,
   Settings,
   ShieldCheck,
   Users,
@@ -22,6 +23,7 @@ import { useAuth } from "../../features/auth/use-auth";
 const navItems = [
   { to: "/app", label: "Dashboard", icon: LayoutDashboard },
   { to: "/app/surveys", label: "Surveys", icon: PanelsTopLeft },
+  { to: "/app/tracking-surveys", label: "Tracking Survey", icon: ScanSearch },
   { to: "/app/settings", label: "Settings", icon: Settings }
 ];
 
