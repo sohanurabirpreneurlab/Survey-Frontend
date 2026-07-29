@@ -1,8 +1,8 @@
 import { apiRequest, apiRequestWithMeta } from "../../lib/api";
 import type {
+  SurveyTrackingResponsesList,
   SurveyTrackingInvitationRecipient,
   SurveyTrackingListResponse,
-  SurveyTrackingResponseItem,
   SurveyTrackingResponsePreview,
   SurveyTrackingSummary
 } from "./survey-tracking.types";
@@ -30,7 +30,7 @@ export const listTrackingRecipientsRequest = (token: string, surveyId: string) =
   apiRequest<SurveyTrackingInvitationRecipient[]>(`/survey-tracking/surveys/${surveyId}/recipients`, { token });
 
 export const listTrackingResponsesRequest = (token: string, surveyId: string) =>
-  apiRequest<SurveyTrackingResponseItem[]>(`/survey-tracking/surveys/${surveyId}/responses`, { token });
+  apiRequest<SurveyTrackingResponsesList>(`/survey-tracking/surveys/${surveyId}/responses`, { token });
 
 export const getTrackingResponsePreviewRequest = (
   token: string,

@@ -5,11 +5,14 @@ import { ApiError } from "../../lib/api";
 import { toast } from "../../state/toast-store";
 import { useAuth } from "../auth/use-auth";
 import {
+  bulkUpdateOptionScoresRequest,
   closeSurveyRequest,
+  createCalculatedScoreRequest,
   createDraftRequest,
   createOptionRequest,
   createQuestionRequest,
   createSectionRequest,
+  deleteCalculatedScoreRequest,
   deleteOptionRequest,
   deleteQuestionRequest,
   deleteSectionRequest,
@@ -20,6 +23,7 @@ import {
   reorderQuestionsRequest,
   reorderSectionsRequest,
   reopenSurveyRequest,
+  updateCalculatedScoreRequest,
   updateDraftRequest,
   updateOptionRequest,
   updateQuestionRequest,
@@ -42,6 +46,9 @@ import {
   syncSection
 } from "./surveys.utils";
 import type {
+  CalculatedScoreCalculationType,
+  CalculatedScoreTargetType,
+  CalculatedScoreThresholdOperator,
   Question,
   QuestionOption,
   Survey,
@@ -701,6 +708,7 @@ export const useSurveyBuilder = (surveyId: string) => {
       const saved = await updateOptionRequest(token, surveyId, questionId, optionId, {
         label: nextOption.label,
         position: nextOption.position,
+        scoreValue: nextOption.scoreValue,
         settings: nextOption.settings,
         value: nextOption.value
       });
@@ -718,6 +726,59 @@ export const useSurveyBuilder = (surveyId: string) => {
           : current
       );
     }, BUILDER_AUTOSAVE_DELAY_MS);
+  };
+
+  const updateOptionScores = async (
+    questionId: string,
+    items: Array<{
+      optionId: string;
+      scoreValue: number | null;
+    }>
+  ) => {
+    if (!definition || !survey?.access.canEdit) {
+      return;
+    }
+
+    setDefinition({
+      ...definition,
+      options: definition.options.map((option) => {
+        const match = items.find((item) => item.optionId === option.id);
+        return match ? { ...option, scoreValue: match.scoreValue } : option;
+      })
+    });
+
+    schedule(`option-scores:${questionId}`, async () => {
+      const currentQuestionOptions = getQuestionOptions(
+        {
+          ...definition,
+          options: definition.options.map((option) => {
+            const match = items.find((item) => item.optionId === option.id);
+            return match ? { ...option, scoreValue: match.scoreValue } : option;
+          })
+        },
+        questionId
+      );
+
+      const saved = await bulkUpdateOptionScoresRequest(token, surveyId, questionId, {
+        options: currentQuestionOptions.map((option) => ({
+          optionId: option.id,
+          scoreValue: option.scoreValue
+        }))
+      });
+
+      if (!shouldApplyServerEcho(`option-scores:${questionId}`)) {
+        return;
+      }
+
+      setDefinition((current) =>
+        current
+          ? {
+              ...current,
+              options: current.options.map((option) => saved.find((item) => item.id === option.id) ?? option)
+            }
+          : current
+      );
+    });
   };
 
   const deleteOption = async (questionId: string, optionId: string) => {
@@ -773,6 +834,61 @@ export const useSurveyBuilder = (surveyId: string) => {
     });
   };
 
+  const upsertCalculatedScore = async (
+    calculatedScoreId: string | null,
+    payload: {
+      calculationType: CalculatedScoreCalculationType;
+      decimalPlaces: number;
+      key: string;
+      name: string;
+      requireAllAnswers: boolean;
+      sourceQuestionIds: string[];
+      targets: Array<{
+        targetId: string;
+        targetType: CalculatedScoreTargetType;
+      }>;
+      thresholdOperator: CalculatedScoreThresholdOperator;
+      thresholdValue: number;
+    }
+  ) => {
+    if (!definition || !survey?.access.canEdit) {
+      return null;
+    }
+
+    const saved = calculatedScoreId
+      ? await updateCalculatedScoreRequest(token, surveyId, calculatedScoreId, payload)
+      : await createCalculatedScoreRequest(token, surveyId, payload);
+
+    setDefinition((current) =>
+      current
+        ? {
+            ...current,
+            calculatedScores: calculatedScoreId
+              ? current.calculatedScores.map((score) => (score.id === saved.id ? saved : score))
+              : [...current.calculatedScores, saved]
+          }
+        : current
+    );
+
+    return saved;
+  };
+
+  const deleteCalculatedScore = async (calculatedScoreId: string) => {
+    if (!definition || !survey?.access.canEdit) {
+      return;
+    }
+
+    await deleteCalculatedScoreRequest(token, surveyId, calculatedScoreId);
+    setDefinition((current) =>
+      current
+        ? {
+            ...current,
+            calculatedScores: current.calculatedScores.filter((score) => score.id !== calculatedScoreId)
+          }
+        : current
+    );
+  };
+
   useEffect(() => {
     if (!definition || !survey || !isEditable || bootstrappedEmptyStateRef.current) {
       return;
@@ -803,6 +919,7 @@ export const useSurveyBuilder = (surveyId: string) => {
     addSection,
     closeMutation,
     createDraftMutation,
+    deleteCalculatedScore,
     definition,
     definitionQuery,
     deleteOption,
@@ -827,8 +944,10 @@ export const useSurveyBuilder = (surveyId: string) => {
     surveyQuery,
     updateDraftFields,
     updateOption,
+    updateOptionScores,
     updateQuestion,
     updateSection,
-    updateSurveyFields
+    updateSurveyFields,
+    upsertCalculatedScore
   };
 };

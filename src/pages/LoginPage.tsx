@@ -5,6 +5,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Card } from "../components/ui/card";
 import { Field, InlineNotice } from "../components/ui/field";
 import { Input } from "../components/ui/input";
+import { PasswordInput } from "../components/ui/password-input";
 import { Button } from "../components/ui/button";
 import { getApiErrorMessage, useLoginForm, useLoginMutation } from "../features/auth/use-auth-mutations";
 
@@ -60,7 +61,7 @@ export const LoginPage = () => {
         </Field>
 
         <Field error={form.formState.errors.password?.message} label="Password">
-          <Input autoComplete="current-password" placeholder="Enter your password" type="password" {...form.register("password")} />
+          <PasswordInput autoComplete="current-password" placeholder="Enter your password" {...form.register("password")} />
         </Field>
 
         <Button disabled={mutation.isPending} type="submit">

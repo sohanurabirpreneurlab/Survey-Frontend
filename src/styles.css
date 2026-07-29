@@ -226,6 +226,39 @@ input {
   box-shadow: 0 0 0 4px rgba(24, 79, 190, 0.12);
 }
 
+.input-password-wrap {
+  position: relative;
+}
+
+.input-password-field {
+  padding-right: 52px;
+}
+
+.input-password-toggle {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: var(--text-soft);
+  cursor: pointer;
+  display: inline-flex;
+  height: 100%;
+  justify-content: center;
+  padding: 0 14px;
+  position: absolute;
+  right: 0;
+  top: 0;
+}
+
+.input-password-toggle:hover {
+  color: var(--text);
+}
+
+.input-password-toggle:focus-visible {
+  border-radius: 14px;
+  box-shadow: 0 0 0 3px rgba(24, 79, 190, 0.18);
+  outline: none;
+}
+
 .button {
   align-items: center;
   border: 1px solid transparent;
@@ -1337,11 +1370,89 @@ input {
 }
 
 .builder-option-row {
+  align-items: center;
+  display: flex;
   gap: 8px;
 }
 
 .builder-option-row .input {
   flex: 1;
+}
+
+.builder-option-score {
+  flex: 0 0 108px;
+}
+
+.builder-score-card {
+  display: grid;
+  gap: 16px;
+  padding: 22px 20px;
+}
+
+.builder-score-card-head,
+.builder-score-grid,
+.builder-score-targets {
+  display: grid;
+  gap: 14px;
+}
+
+.builder-score-card-head {
+  align-items: start;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.builder-score-card-head p {
+  color: var(--text-soft);
+  margin: 8px 0 0;
+}
+
+.builder-score-head-actions {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.builder-score-card-body {
+  display: grid;
+  gap: 16px;
+}
+
+.builder-score-grid {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.builder-score-targets {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.builder-score-target-group {
+  background: var(--surface-muted);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+}
+
+.builder-score-target-group h5,
+.builder-score-card-head h4 {
+  margin: 0;
+}
+
+.builder-score-target-group strong {
+  display: block;
+  margin-bottom: 6px;
+}
+
+.builder-check-row {
+  align-items: flex-start;
+  display: flex;
+  gap: 10px;
+}
+
+.builder-check-row + .builder-check-row {
+  margin-top: 6px;
 }
 
 .builder-add-row {
@@ -1739,6 +1850,71 @@ input {
   white-space: pre-wrap;
 }
 
+.tracking-response-controls-card {
+  padding: 20px 22px;
+}
+
+.tracking-response-controls {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  justify-content: space-between;
+}
+
+.tracking-response-controls .survey-preview-toggle {
+  margin-top: 0;
+}
+
+.tracking-response-filters {
+  align-items: center;
+  display: flex;
+  flex: 1 1 420px;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.tracking-response-search {
+  align-items: center;
+  color: var(--text-soft);
+  display: flex;
+  flex: 1 1 280px;
+  gap: 10px;
+}
+
+.tracking-response-search-input {
+  min-width: 220px;
+}
+
+.tracking-response-sort-wrap {
+  min-width: 190px;
+}
+
+.tracking-question-heading {
+  display: grid;
+  gap: 4px;
+}
+
+.tracking-question-heading span {
+  color: var(--text-soft);
+  font-size: 0.8rem;
+  font-weight: 500;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.tracking-response-answer-cell {
+  display: inline-block;
+  max-width: 240px;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.tracking-responses-matrix-table {
+  min-width: 1320px;
+}
+
 .share-dialog-stack {
   display: grid;
   gap: 16px;
@@ -2114,6 +2290,58 @@ input {
 
   .admin-table-actions .button {
     width: 100%;
+  }
+
+  .tracking-response-controls {
+    align-items: stretch;
+  }
+
+  .tracking-response-filters {
+    justify-content: stretch;
+  }
+
+  .tracking-response-search {
+    flex-basis: 100%;
+  }
+
+  .tracking-response-search-input,
+  .tracking-response-sort-wrap {
+    width: 100%;
+  }
+
+  .tracking-responses-matrix-table {
+    display: table;
+    min-width: 980px;
+    width: 100%;
+  }
+
+  .tracking-responses-matrix-table thead {
+    display: table-header-group;
+  }
+
+  .tracking-responses-matrix-table tbody {
+    display: table-row-group;
+  }
+
+  .tracking-responses-matrix-table tr {
+    display: table-row;
+    padding: 0;
+    width: auto;
+  }
+
+  .tracking-responses-matrix-table td,
+  .tracking-responses-matrix-table th {
+    display: table-cell;
+    width: auto;
+  }
+
+  .tracking-responses-matrix-table td {
+    border-bottom: 1px solid var(--border);
+    padding: 16px 18px;
+  }
+
+  .tracking-responses-matrix-table td::before {
+    content: none;
   }
 
   .admin-role-editor {

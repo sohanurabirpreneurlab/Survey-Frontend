@@ -131,13 +131,63 @@ export type QuestionOption = {
   label: string;
   position: number;
   questionId: string;
+  scoreValue: number | null;
   settings: Record<string, unknown>;
   stableKey: string;
   updatedAt: string;
   value: string;
 };
 
+export const calculatedScoreCalculationTypes = ["average"] as const;
+export const calculatedScoreThresholdOperators = [
+  "less_than",
+  "less_than_or_equal",
+  "equal",
+  "greater_than_or_equal",
+  "greater_than"
+] as const;
+export const calculatedScoreTargetTypes = ["question", "section"] as const;
+
+export type CalculatedScoreCalculationType = (typeof calculatedScoreCalculationTypes)[number];
+export type CalculatedScoreThresholdOperator = (typeof calculatedScoreThresholdOperators)[number];
+export type CalculatedScoreTargetType = (typeof calculatedScoreTargetTypes)[number];
+
+export type SurveyCalculatedScoreQuestion = {
+  calculatedScoreId: string;
+  createdAt: string;
+  id: string;
+  position: number;
+  questionId: string;
+  weight: number;
+};
+
+export type SurveyCalculatedScoreTarget = {
+  calculatedScoreId: string;
+  createdAt: string;
+  id: string;
+  targetId: string;
+  targetType: CalculatedScoreTargetType;
+  updatedAt: string;
+};
+
+export type SurveyCalculatedScore = {
+  calculationType: CalculatedScoreCalculationType;
+  createdAt: string;
+  decimalPlaces: number;
+  id: string;
+  key: string;
+  name: string;
+  questions: SurveyCalculatedScoreQuestion[];
+  requireAllAnswers: boolean;
+  surveyVersionId: string;
+  targets: SurveyCalculatedScoreTarget[];
+  thresholdOperator: CalculatedScoreThresholdOperator;
+  thresholdValue: number;
+  updatedAt: string;
+};
+
 export type SurveyVersionDefinition = {
+  calculatedScores: SurveyCalculatedScore[];
   options: QuestionOption[];
   questions: Question[];
   sections: SurveySection[];

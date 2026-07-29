@@ -1,6 +1,6 @@
 import * as AlertDialog from "@radix-ui/react-alert-dialog";
 import * as Dialog from "@radix-ui/react-dialog";
-import { CheckCircle2, Eye, GripVertical, MoveDown, MoveUp, Plus, Settings2, Trash2 } from "lucide-react";
+import { Calculator, CheckCircle2, Eye, GripVertical, MoveDown, MoveUp, Plus, Settings2, Trash2 } from "lucide-react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
 
@@ -8,6 +8,16 @@ import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
 import { InlineNotice } from "../components/ui/field";
 import { Input } from "../components/ui/input";
+import {
+  buildQuestionGroupsBySection,
+  buildQuestionUsageById,
+  buildSectionConditionsById,
+  formatScoreCondition,
+  getQuestionScoreRange,
+  isQuestionScoringEnabled,
+  isScoringEligibleQuestion,
+  validateCalculatedScoreDraft
+} from "../features/surveys/survey-scoring";
 import { useSurveyBuilder } from "../features/surveys/use-survey-builder";
 import { SurveyStatusBadge } from "../features/surveys/SurveyStatusBadge";
 import {
@@ -19,11 +29,36 @@ import {
   sortQuestions,
   sortSections
 } from "../features/surveys/surveys.utils";
-import type { Question, QuestionType } from "../features/surveys/surveys.types";
+import type {
+  CalculatedScoreThresholdOperator,
+  Question,
+  QuestionType,
+  SurveyCalculatedScore
+} from "../features/surveys/surveys.types";
 
 const DEFAULT_SURVEY_TITLE = "Untitled survey";
 const DEFAULT_SECTION_TITLE = "Untitled section";
 const DEFAULT_QUESTION_TITLE = "Untitled question";
+const CALCULATED_SCORES_TAB_ID = "calculated-scores";
+const thresholdOperatorLabels: Record<CalculatedScoreThresholdOperator, string> = {
+  equal: "=",
+  greater_than: ">",
+  greater_than_or_equal: ">=",
+  less_than: "<",
+  less_than_or_equal: "<="
+};
+
+const readQuestionUsageLabel = (
+  usage: Array<{
+    name: string;
+  }>
+) => {
+  if (usage.length === 1) {
+    return `Used in ${usage[0].name}`;
+  }
+
+  return `Used in ${usage.length} scores`;
+};
 
 const readBuilderFieldValue = (value: string, placeholderSeed: string) =>
   value === placeholderSeed ? "" : value;
@@ -103,118 +138,118 @@ const SettingsPanel = ({
 
       {(showSurveyOnly || !question) ? (
         <div className="builder-settings-stack">
-          <label className="field">
-            <span className="field-label">Survey title</span>
-            <Input
-              onChange={(event) => builder.updateDraftFields({ title: event.target.value })}
-              placeholder={DEFAULT_SURVEY_TITLE}
-              value={readBuilderFieldValue(definition.version.title, DEFAULT_SURVEY_TITLE)}
-            />
-          </label>
-          <label className="field">
-            <span className="field-label">Description</span>
-            <textarea
-              className="textarea"
-              onChange={(event) => builder.updateDraftFields({ description: event.target.value })}
-              rows={4}
-              value={definition.version.description ?? ""}
-            />
-          </label>
-          <label className="field">
-            <span className="field-label">Access mode</span>
-            <select
-              className="input"
-              onChange={(event) => builder.updateSurveyFields({ accessMode: event.target.value as typeof survey.accessMode })}
-              value={survey.accessMode}
-            >
-              {Object.entries(accessModeLabels).map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="field">
-            <span className="field-label">Primary color</span>
-            <div className="survey-color-field">
+            <label className="field">
+              <span className="field-label">Survey title</span>
               <Input
+                onChange={(event) => builder.updateDraftFields({ title: event.target.value })}
+                placeholder={DEFAULT_SURVEY_TITLE}
+                value={readBuilderFieldValue(definition.version.title, DEFAULT_SURVEY_TITLE)}
+              />
+            </label>
+            <label className="field">
+              <span className="field-label">Description</span>
+              <textarea
+                className="textarea"
+                onChange={(event) => builder.updateDraftFields({ description: event.target.value })}
+                rows={4}
+                value={definition.version.description ?? ""}
+              />
+            </label>
+            <label className="field">
+              <span className="field-label">Access mode</span>
+              <select
+                className="input"
+                onChange={(event) => builder.updateSurveyFields({ accessMode: event.target.value as typeof survey.accessMode })}
+                value={survey.accessMode}
+              >
+                {Object.entries(accessModeLabels).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="field">
+              <span className="field-label">Primary color</span>
+              <div className="survey-color-field">
+                <Input
+                  onChange={(event) =>
+                    builder.updateDraftFields({
+                      settings: {
+                        ...definition.version.settings,
+                        theme: {
+                          ...definition.version.settings.theme,
+                          primaryColor: event.target.value
+                        }
+                      }
+                    })
+                  }
+                  type="color"
+                  value={definition.version.settings.theme.primaryColor ?? "#184fbe"}
+                />
+                <Input
+                  onChange={(event) =>
+                    builder.updateDraftFields({
+                      settings: {
+                        ...definition.version.settings,
+                        theme: {
+                          ...definition.version.settings.theme,
+                          primaryColor: event.target.value
+                        }
+                      }
+                    })
+                  }
+                  value={definition.version.settings.theme.primaryColor ?? "#184fbe"}
+                />
+              </div>
+            </label>
+            <label className="field">
+              <span className="field-label">Confirmation message</span>
+              <textarea
+                className="textarea"
                 onChange={(event) =>
                   builder.updateDraftFields({
                     settings: {
                       ...definition.version.settings,
-                      theme: {
-                        ...definition.version.settings.theme,
-                        primaryColor: event.target.value
-                      }
+                      confirmationMessage: event.target.value
                     }
                   })
                 }
-                type="color"
-                value={definition.version.settings.theme.primaryColor ?? "#184fbe"}
+                rows={4}
+                value={definition.version.settings.confirmationMessage}
               />
-              <Input
+            </label>
+            <label className="builder-switch">
+              <input
+                checked={definition.version.settings.showProgressBar}
                 onChange={(event) =>
                   builder.updateDraftFields({
                     settings: {
                       ...definition.version.settings,
-                      theme: {
-                        ...definition.version.settings.theme,
-                        primaryColor: event.target.value
-                      }
+                      showProgressBar: event.target.checked
                     }
                   })
                 }
-                value={definition.version.settings.theme.primaryColor ?? "#184fbe"}
+                type="checkbox"
               />
-            </div>
-          </label>
-          <label className="field">
-            <span className="field-label">Confirmation message</span>
-            <textarea
-              className="textarea"
-              onChange={(event) =>
-                builder.updateDraftFields({
-                  settings: {
-                    ...definition.version.settings,
-                    confirmationMessage: event.target.value
-                  }
-                })
-              }
-              rows={4}
-              value={definition.version.settings.confirmationMessage}
-            />
-          </label>
-          <label className="builder-switch">
-            <input
-              checked={definition.version.settings.showProgressBar}
-              onChange={(event) =>
-                builder.updateDraftFields({
-                  settings: {
-                    ...definition.version.settings,
-                    showProgressBar: event.target.checked
-                  }
-                })
-              }
-              type="checkbox"
-            />
-            <span>Show progress bar</span>
-          </label>
-          <label className="builder-switch">
-            <input
-              checked={definition.version.settings.shuffleQuestions}
-              onChange={(event) =>
-                builder.updateDraftFields({
-                  settings: {
-                    ...definition.version.settings,
-                    shuffleQuestions: event.target.checked
-                  }
-                })
-              }
-              type="checkbox"
-            />
-            <span>Shuffle questions</span>
-          </label>
-        </div>
+              <span>Show progress bar</span>
+            </label>
+            <label className="builder-switch">
+              <input
+                checked={definition.version.settings.shuffleQuestions}
+                onChange={(event) =>
+                  builder.updateDraftFields({
+                    settings: {
+                      ...definition.version.settings,
+                      shuffleQuestions: event.target.checked
+                    }
+                  })
+                }
+                type="checkbox"
+              />
+              <span>Shuffle questions</span>
+            </label>
+          </div>
       ) : null}
 
       {!showSurveyOnly && question && tab === "question" ? (
@@ -355,20 +390,385 @@ const SettingsPanel = ({
   );
 };
 
+const CalculatedScoresPanel = ({ builder }: { builder: ReturnType<typeof useSurveyBuilder> }) => {
+  const definition = builder.definition;
+  const [activeDraftId, setActiveDraftId] = useState<string | null>(null);
+
+  if (!definition) {
+    return null;
+  }
+
+  const scoreQuestions = definition.questions.filter((question) => isScoringEligibleQuestion(question));
+  const questionUsageById = buildQuestionUsageById(definition.calculatedScores);
+  const groupedQuestions = buildQuestionGroupsBySection(sortSections(definition.sections), sortQuestions(definition.questions));
+
+  const buildDraft = (score?: SurveyCalculatedScore) => ({
+    calculationType: score?.calculationType ?? "average",
+    decimalPlaces: score?.decimalPlaces ?? 2,
+    key: score?.key ?? "",
+    name: score?.name ?? "",
+    requireAllAnswers: score?.requireAllAnswers ?? false,
+    sourceQuestionIds: score?.questions.map((question) => question.questionId) ?? [],
+    targets:
+      score?.targets.map((target) => ({
+        targetId: target.targetId,
+        targetType: target.targetType
+      })) ?? [],
+    thresholdOperator: score?.thresholdOperator ?? "less_than_or_equal",
+    thresholdValue: score?.thresholdValue ?? 0
+  });
+
+  return (
+    <div className="builder-settings-stack">
+      <div className="builder-panel-header">
+        <div>
+          <h3>Calculated scores</h3>
+          <p>Configure score groups, thresholds, and follow-up targets for this survey version.</p>
+        </div>
+        {builder.isEditable ? (
+          <Button onClick={() => setActiveDraftId("new")} size="sm" variant="secondary">
+            <Plus size={16} />
+            Add calculated score
+          </Button>
+        ) : null}
+      </div>
+
+      {definition.calculatedScores.length === 0 ? (
+        <Card className="dashboard-empty-state">
+          <div>
+            <h4>No calculated scores yet</h4>
+            <p>Create a calculated score to show follow-up questions or sections based on score thresholds.</p>
+          </div>
+        </Card>
+      ) : null}
+
+      {definition.calculatedScores.map((score) => (
+        <CalculatedScoreCard
+          builder={builder}
+          definition={definition}
+          groupedQuestions={groupedQuestions}
+          initialValue={buildDraft(score)}
+          isExpanded={activeDraftId === score.id}
+          key={score.id}
+          onToggle={() => setActiveDraftId((current) => (current === score.id ? null : score.id))}
+          questionUsageById={questionUsageById}
+          score={score}
+          scoreQuestions={scoreQuestions}
+        />
+      ))}
+
+      {builder.isEditable && activeDraftId === "new" ? (
+        <CalculatedScoreCard
+          builder={builder}
+          definition={definition}
+          groupedQuestions={groupedQuestions}
+          initialValue={buildDraft()}
+          isExpanded
+          onToggle={() => setActiveDraftId(null)}
+          questionUsageById={questionUsageById}
+          score={null}
+          scoreQuestions={scoreQuestions}
+        />
+      ) : null}
+    </div>
+  );
+};
+
+const CalculatedScoreCard = ({
+  builder,
+  definition,
+  groupedQuestions,
+  initialValue,
+  isExpanded,
+  onToggle,
+  questionUsageById,
+  score,
+  scoreQuestions
+}: {
+  builder: ReturnType<typeof useSurveyBuilder>;
+  definition: NonNullable<ReturnType<typeof useSurveyBuilder>["definition"]>;
+  groupedQuestions: ReturnType<typeof buildQuestionGroupsBySection>;
+  initialValue: {
+    calculationType: "average";
+    decimalPlaces: number;
+    key: string;
+    name: string;
+    requireAllAnswers: boolean;
+    sourceQuestionIds: string[];
+    targets: Array<{
+      targetId: string;
+      targetType: "question" | "section";
+    }>;
+    thresholdOperator: CalculatedScoreThresholdOperator;
+    thresholdValue: number;
+  };
+  isExpanded: boolean;
+  onToggle: () => void;
+  questionUsageById: ReturnType<typeof buildQuestionUsageById>;
+  score: SurveyCalculatedScore | null;
+  scoreQuestions: Question[];
+}) => {
+  const [draft, setDraft] = useState(initialValue);
+  const [errors, setErrors] = useState<string[]>([]);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    setDraft(initialValue);
+  }, [initialValue]);
+
+  const updateDraft = <K extends keyof typeof draft>(key: K, value: (typeof draft)[K]) =>
+    setDraft((current) => ({ ...current, [key]: value }));
+
+  const toggleSourceQuestion = (questionId: string) =>
+    updateDraft(
+      "sourceQuestionIds",
+      draft.sourceQuestionIds.includes(questionId)
+        ? draft.sourceQuestionIds.filter((id) => id !== questionId)
+        : [...draft.sourceQuestionIds, questionId]
+    );
+
+  const updateTargets = (targetType: "question" | "section", targetIds: string[]) =>
+    updateDraft("targets", [
+      ...draft.targets.filter((target) => target.targetType !== targetType),
+      ...targetIds.map((targetId) => ({ targetId, targetType }))
+    ]);
+
+  const save = async () => {
+    const nextErrors = validateCalculatedScoreDraft({
+      definition,
+      draft,
+      existingScoreId: score?.id ?? null
+    });
+
+    setErrors(nextErrors);
+
+    if (nextErrors.length > 0) {
+      return;
+    }
+
+    setSaving(true);
+
+    try {
+      await builder.upsertCalculatedScore(score?.id ?? null, draft);
+      setErrors([]);
+      if (!score) {
+        onToggle();
+      }
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const selectedSectionIds = draft.targets.filter((target) => target.targetType === "section").map((target) => target.targetId);
+  const selectedQuestionIds = draft.targets.filter((target) => target.targetType === "question").map((target) => target.targetId);
+
+  return (
+    <Card className="builder-score-card">
+      <div className="builder-score-card-head">
+        <div>
+          <span className="builder-section-number">Calculated score</span>
+          <h4>{score ? score.name : "New score configuration"}</h4>
+          {score ? <p>{formatScoreCondition(score)}</p> : null}
+        </div>
+        <div className="builder-score-head-actions">
+          <Button onClick={onToggle} size="sm" variant="ghost">
+            {isExpanded ? "Collapse" : "Edit"}
+          </Button>
+          {score ? (
+            <DeleteDialog
+              description="Deleting this calculated score removes its threshold-based follow-up behavior from the draft."
+              onConfirm={() => builder.deleteCalculatedScore(score.id)}
+              title="Delete calculated score?"
+            >
+              <Button size="sm" variant="ghost">
+                <Trash2 size={16} />
+                Delete
+              </Button>
+            </DeleteDialog>
+          ) : null}
+        </div>
+      </div>
+
+      {isExpanded ? (
+        <div className="builder-score-card-body">
+      <div className="builder-score-grid">
+        <label className="field">
+          <span className="field-label">Name</span>
+          <Input onChange={(event) => updateDraft("name", event.target.value)} value={draft.name} />
+        </label>
+        <label className="field">
+          <span className="field-label">Key</span>
+          <Input onChange={(event) => updateDraft("key", event.target.value.toUpperCase())} value={draft.key} />
+        </label>
+        <label className="field">
+          <span className="field-label">Threshold operator</span>
+          <select
+            className="input"
+            onChange={(event) => updateDraft("thresholdOperator", event.target.value as CalculatedScoreThresholdOperator)}
+            value={draft.thresholdOperator}
+          >
+            {Object.entries(thresholdOperatorLabels).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="field">
+          <span className="field-label">Threshold value</span>
+          <Input
+            onChange={(event) => updateDraft("thresholdValue", Number(event.target.value))}
+            type="number"
+            value={String(draft.thresholdValue)}
+          />
+        </label>
+      </div>
+
+        <label className="builder-switch">
+          <input
+            checked={draft.requireAllAnswers}
+            onChange={(event) => updateDraft("requireAllAnswers", event.target.checked)}
+            type="checkbox"
+        />
+        <span>Require answers for every source question</span>
+      </label>
+
+      <div className="builder-score-targets">
+        <div className="builder-score-target-group">
+          <h5>Source questions</h5>
+          {groupedQuestions.map(({ questions, section }) => (
+            <div key={section.id}>
+              <strong>{section.title}</strong>
+              {questions.map((question) => {
+                const options = definition.options.filter((option) => option.questionId === question.id);
+                const isEligible = isScoringEligibleQuestion(question);
+                const scoringEnabled = isQuestionScoringEnabled(question, options);
+                const range = getQuestionScoreRange(question, options);
+                const usage = questionUsageById.get(question.id) ?? [];
+
+                return (
+                  <label
+                    aria-disabled={!isEligible || !scoringEnabled}
+                    className="builder-check-row"
+                    key={question.id}
+                    title={usage.length > 0 ? usage.map((item) => item.name).join(", ") : undefined}
+                  >
+                    <input
+                      checked={draft.sourceQuestionIds.includes(question.id)}
+                      disabled={!isEligible || !scoringEnabled}
+                      onChange={() => toggleSourceQuestion(question.id)}
+                      type="checkbox"
+                    />
+                    <span>
+                      {question.title}
+                      {!isEligible ? " - Not eligible for scoring" : null}
+                      {isEligible && !scoringEnabled ? " - Configure scoring first" : null}
+                      {range ? ` - Scale ${range.minimum}-${range.maximum}` : null}
+                      {usage.length > 0 ? ` - ${readQuestionUsageLabel(usage)}` : null}
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+          ))}
+        </div>
+
+        <div className="builder-score-target-group">
+          <h5>Follow-up sections</h5>
+          {sortSections(definition.sections).map((section) => (
+            (() => {
+              const containsSourceQuestion = definition.questions.some(
+                (question) => question.sectionId === section.id && draft.sourceQuestionIds.includes(question.id)
+              );
+
+              return (
+                <label aria-disabled={containsSourceQuestion} className="builder-check-row" key={section.id}>
+                  <input
+                    checked={selectedSectionIds.includes(section.id)}
+                    disabled={containsSourceQuestion}
+                    onChange={(event) =>
+                      updateTargets(
+                        "section",
+                        event.target.checked
+                          ? [...selectedSectionIds, section.id]
+                          : selectedSectionIds.filter((id) => id !== section.id)
+                      )
+                    }
+                    type="checkbox"
+                  />
+                  <span>
+                    {section.title}
+                    {containsSourceQuestion ? " - Unavailable: contains a source question" : null}
+                  </span>
+                </label>
+              );
+            })()
+          ))}
+        </div>
+
+        <div className="builder-score-target-group">
+          <h5>Follow-up questions</h5>
+          {sortQuestions(definition.questions).map((question) => (
+            <label className="builder-check-row" key={question.id}>
+              <input
+                checked={selectedQuestionIds.includes(question.id)}
+                onChange={(event) =>
+                  updateTargets(
+                    "question",
+                    event.target.checked
+                      ? [...selectedQuestionIds, question.id]
+                      : selectedQuestionIds.filter((id) => id !== question.id)
+                  )
+                }
+                type="checkbox"
+              />
+              <span>{question.title}</span>
+            </label>
+          ))}
+        </div>
+      </div>
+
+      {builder.isEditable ? (
+        <div className="builder-question-actions">
+          <Button onClick={() => void save()} size="sm">
+            <Calculator size={16} />
+            {saving ? "Saving..." : score ? "Save score config" : "Create calculated score"}
+          </Button>
+        </div>
+      ) : null}
+      {errors.length > 0 ? (
+        <InlineNotice tone="danger">
+          <ul className="builder-publish-errors">
+            {errors.map((error) => (
+              <li key={error}>{error}</li>
+            ))}
+          </ul>
+        </InlineNotice>
+      ) : null}
+        </div>
+      ) : null}
+    </Card>
+  );
+};
+
 const SURVEY_TAB_ID = "survey";
 
 const QuestionCard = ({
   builder,
   question,
-  sectionIndex
+  sectionIndex,
+  usage
 }: {
   builder: ReturnType<typeof useSurveyBuilder>;
   question: Question;
   sectionIndex: number;
+  usage: Array<{ name: string }>;
 }) => {
   const definition = builder.definition!;
   const questionOptions = getQuestionOptions(definition, question.id);
   const selected = builder.selectedQuestionId === question.id;
+  const scoringEnabled = isQuestionScoringEnabled(question, questionOptions);
+  const scoringEligible = isScoringEligibleQuestion(question);
 
   return (
     <Card className={selected ? "builder-question-card builder-question-card-active" : "builder-question-card"}>
@@ -401,6 +801,15 @@ const QuestionCard = ({
           value={question.description ?? ""}
         />
       </label>
+
+      <div className="builder-badge-row">
+        {scoringEnabled ? <span className="builder-inline-badge">Scored</span> : null}
+        {usage.length > 0 ? (
+          <span className="builder-inline-badge" title={usage.map((item) => item.name).join(", ")}>
+            {readQuestionUsageLabel(usage)}
+          </span>
+        ) : null}
+      </div>
 
       <div className="builder-question-row">
         <label className="field">
@@ -441,6 +850,42 @@ const QuestionCard = ({
         </label>
       </div>
 
+      {scoringEligible ? (
+        <label className="builder-switch">
+          <input
+            checked={scoringEnabled}
+            onChange={(event) => {
+              const nextChecked = event.target.checked;
+              if (!nextChecked && usage.length > 0) {
+                window.alert(
+                  `This question is used by ${usage.map((item) => `"${item.name}"`).join(", ")}. Remove it from those calculated scores before disabling numeric scoring.`
+                );
+                return;
+              }
+
+              builder.updateQuestion(question.id, {
+                settings: {
+                  ...question.settings,
+                  scoringEnabled: nextChecked
+                }
+              });
+
+              if (!nextChecked && (question.type === "single_choice" || question.type === "vote")) {
+                void builder.updateOptionScores(
+                  question.id,
+                  questionOptions.map((option) => ({
+                    optionId: option.id,
+                    scoreValue: null
+                  }))
+                );
+              }
+            }}
+            type="checkbox"
+          />
+          <span>Enable numeric scoring</span>
+        </label>
+      ) : null}
+
       {questionSupportsOptions(question.type) ? (
         <div className="builder-options-editor">
           <div className="builder-options-header">
@@ -462,6 +907,23 @@ const QuestionCard = ({
                 }
                 value={option.label}
               />
+              {(question.type === "single_choice" || question.type === "vote") && scoringEnabled ? (
+                <Input
+                  aria-label={`Score for ${option.label}`}
+                  className="builder-option-score"
+                  onChange={(event) =>
+                    void builder.updateOptionScores(question.id, [
+                      {
+                        optionId: option.id,
+                        scoreValue: event.target.value === "" ? null : Number(event.target.value)
+                      }
+                    ])
+                  }
+                  placeholder="Score"
+                  type="number"
+                  value={option.scoreValue === null ? "" : String(option.scoreValue)}
+                />
+              ) : null}
               <Button aria-label="Move option up" onClick={() => void builder.moveOption(question.id, option.id, -1)} size="sm" variant="ghost">
                 <MoveUp size={16} />
               </Button>
@@ -520,9 +982,17 @@ export const SurveyBuilderPage = () => {
   );
   const definition = builder.definition;
   const activeSection =
-    activeWorkspaceTab === SURVEY_TAB_ID
+    activeWorkspaceTab === SURVEY_TAB_ID || activeWorkspaceTab === CALCULATED_SCORES_TAB_ID
       ? null
       : orderedSections.find((section) => section.id === activeWorkspaceTab) ?? null;
+  const questionUsageById = useMemo(
+    () => buildQuestionUsageById(definition?.calculatedScores ?? []),
+    [definition?.calculatedScores]
+  );
+  const sectionConditionsById = useMemo(
+    () => buildSectionConditionsById(definition?.calculatedScores ?? []),
+    [definition?.calculatedScores]
+  );
 
   const selectSectionTab = (sectionId: string) => {
     if (!definition) {
@@ -537,7 +1007,7 @@ export const SurveyBuilderPage = () => {
   };
 
   useEffect(() => {
-    if (activeWorkspaceTab === SURVEY_TAB_ID) {
+    if (activeWorkspaceTab === SURVEY_TAB_ID || activeWorkspaceTab === CALCULATED_SCORES_TAB_ID) {
       return;
     }
 
@@ -777,12 +1247,31 @@ export const SurveyBuilderPage = () => {
                 <span className="builder-section-tab-badge">Settings</span>
               </div>
             </button>
+            <button
+              aria-selected={activeWorkspaceTab === CALCULATED_SCORES_TAB_ID}
+              className={
+                activeWorkspaceTab === CALCULATED_SCORES_TAB_ID
+                  ? "builder-section-tab builder-section-tab-active"
+                  : "builder-section-tab"
+              }
+              onClick={() => setActiveWorkspaceTab(CALCULATED_SCORES_TAB_ID)}
+              role="tab"
+              title="Manage calculated scores"
+              type="button"
+            >
+              <strong>Calculated Scores</strong>
+              <div className="builder-section-tab-meta">
+                <span>Thresholds, source questions, follow-up targets</span>
+                <span className="builder-section-tab-badge">{definition.calculatedScores.length}</span>
+              </div>
+            </button>
             {orderedSections.map((section, index) => (
               (() => {
                 const questionCount = definition.questions.filter((question) => question.sectionId === section.id).length;
+                const conditions = sectionConditionsById.get(section.id) ?? [];
 
                 return (
-              <button
+               <button
                 aria-selected={activeWorkspaceTab === section.id}
                 className={
                   activeWorkspaceTab === section.id
@@ -803,6 +1292,13 @@ export const SurveyBuilderPage = () => {
                     <span>Section workspace</span>
                     <span className="builder-section-tab-badge">{questionCount}</span>
                   </div>
+                  {conditions.length > 0 ? (
+                    <div className="builder-badge-row">
+                      <span className="builder-inline-badge" title={conditions.map((item) => formatScoreCondition(item)).join(", ")}>
+                        {conditions.length === 1 ? `Conditional: ${formatScoreCondition(conditions[0])}` : `Conditional: ${conditions.length} rules`}
+                      </span>
+                    </div>
+                  ) : null}
                 </div>
               </button>
                 );
@@ -812,6 +1308,8 @@ export const SurveyBuilderPage = () => {
 
           {activeWorkspaceTab === SURVEY_TAB_ID ? (
             <SettingsPanel builder={builder} mode="survey" />
+          ) : activeWorkspaceTab === CALCULATED_SCORES_TAB_ID ? (
+            <CalculatedScoresPanel builder={builder} />
           ) : activeSection ? (
             <section className="builder-section-block" key={activeSection.id}>
               {(() => {
@@ -868,6 +1366,7 @@ export const SurveyBuilderPage = () => {
                       key={question.id}
                       question={question}
                       sectionIndex={sectionIndex}
+                      usage={questionUsageById.get(question.id) ?? []}
                     />
                   ))}
                 </div>

@@ -69,6 +69,7 @@ export const buildEmptyDraftDefinition = (
   title: string,
   description: string | null
 ): SurveyVersionDefinition => ({
+  calculatedScores: [],
   options: [],
   questions: [],
   sections: [],

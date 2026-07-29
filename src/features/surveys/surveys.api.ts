@@ -1,6 +1,9 @@
 import { apiRequest, apiRequestWithMeta } from "../../lib/api";
 
 import type {
+  CalculatedScoreCalculationType,
+  CalculatedScoreTargetType,
+  CalculatedScoreThresholdOperator,
   CreateInvitationsBatchResult,
   InvitationListItem,
   OrganizationSummary,
@@ -8,6 +11,7 @@ import type {
   Question,
   QuestionOption,
   Survey,
+  SurveyCalculatedScore,
   SurveyShareInfo,
   SurveyResponseSummary,
   SurveySection,
@@ -246,9 +250,26 @@ export const updateOptionRequest = (
   surveyId: string,
   questionId: string,
   optionId: string,
-  payload: { label: string; position: number; settings: Record<string, unknown>; value: string }
+  payload: { label: string; position: number; scoreValue: number | null; settings: Record<string, unknown>; value: string }
 ) =>
   apiRequest<QuestionOption>(`/surveys/${surveyId}/draft/questions/${questionId}/options/${optionId}`, {
+    body: payload,
+    method: "PATCH",
+    token
+  });
+
+export const bulkUpdateOptionScoresRequest = (
+  token: string,
+  surveyId: string,
+  questionId: string,
+  payload: {
+    options: Array<{
+      optionId: string;
+      scoreValue: number | null;
+    }>;
+  }
+) =>
+  apiRequest<QuestionOption[]>(`/surveys/${surveyId}/draft/questions/${questionId}/options/scores`, {
     body: payload,
     method: "PATCH",
     token
@@ -279,3 +300,43 @@ export const reorderOptionsRequest = (
 
 export const getSurveyResultsRequest = (token: string, surveyId: string) =>
   apiRequest<SurveyResponseSummary>(`/surveys/${surveyId}/results`, { token });
+
+type CalculatedScorePayload = {
+  calculationType: CalculatedScoreCalculationType;
+  decimalPlaces: number;
+  key: string;
+  name: string;
+  requireAllAnswers: boolean;
+  sourceQuestionIds: string[];
+  targets: Array<{
+    targetId: string;
+    targetType: CalculatedScoreTargetType;
+  }>;
+  thresholdOperator: CalculatedScoreThresholdOperator;
+  thresholdValue: number;
+};
+
+export const createCalculatedScoreRequest = (token: string, surveyId: string, payload: CalculatedScorePayload) =>
+  apiRequest<SurveyCalculatedScore>(`/surveys/${surveyId}/draft/calculated-scores`, {
+    body: payload,
+    method: "POST",
+    token
+  });
+
+export const updateCalculatedScoreRequest = (
+  token: string,
+  surveyId: string,
+  calculatedScoreId: string,
+  payload: CalculatedScorePayload
+) =>
+  apiRequest<SurveyCalculatedScore>(`/surveys/${surveyId}/draft/calculated-scores/${calculatedScoreId}`, {
+    body: payload,
+    method: "PATCH",
+    token
+  });
+
+export const deleteCalculatedScoreRequest = (token: string, surveyId: string, calculatedScoreId: string) =>
+  apiRequest<null>(`/surveys/${surveyId}/draft/calculated-scores/${calculatedScoreId}`, {
+    method: "DELETE",
+    token
+  });

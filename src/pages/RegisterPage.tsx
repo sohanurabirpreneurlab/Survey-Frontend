@@ -6,6 +6,7 @@ import { Link } from "react-router-dom";
 import { Card } from "../components/ui/card";
 import { Field, InlineNotice } from "../components/ui/field";
 import { Input } from "../components/ui/input";
+import { PasswordInput } from "../components/ui/password-input";
 import { Button } from "../components/ui/button";
 import { listPublicOrganizationsRequest } from "../features/auth/auth-api";
 import { getApiErrorMessage, useRegisterForm, useRegisterMutation } from "../features/auth/use-auth-mutations";
@@ -99,7 +100,7 @@ export const RegisterPage = () => {
           hint="Use 10+ characters with uppercase, lowercase, a number, and a symbol."
           label="Password"
         >
-          <Input autoComplete="new-password" placeholder="Create a secure password" type="password" {...form.register("password")} />
+          <PasswordInput autoComplete="new-password" placeholder="Create a secure password" {...form.register("password")} />
         </Field>
 
         <Button
