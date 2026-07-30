@@ -1,8 +1,9 @@
 import { Slot } from "@radix-ui/react-slot";
-import { forwardRef } from "react";
+import { forwardRef, useSyncExternalStore } from "react";
 import type { ButtonHTMLAttributes, PropsWithChildren } from "react";
 
 import { cn } from "../../lib/cn";
+import { getWriteRequestSnapshot, subscribeToWriteRequests } from "../../lib/write-request-store";
 
 type ButtonProps = PropsWithChildren<
   ButtonHTMLAttributes<HTMLButtonElement> & {
@@ -28,12 +29,20 @@ const sizeClassMap = {
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   ({ asChild, children, className, size = "md", variant = "primary", ...props }, ref) => {
     const Comp = asChild ? Slot : "button";
+    const hasActiveWriteRequest = useSyncExternalStore(
+      subscribeToWriteRequests,
+      getWriteRequestSnapshot,
+      getWriteRequestSnapshot
+    );
+    const { disabled: disabledProp, ...restProps } = props;
+    const disabled = !asChild && (disabledProp || hasActiveWriteRequest);
 
     return (
       <Comp
         className={cn(variantClassMap[variant], sizeClassMap[size], className)}
+        disabled={disabled}
         ref={ref}
-        {...props}
+        {...restProps}
       >
         {children}
       </Comp>

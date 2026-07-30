@@ -69,6 +69,35 @@ const changeMessage = (error: unknown) => {
   return "Your latest changes could not be saved.";
 };
 
+const mutationErrorMessage = (error: unknown) =>
+  error instanceof ApiError ? error.message : "Please try again.";
+
+const pruneCalculatedScoresAfterQuestionRemoval = (
+  calculatedScores: SurveyVersionDefinition["calculatedScores"],
+  removedQuestionIds: string[],
+  removedSectionIds: string[] = []
+) => {
+  const removedQuestionIdSet = new Set(removedQuestionIds);
+  const removedSectionIdSet = new Set(removedSectionIds);
+
+  return calculatedScores
+    .map((score) => ({
+      ...score,
+      questions: score.questions.filter((question) => !removedQuestionIdSet.has(question.questionId)),
+      targets: score.targets.filter((target) => {
+        if (target.targetType === "question") {
+          return !removedQuestionIdSet.has(target.targetId);
+        }
+
+        if (target.targetType === "section") {
+          return !removedSectionIdSet.has(target.targetId);
+        }
+
+        return true;
+      })
+    }));
+};
+
 const reindexItems = <T extends { position: number }>(items: T[]) =>
   items.map((item, index) => ({ ...item, position: index }));
 
@@ -349,6 +378,7 @@ export const useSurveyBuilder = (surveyId: string) => {
           : current
       );
       setSelectedSectionId((current) => (current === tempId ? section.id : current));
+      toast.success("Section created", "A new section was added to the draft.");
       return section;
     } catch (error) {
       setDefinition((current) =>
@@ -362,6 +392,7 @@ export const useSurveyBuilder = (surveyId: string) => {
       setSelectedSectionId((current) => (current === tempId ? null : current));
       setSaveState("failed");
       setSaveMessage(changeMessage(error));
+      toast.danger("Create section failed", mutationErrorMessage(error));
       throw error;
     }
   };
@@ -414,21 +445,32 @@ export const useSurveyBuilder = (surveyId: string) => {
       return;
     }
 
-    await deleteSectionRequest(token, surveyId, sectionId);
-    const remainingQuestions = definition.questions.filter((question) => question.sectionId !== sectionId);
-    const remainingQuestionIds = new Set(remainingQuestions.map((question) => question.id));
-    setDefinition({
-      ...definition,
-      options: definition.options.filter((option) => remainingQuestionIds.has(option.questionId)),
-      questions: remainingQuestions,
-      sections: definition.sections.filter((section) => section.id !== sectionId)
-    });
-    setSelectedSectionId((current) => (current === sectionId ? null : current));
-    setSelectedQuestionId((current) =>
-      definition.questions.some((question) => question.sectionId === sectionId && question.id === current)
-        ? null
-        : current
-    );
+    try {
+      await deleteSectionRequest(token, surveyId, sectionId);
+      const remainingQuestions = definition.questions.filter((question) => question.sectionId !== sectionId);
+      const remainingQuestionIds = new Set(remainingQuestions.map((question) => question.id));
+      setDefinition({
+        ...definition,
+        calculatedScores: pruneCalculatedScoresAfterQuestionRemoval(
+          definition.calculatedScores,
+          definition.questions.filter((question) => question.sectionId === sectionId).map((question) => question.id),
+          [sectionId]
+        ),
+        options: definition.options.filter((option) => remainingQuestionIds.has(option.questionId)),
+        questions: remainingQuestions,
+        sections: definition.sections.filter((section) => section.id !== sectionId)
+      });
+      setSelectedSectionId((current) => (current === sectionId ? null : current));
+      setSelectedQuestionId((current) =>
+        definition.questions.some((question) => question.sectionId === sectionId && question.id === current)
+          ? null
+          : current
+      );
+      toast.success("Section deleted", "The section and its questions were removed from the draft.");
+    } catch (error) {
+      toast.danger("Delete section failed", mutationErrorMessage(error));
+      throw error;
+    }
   };
 
   const moveSection = async (sectionId: string, direction: -1 | 1) => {
@@ -519,6 +561,7 @@ export const useSurveyBuilder = (surveyId: string) => {
           : current
       );
       setSelectedQuestionId((current) => (current === tempId ? question.id : current));
+      toast.success("Question created", "A new question was added to the section.");
       return question;
     } catch (error) {
       setDefinition((current) =>
@@ -532,6 +575,7 @@ export const useSurveyBuilder = (surveyId: string) => {
       setSelectedQuestionId((current) => (current === tempId ? null : current));
       setSaveState("failed");
       setSaveMessage(changeMessage(error));
+      toast.danger("Create question failed", mutationErrorMessage(error));
       throw error;
     }
   };
@@ -606,13 +650,20 @@ export const useSurveyBuilder = (surveyId: string) => {
       return;
     }
 
-    await deleteQuestionRequest(token, surveyId, questionId);
-    setDefinition({
-      ...definition,
-      options: definition.options.filter((option) => option.questionId !== questionId),
-      questions: definition.questions.filter((question) => question.id !== questionId)
-    });
-    setSelectedQuestionId((current) => (current === questionId ? null : current));
+    try {
+      await deleteQuestionRequest(token, surveyId, questionId);
+      setDefinition({
+        ...definition,
+        calculatedScores: pruneCalculatedScoresAfterQuestionRemoval(definition.calculatedScores, [questionId]),
+        options: definition.options.filter((option) => option.questionId !== questionId),
+        questions: definition.questions.filter((question) => question.id !== questionId)
+      });
+      setSelectedQuestionId((current) => (current === questionId ? null : current));
+      toast.success("Question deleted", "The question and its options were removed from the draft.");
+    } catch (error) {
+      toast.danger("Delete question failed", mutationErrorMessage(error));
+      throw error;
+    }
   };
 
   const moveQuestion = async (questionId: string, direction: -1 | 1) => {
@@ -672,19 +723,25 @@ export const useSurveyBuilder = (surveyId: string) => {
       return;
     }
 
-    const currentOptions = getQuestionOptions(definition, questionId);
-    const index = currentOptions.length + 1;
-    const option = await createOptionRequest(token, surveyId, questionId, {
-      label: `Option ${index}`,
-      position: currentOptions.length,
-      settings: {},
-      value: `option_${index}`
-    });
+    try {
+      const currentOptions = getQuestionOptions(definition, questionId);
+      const index = currentOptions.length + 1;
+      const option = await createOptionRequest(token, surveyId, questionId, {
+        label: `Option ${index}`,
+        position: currentOptions.length,
+        settings: {},
+        value: `option_${index}`
+      });
 
-    setDefinition({
-      ...definition,
-      options: [...definition.options, option]
-    });
+      setDefinition({
+        ...definition,
+        options: [...definition.options, option]
+      });
+      toast.success("Option created", "A new answer option was added.");
+    } catch (error) {
+      toast.danger("Create option failed", mutationErrorMessage(error));
+      throw error;
+    }
   };
 
   const updateOption = (questionId: string, optionId: string, patch: Partial<QuestionOption>) => {
@@ -786,11 +843,17 @@ export const useSurveyBuilder = (surveyId: string) => {
       return;
     }
 
-    await deleteOptionRequest(token, surveyId, questionId, optionId);
-    setDefinition({
-      ...definition,
-      options: definition.options.filter((option) => option.id !== optionId)
-    });
+    try {
+      await deleteOptionRequest(token, surveyId, questionId, optionId);
+      setDefinition({
+        ...definition,
+        options: definition.options.filter((option) => option.id !== optionId)
+      });
+      toast.success("Option deleted", "The answer option was removed.");
+    } catch (error) {
+      toast.danger("Delete option failed", mutationErrorMessage(error));
+      throw error;
+    }
   };
 
   const moveOption = async (questionId: string, optionId: string, direction: -1 | 1) => {
@@ -855,22 +918,34 @@ export const useSurveyBuilder = (surveyId: string) => {
       return null;
     }
 
-    const saved = calculatedScoreId
-      ? await updateCalculatedScoreRequest(token, surveyId, calculatedScoreId, payload)
-      : await createCalculatedScoreRequest(token, surveyId, payload);
+    try {
+      const saved = calculatedScoreId
+        ? await updateCalculatedScoreRequest(token, surveyId, calculatedScoreId, payload)
+        : await createCalculatedScoreRequest(token, surveyId, payload);
 
-    setDefinition((current) =>
-      current
-        ? {
-            ...current,
-            calculatedScores: calculatedScoreId
-              ? current.calculatedScores.map((score) => (score.id === saved.id ? saved : score))
-              : [...current.calculatedScores, saved]
-          }
-        : current
-    );
+      setDefinition((current) =>
+        current
+          ? {
+              ...current,
+              calculatedScores: calculatedScoreId
+                ? current.calculatedScores.map((score) => (score.id === saved.id ? saved : score))
+                : [...current.calculatedScores, saved]
+            }
+          : current
+      );
 
-    return saved;
+      if (!calculatedScoreId) {
+        toast.success("Score rule created", "A new calculated score rule was added.");
+      }
+
+      return saved;
+    } catch (error) {
+      if (!calculatedScoreId) {
+        toast.danger("Create score rule failed", mutationErrorMessage(error));
+      }
+
+      throw error;
+    }
   };
 
   const deleteCalculatedScore = async (calculatedScoreId: string) => {
@@ -878,15 +953,34 @@ export const useSurveyBuilder = (surveyId: string) => {
       return;
     }
 
-    await deleteCalculatedScoreRequest(token, surveyId, calculatedScoreId);
-    setDefinition((current) =>
-      current
-        ? {
-            ...current,
-            calculatedScores: current.calculatedScores.filter((score) => score.id !== calculatedScoreId)
-          }
-        : current
-    );
+    try {
+      await deleteCalculatedScoreRequest(token, surveyId, calculatedScoreId);
+      setDefinition((current) =>
+        current
+          ? {
+              ...current,
+              calculatedScores: current.calculatedScores.filter((score) => score.id !== calculatedScoreId)
+            }
+          : current
+      );
+      toast.success("Score rule deleted", "The calculated score rule was removed.");
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 404) {
+        setDefinition((current) =>
+          current
+            ? {
+                ...current,
+                calculatedScores: current.calculatedScores.filter((score) => score.id !== calculatedScoreId)
+              }
+            : current
+        );
+        toast.success("Score rule removed", "The calculated score rule had already been cleaned up.");
+        return;
+      }
+
+      toast.danger("Delete score rule failed", mutationErrorMessage(error));
+      throw error;
+    }
   };
 
   useEffect(() => {

@@ -1,4 +1,5 @@
 import { env } from "./env";
+import { beginWriteRequest, endWriteRequest } from "./write-request-store";
 import { toast } from "../state/toast-store";
 
 export type ApiSuccessResponse<T> = {
@@ -86,24 +87,37 @@ export const apiRequestWithMeta = async <T>(
   path: string,
   options: RequestOptions = {}
 ): Promise<ApiSuccessResponse<T>> => {
-  const response = await fetch(`${options.baseUrl ?? env.apiBaseUrl}${path}`, {
-    cache: options.cache,
-    method: options.method ?? "GET",
-    credentials: options.credentials,
-    headers: {
-      ...defaultHeaders,
-      ...(options.token ? { Authorization: `Bearer ${options.token}` } : {}),
-      ...options.headers
-    },
-    body: options.body === undefined ? undefined : JSON.stringify(options.body)
-  });
+  const method = options.method ?? "GET";
+  const shouldTrackWriteRequest = method === "POST" || method === "PUT";
 
-  const payload = (await response.json()) as ApiSuccessResponse<T> | ApiErrorResponse;
-
-  if (!response.ok || !payload.success) {
-    maybeShowSessionExpiryToast(response.status, payload as ApiErrorResponse);
-    throw new ApiError(response.status, payload as ApiErrorResponse);
+  if (shouldTrackWriteRequest) {
+    beginWriteRequest();
   }
 
-  return payload;
+  try {
+    const response = await fetch(`${options.baseUrl ?? env.apiBaseUrl}${path}`, {
+      cache: options.cache,
+      method,
+      credentials: options.credentials,
+      headers: {
+        ...defaultHeaders,
+        ...(options.token ? { Authorization: `Bearer ${options.token}` } : {}),
+        ...options.headers
+      },
+      body: options.body === undefined ? undefined : JSON.stringify(options.body)
+    });
+
+    const payload = (await response.json()) as ApiSuccessResponse<T> | ApiErrorResponse;
+
+    if (!response.ok || !payload.success) {
+      maybeShowSessionExpiryToast(response.status, payload as ApiErrorResponse);
+      throw new ApiError(response.status, payload as ApiErrorResponse);
+    }
+
+    return payload;
+  } finally {
+    if (shouldTrackWriteRequest) {
+      endWriteRequest();
+    }
+  }
 };
