@@ -318,7 +318,7 @@ const RespondentSurveyRuntime = ({ accessMode }: { accessMode: AccessMode }) => 
           })
           .filter((value): value is number => typeof value === "number" && Number.isFinite(value));
 
-        if (values.length === 0 || (score.requireAllAnswers && values.length !== score.questions.length)) {
+        if (values.length === 0 || values.length !== score.questions.length) {
           return [score.id, null] as const;
         }
 

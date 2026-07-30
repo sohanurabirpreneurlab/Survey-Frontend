@@ -519,13 +519,23 @@ const CalculatedScoreCard = ({
   const updateDraft = <K extends keyof typeof draft>(key: K, value: (typeof draft)[K]) =>
     setDraft((current) => ({ ...current, [key]: value }));
 
-  const toggleSourceQuestion = (questionId: string) =>
+  const toggleSourceQuestion = (questionId: string) => {
+    const isSelected = draft.sourceQuestionIds.includes(questionId);
+
+    if (!isSelected) {
+      updateDraft(
+        "targets",
+        draft.targets.filter((target) => !(target.targetType === "question" && target.targetId === questionId))
+      );
+    }
+
     updateDraft(
       "sourceQuestionIds",
-      draft.sourceQuestionIds.includes(questionId)
+      isSelected
         ? draft.sourceQuestionIds.filter((id) => id !== questionId)
         : [...draft.sourceQuestionIds, questionId]
     );
+  };
 
   const updateTargets = (targetType: "question" | "section", targetIds: string[]) =>
     updateDraft("targets", [
@@ -708,23 +718,35 @@ const CalculatedScoreCard = ({
 
         <div className="builder-score-target-group">
           <h5>Follow-up questions</h5>
-          {sortQuestions(definition.questions).map((question) => (
-            <label className="builder-check-row" key={question.id}>
-              <input
-                checked={selectedQuestionIds.includes(question.id)}
-                onChange={(event) =>
-                  updateTargets(
-                    "question",
-                    event.target.checked
-                      ? [...selectedQuestionIds, question.id]
-                      : selectedQuestionIds.filter((id) => id !== question.id)
-                  )
-                }
-                type="checkbox"
-              />
-              <span>{question.title}</span>
-            </label>
-          ))}
+          {sortQuestions(definition.questions).map((question) => {
+            const isSourceQuestion = draft.sourceQuestionIds.includes(question.id);
+
+            return (
+              <label
+                aria-disabled={isSourceQuestion}
+                className="builder-check-row"
+                key={question.id}
+              >
+                <input
+                  checked={selectedQuestionIds.includes(question.id)}
+                  disabled={isSourceQuestion}
+                  onChange={(event) =>
+                    updateTargets(
+                      "question",
+                      event.target.checked
+                        ? [...selectedQuestionIds, question.id]
+                        : selectedQuestionIds.filter((id) => id !== question.id)
+                    )
+                  }
+                  type="checkbox"
+                />
+                <span>
+                  {question.title}
+                  {isSourceQuestion ? " - Unavailable: selected as a source question" : null}
+                </span>
+              </label>
+            );
+          })}
         </div>
       </div>
 
