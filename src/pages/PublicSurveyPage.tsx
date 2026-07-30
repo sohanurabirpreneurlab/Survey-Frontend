@@ -77,6 +77,7 @@ type PublicSurvey = {
       primaryColor?: string | null;
     };
   };
+  respondentSessionToken?: string;
   title: string;
 };
 
@@ -268,7 +269,8 @@ const RespondentSurveyRuntime = ({ accessMode }: { accessMode: AccessMode }) => 
     queryFn: async () => {
       try {
         return await apiRequest<SurveyResponse | null>("/respondent/responses/current", {
-          credentials: "include"
+          credentials: "include",
+          headers: respondentHeaders
         });
       } catch (error) {
         if (error instanceof ApiError && error.status === 404) {
@@ -285,11 +287,16 @@ const RespondentSurveyRuntime = ({ accessMode }: { accessMode: AccessMode }) => 
     mutationFn: () =>
       apiRequest<SurveyResponse>("/respondent/responses", {
         credentials: "include",
+        headers: respondentHeaders,
         method: "POST"
       })
   });
 
   const survey = surveyQuery.data as PublicSurvey | undefined;
+  const respondentHeaders =
+    accessMode === "invitation" && survey?.respondentSessionToken
+      ? { "X-Respondent-Session": survey.respondentSessionToken }
+      : undefined;
   const sortedSections = useMemo(() => sortByPosition(survey?.sections ?? []), [survey?.sections]);
   const sortedQuestions = useMemo(() => sortByPosition(survey?.questions ?? []), [survey?.questions]);
   const questionByStableKey = useMemo(
@@ -436,6 +443,7 @@ const RespondentSurveyRuntime = ({ accessMode }: { accessMode: AccessMode }) => 
             value: normalizedValue
           },
           credentials: "include",
+          headers: respondentHeaders,
           method: "PUT"
         });
 
@@ -445,6 +453,7 @@ const RespondentSurveyRuntime = ({ accessMode }: { accessMode: AccessMode }) => 
       return apiRequest<SurveyResponse>(`/respondent/responses/${response.id}/submit`, {
         credentials: "include",
         headers: {
+          ...(respondentHeaders ?? {}),
           "Idempotency-Key": crypto.randomUUID()
         },
         method: "POST"
