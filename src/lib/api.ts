@@ -53,6 +53,7 @@ type RequestOptions = {
   credentials?: RequestCredentials;
   token?: string;
   headers?: HeadersInit;
+  notifyOnAuthError?: boolean;
 };
 
 const defaultHeaders: HeadersInit = {
@@ -110,7 +111,9 @@ export const apiRequestWithMeta = async <T>(
     const payload = (await response.json()) as ApiSuccessResponse<T> | ApiErrorResponse;
 
     if (!response.ok || !payload.success) {
-      maybeShowSessionExpiryToast(response.status, payload as ApiErrorResponse);
+      if (options.notifyOnAuthError !== false) {
+        maybeShowSessionExpiryToast(response.status, payload as ApiErrorResponse);
+      }
       throw new ApiError(response.status, payload as ApiErrorResponse);
     }
 

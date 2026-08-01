@@ -26,14 +26,15 @@ export const listPublicOrganizationsRequest = () =>
 export const loginRequest = (payload: { email: string; password: string }) =>
   apiRequest<LoginResponse>("/auth/login", { body: payload, method: "POST" });
 
-export const refreshRequest = (refreshToken: string) =>
+export const refreshRequest = (refreshToken: string, notifyOnAuthError = true) =>
   apiRequest<LoginResponse>("/auth/refresh", {
     body: { refreshToken },
-    method: "POST"
+    method: "POST",
+    notifyOnAuthError
   });
 
-export const getCurrentUserRequest = (token: string) =>
-  apiRequest<CurrentUserResponse>("/auth/me", { token });
+export const getCurrentUserRequest = (token: string, notifyOnAuthError = true) =>
+  apiRequest<CurrentUserResponse>("/auth/me", { notifyOnAuthError, token });
 
 export const logoutRequest = (token: string) =>
   apiRequest<null>("/auth/logout", { method: "POST", token });

@@ -86,7 +86,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     try {
-      const profile = await getCurrentUserRequest(storedSession.accessToken);
+      // Session restoration handles stale credentials itself. Avoid showing a
+      // global login warning while public and invitation survey routes load.
+      const profile = await getCurrentUserRequest(storedSession.accessToken, false);
       setAuthenticatedSession(profile, storedSession);
     } catch (error) {
       const apiError = error instanceof ApiError ? error : null;
@@ -97,7 +99,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
 
       try {
-        const refreshed = await refreshRequest(storedSession.refreshToken);
+        const refreshed = await refreshRequest(storedSession.refreshToken, false);
         setAuthenticatedSession(refreshed, {
           accessToken: refreshed.accessToken,
           expiresAt: refreshed.expiresAt,
