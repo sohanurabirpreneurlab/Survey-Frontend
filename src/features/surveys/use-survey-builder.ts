@@ -115,6 +115,9 @@ export const useSurveyBuilder = (surveyId: string) => {
   const [saveMessage, setSaveMessage] = useState("Saved");
   const queueRef = useRef(Promise.resolve());
   const pendingTimersRef = useRef<Map<string, number>>(new Map());
+  const pendingQuestionCreatesRef = useRef<Map<string, Promise<Question>>>(new Map());
+  const pendingQuestionEditsRef = useRef<Map<string, Question>>(new Map());
+  const pendingOptionEditsRef = useRef<Map<string, QuestionOption>>(new Map());
   const bootstrappedEmptyStateRef = useRef(false);
 
   const token = auth.accessToken ?? "";
@@ -265,6 +268,15 @@ export const useSurveyBuilder = (surveyId: string) => {
   };
 
   const shouldApplyServerEcho = (key: string) => !pendingTimersRef.current.has(key);
+
+  const cancelPendingSave = (key: string) => {
+    const timerId = pendingTimersRef.current.get(key);
+
+    if (timerId) {
+      window.clearTimeout(timerId);
+      pendingTimersRef.current.delete(key);
+    }
+  };
 
   const syncDefinitionVersion = (nextVersion: SurveyVersion) => {
     setDefinition((current) =>
@@ -535,11 +547,11 @@ export const useSurveyBuilder = (surveyId: string) => {
       ...definition,
       questions: [...definition.questions, optimisticQuestion]
     });
+    pendingQuestionEditsRef.current.set(tempId, optimisticQuestion);
     setSelectedSectionId(sectionId);
     setSelectedQuestionId(tempId);
 
-    try {
-      const question = await createQuestionRequest(token, surveyId, {
+    const createRequest = createQuestionRequest(token, surveyId, {
         description: null,
         displayLogic: {},
         options: [],
@@ -551,16 +563,62 @@ export const useSurveyBuilder = (surveyId: string) => {
         type,
         validation: defaultQuestionValidation(type)
       });
+    pendingQuestionCreatesRef.current.set(tempId, createRequest);
+
+    try {
+      const question = await createRequest;
+      const localQuestion = pendingQuestionEditsRef.current.get(tempId);
+      const reconciledQuestion: Question = localQuestion
+        ? {
+            ...question,
+            ...localQuestion,
+            createdAt: question.createdAt,
+            id: question.id,
+            stableKey: question.stableKey,
+            surveyVersionId: question.surveyVersionId,
+            updatedAt: question.updatedAt
+          }
+        : question;
+
+      cancelPendingSave(`question:${tempId}`);
 
       setDefinition((current) =>
         current
           ? {
               ...current,
-              questions: current.questions.map((item) => (item.id === tempId ? question : item))
+              options: current.options.map((option) =>
+                option.questionId === tempId ? { ...option, questionId: question.id } : option
+              ),
+              questions: current.questions.map((item) =>
+                item.id === tempId ? reconciledQuestion : item
+              )
             }
           : current
       );
+      pendingQuestionEditsRef.current.delete(tempId);
       setSelectedQuestionId((current) => (current === tempId ? question.id : current));
+
+      void enqueue(async () => {
+        const saved = await updateQuestionRequest(token, surveyId, question.id, {
+          description: reconciledQuestion.description,
+          displayLogic: reconciledQuestion.displayLogic,
+          position: reconciledQuestion.position,
+          required: reconciledQuestion.required,
+          settings: reconciledQuestion.settings,
+          title: reconciledQuestion.title,
+          type: reconciledQuestion.type,
+          validation: reconciledQuestion.validation
+        });
+
+        if (shouldApplyServerEcho(`question:${question.id}`)) {
+          setDefinition((current) =>
+            current ? { ...current, questions: syncQuestion(current.questions, saved) } : current
+          );
+        }
+      }).catch((error: unknown) => {
+        toast.danger("Save question failed", mutationErrorMessage(error));
+      });
+
       toast.success("Question created", "A new question was added to the section.");
       return question;
     } catch (error) {
@@ -573,10 +631,13 @@ export const useSurveyBuilder = (surveyId: string) => {
           : current
       );
       setSelectedQuestionId((current) => (current === tempId ? null : current));
+      pendingQuestionEditsRef.current.delete(tempId);
       setSaveState("failed");
       setSaveMessage(changeMessage(error));
       toast.danger("Create question failed", mutationErrorMessage(error));
       throw error;
+    } finally {
+      pendingQuestionCreatesRef.current.delete(tempId);
     }
   };
 
@@ -612,6 +673,11 @@ export const useSurveyBuilder = (surveyId: string) => {
       options: nextOptions,
       questions: syncQuestion(definition.questions, nextQuestion)
     });
+
+    if (questionId.startsWith("temp-question-")) {
+      pendingQuestionEditsRef.current.set(questionId, nextQuestion);
+      return;
+    }
 
     if (!nextQuestion.title.trim()) {
       return;
@@ -723,22 +789,90 @@ export const useSurveyBuilder = (surveyId: string) => {
       return;
     }
 
+    const currentOptions = getQuestionOptions(definition, questionId);
+    const index = currentOptions.length + 1;
+    const tempId = createTempId("option");
+    const optimisticOption: QuestionOption = {
+      createdAt: new Date().toISOString(),
+      id: tempId,
+      label: `Option ${index}`,
+      position: currentOptions.length,
+      questionId,
+      scoreValue: null,
+      settings: {},
+      stableKey: tempId,
+      updatedAt: new Date().toISOString(),
+      value: `option_${index}`
+    };
+
+    setDefinition((current) =>
+      current ? { ...current, options: [...current.options, optimisticOption] } : current
+    );
+    pendingOptionEditsRef.current.set(tempId, optimisticOption);
+
     try {
-      const currentOptions = getQuestionOptions(definition, questionId);
-      const index = currentOptions.length + 1;
-      const option = await createOptionRequest(token, surveyId, questionId, {
+      const pendingQuestion = pendingQuestionCreatesRef.current.get(questionId);
+      const persistedQuestionId = pendingQuestion ? (await pendingQuestion).id : questionId;
+      const option = await createOptionRequest(token, surveyId, persistedQuestionId, {
         label: `Option ${index}`,
         position: currentOptions.length,
         settings: {},
         value: `option_${index}`
       });
+      const localOption = pendingOptionEditsRef.current.get(tempId);
+      const reconciledOption: QuestionOption = localOption
+        ? {
+            ...option,
+            ...localOption,
+            createdAt: option.createdAt,
+            id: option.id,
+            questionId: persistedQuestionId,
+            stableKey: option.stableKey,
+            updatedAt: option.updatedAt
+          }
+        : option;
 
-      setDefinition({
-        ...definition,
-        options: [...definition.options, option]
+      cancelPendingSave(`option:${tempId}`);
+
+      setDefinition((current) =>
+        current
+          ? {
+              ...current,
+              options: current.options.map((item) =>
+                item.id === tempId ? reconciledOption : item
+              )
+            }
+          : current
+      );
+      pendingOptionEditsRef.current.delete(tempId);
+
+      void enqueue(async () => {
+        const saved = await updateOptionRequest(token, surveyId, persistedQuestionId, option.id, {
+          label: reconciledOption.label,
+          position: reconciledOption.position,
+          scoreValue: reconciledOption.scoreValue,
+          settings: reconciledOption.settings,
+          value: reconciledOption.value
+        });
+
+        if (shouldApplyServerEcho(`option:${option.id}`)) {
+          setDefinition((current) =>
+            current ? { ...current, options: syncOption(current.options, saved) } : current
+          );
+        }
+      }).catch((error: unknown) => {
+        toast.danger("Save option failed", mutationErrorMessage(error));
       });
+
       toast.success("Option created", "A new answer option was added.");
     } catch (error) {
+      cancelPendingSave(`option:${tempId}`);
+      setDefinition((current) =>
+        current
+          ? { ...current, options: current.options.filter((option) => option.id !== tempId) }
+          : current
+      );
+      pendingOptionEditsRef.current.delete(tempId);
       toast.danger("Create option failed", mutationErrorMessage(error));
       throw error;
     }
@@ -760,6 +894,11 @@ export const useSurveyBuilder = (surveyId: string) => {
       ...definition,
       options: syncOption(definition.options, nextOption)
     });
+
+    if (optionId.startsWith("temp-option-")) {
+      pendingOptionEditsRef.current.set(optionId, nextOption);
+      return;
+    }
 
     schedule(`option:${optionId}`, async () => {
       const saved = await updateOptionRequest(token, surveyId, questionId, optionId, {

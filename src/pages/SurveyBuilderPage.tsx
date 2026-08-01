@@ -1401,8 +1401,8 @@ export const SurveyBuilderPage = () => {
                 </div>
 
                 {builder.isEditable ? (
-                  <div className="flex justify-start">
-                    <Button onClick={() => void builder.addQuestion(activeSection.id)} size="sm" variant="secondary">
+                  <div className="flex items-center justify-center ">
+                    <Button onClick={() => void builder.addQuestion(activeSection.id)} className="mt-2 bg-" size="sm" variant="secondary">
                       <Plus size={16} />
                       Add question
                     </Button>
