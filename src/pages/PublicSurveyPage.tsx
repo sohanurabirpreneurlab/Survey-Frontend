@@ -531,7 +531,7 @@ const RespondentSurveyRuntime = ({ accessMode }: { accessMode: AccessMode }) => 
     hasAnswer(question, normalizeAnswerForSubmit(question, answers[question.id]))
   ).length;
   const choiceClassName =
-    "group flex min-h-[58px] cursor-pointer items-center gap-3 rounded-xl border border-app-border-strong [border-style:solid] bg-white px-4 py-3 text-left text-app-text transition-[border-color,background-color,box-shadow,transform] hover:-translate-y-px hover:border-app-primary hover:bg-app-primary-soft hover:shadow-sm has-[:checked]:border-app-primary has-[:checked]:bg-app-primary-soft has-[:checked]:shadow-[0_0_0_2px_rgba(24,79,190,0.12)]";
+    "group flex min-h-[52px] cursor-pointer items-center gap-3 rounded-xl border border-app-border-strong [border-style:solid] bg-white px-3.5 py-2.5 text-left text-app-text transition-all hover:border-app-primary hover:bg-app-primary-soft has-[:checked]:border-app-primary has-[:checked]:bg-app-primary-soft has-[:checked]:shadow-[0_0_0_2px_rgba(24,79,190,0.12)]";
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-[radial-gradient(circle_at_top_left,rgba(24,79,190,0.1),transparent_34%),linear-gradient(180deg,#fbfdff_0%,#f4f7fb_100%)]">
@@ -541,10 +541,15 @@ const RespondentSurveyRuntime = ({ accessMode }: { accessMode: AccessMode }) => 
         </div>
       ) : null}
 
-      <header className="flex items-center justify-between gap-4 px-8 py-6 max-app-mobile:px-5 max-app-mobile:py-5">
-        <strong className="max-w-[70vw] truncate text-[0.95rem]">{survey.title}</strong>
+      <header className="relative grid min-h-[76px] grid-cols-[44px_minmax(0,1fr)_auto] items-center gap-4 px-7 py-4 max-app-mobile:block max-app-mobile:min-h-[104px] max-app-mobile:px-5 max-app-mobile:py-4">
+        {!submittedAt && currentPage > 0 ? (
+          <button aria-label="Previous question" className="inline-flex size-10 cursor-pointer items-center justify-center rounded-full border border-app-border [border-style:solid] bg-white text-app-text-soft shadow-sm transition-colors hover:bg-app-surface-muted" onClick={() => { setNavigationError(null); setCurrentPage((page) => Math.max(0, page - 1)); }} type="button">
+            <ArrowLeft size={18} />
+          </button>
+        ) : <span aria-hidden="true" />}
+        <strong className="min-w-0 truncate text-[0.95rem] max-app-mobile:absolute max-app-mobile:top-[25px] max-app-mobile:left-1/2 max-app-mobile:max-w-[45%] max-app-mobile:-translate-x-1/2 max-app-mobile:text-center">{survey.title}</strong>
         {!submittedAt && visibleQuestions.length > 0 ? (
-          <span className="text-sm font-medium text-app-text-soft">Answered {answeredCount} of {visibleQuestions.length} · Question {currentPage + 1}</span>
+          <span className="text-right text-sm font-medium text-app-text-soft max-app-mobile:absolute max-app-mobile:top-[68px] max-app-mobile:left-1/2 max-app-mobile:w-full max-app-mobile:-translate-x-1/2 max-app-mobile:text-center max-app-mobile:text-xs">Answered {answeredCount} of {visibleQuestions.length} · Question {currentPage + 1}</span>
         ) : null}
       </header>
 
@@ -561,9 +566,9 @@ const RespondentSurveyRuntime = ({ accessMode }: { accessMode: AccessMode }) => 
           </div>
         </section>
       ) : activeQuestion ? (
-        <section className="mx-auto flex min-h-[calc(100vh-92px)] w-full max-w-[760px] items-center px-6 pt-4 pb-24 max-app-mobile:items-start max-app-mobile:px-5 max-app-mobile:pt-16">
+        <section className="mx-auto flex min-h-[calc(100vh-76px)] w-full max-w-[720px] items-center px-8 pt-3 pb-16 max-app-mobile:items-start max-app-mobile:px-5 max-app-mobile:pt-14">
           <form
-            className="grid w-full gap-7"
+            className="grid w-full gap-6"
             onSubmit={(event) => {
               event.preventDefault();
               handleContinue();
@@ -571,17 +576,17 @@ const RespondentSurveyRuntime = ({ accessMode }: { accessMode: AccessMode }) => 
           >
             <div className="grid gap-3">
               {activeSection ? (
-                <span className="text-sm font-semibold" style={{ color: primaryColor }}>{activeSection.title}</span>
+                <span className="text-xs font-semibold" style={{ color: primaryColor }}>{activeSection.title}</span>
               ) : null}
               <div className="flex items-start gap-3">
                 {survey.settings.showQuestionNumbers !== false ? (
-                  <span className="mt-1 shrink-0 text-lg font-semibold" style={{ color: primaryColor }}>{currentPage + 1} →</span>
+                  <span className="mt-1 shrink-0 font-semibold" style={{ color: primaryColor }}>{currentPage + 1} →</span>
                 ) : null}
                 <div className="grid gap-3">
-                  <h1 className="m-0 text-[clamp(1.7rem,4vw,2.65rem)] leading-[1.2] font-semibold tracking-[-0.025em]">
+                  <h1 className="m-0 text-[clamp(1.45rem,3vw,2.25rem)] leading-[1.2] font-semibold tracking-[-0.02em]">
                     {activeQuestion.title}{activeQuestion.required ? <span style={{ color: primaryColor }}> *</span> : null}
                   </h1>
-                  {activeQuestion.description ? <p className="m-0 text-lg leading-8 text-app-text-soft">{activeQuestion.description}</p> : null}
+                  {activeQuestion.description ? <p className="m-0 leading-7 text-app-text-soft">{activeQuestion.description}</p> : null}
                 </div>
               </div>
             </div>
@@ -590,7 +595,7 @@ const RespondentSurveyRuntime = ({ accessMode }: { accessMode: AccessMode }) => 
               {(activeQuestion.type === "short_text" || activeQuestion.type === "rating") ? (
                 <Input
                   autoFocus
-                  className="min-h-16 rounded-none border-x-0 border-t-0 border-b-2 bg-transparent px-1 text-xl shadow-none focus:border-app-primary focus:shadow-none"
+                  className="min-h-14 rounded-none border-x-0 border-t-0 border-b-2 bg-transparent px-1 text-lg shadow-none focus:border-app-primary focus:shadow-none"
                   inputMode={activeQuestion.type === "rating" ? "numeric" : undefined}
                   onChange={(event) => setAnswers((current) => ({ ...current, [activeQuestion.id]: event.target.value }))}
                   placeholder={readPlaceholder(activeQuestion.type)}
@@ -602,7 +607,7 @@ const RespondentSurveyRuntime = ({ accessMode }: { accessMode: AccessMode }) => 
               {activeQuestion.type === "long_text" ? (
                 <textarea
                   autoFocus
-                  className="min-h-36 resize-y rounded-xl border border-app-border-strong [border-style:solid] bg-white p-4 text-lg text-app-text outline-none transition-shadow focus:border-app-primary focus:shadow-[0_0_0_4px_rgba(24,79,190,0.12)]"
+                  className="min-h-32 resize-y rounded-xl border border-app-border-strong [border-style:solid] bg-white p-4 text-base text-app-text outline-none transition-shadow focus:border-app-primary focus:shadow-[0_0_0_4px_rgba(24,79,190,0.12)]"
                   onChange={(event) => setAnswers((current) => ({ ...current, [activeQuestion.id]: event.target.value }))}
                   placeholder={readPlaceholder(activeQuestion.type)}
                   value={typeof answers[activeQuestion.id] === "string" ? answers[activeQuestion.id] as string : ""}
@@ -614,7 +619,7 @@ const RespondentSurveyRuntime = ({ accessMode }: { accessMode: AccessMode }) => 
                   <input className="sr-only" checked={answers[activeQuestion.id] === option.id} name={activeQuestion.id} onChange={() => setAnswers((current) => ({ ...current, [activeQuestion.id]: option.id }))} type="radio" />
                   <span className="inline-flex size-7 shrink-0 items-center justify-center rounded-md border border-app-border-strong text-xs font-bold group-has-[:checked]:border-app-primary group-has-[:checked]:text-white" style={answers[activeQuestion.id] === option.id ? { backgroundColor: primaryColor } : undefined}>{String.fromCharCode(65 + index)}</span>
                   <span className="flex-1 font-medium">{option.label}</span>
-                  {answers[activeQuestion.id] === option.id ? <Check size={18} style={{ color: primaryColor }} /> : null}
+                  {answers[activeQuestion.id] === option.id ? <Check size={17} style={{ color: primaryColor }} /> : null}
                 </label>
               )) : null}
 
@@ -628,7 +633,7 @@ const RespondentSurveyRuntime = ({ accessMode }: { accessMode: AccessMode }) => 
                     })} type="checkbox" />
                     <span className="inline-flex size-7 shrink-0 items-center justify-center rounded-md border border-app-border-strong text-xs font-bold" style={selected ? { backgroundColor: primaryColor, borderColor: primaryColor, color: "white" } : undefined}>{String.fromCharCode(65 + index)}</span>
                     <span className="flex-1 font-medium">{option.label}</span>
-                    {selected ? <Check size={18} style={{ color: primaryColor }} /> : null}
+                    {selected ? <Check size={17} style={{ color: primaryColor }} /> : null}
                   </label>
                 );
               }) : null}
@@ -645,7 +650,7 @@ const RespondentSurveyRuntime = ({ accessMode }: { accessMode: AccessMode }) => 
             {navigationError ? <p className="m-0 text-sm font-semibold text-app-danger" role="alert">{navigationError}</p> : null}
 
             <div className="flex flex-wrap items-center gap-3">
-              <Button className="hover:brightness-90" disabled={submitMutation.isPending || responseQuery.isLoading} size="lg" style={{ backgroundColor: primaryColor }} type="submit">
+              <Button className="hover:brightness-90" disabled={submitMutation.isPending || responseQuery.isLoading} style={{ backgroundColor: primaryColor }} type="submit">
                 {isLastPage ? (submitMutation.isPending ? "Submitting..." : "Submit") : "Next"}
                 {isLastPage ? <Check size={18} /> : <ArrowRight size={18} />}
               </Button>
@@ -659,11 +664,6 @@ const RespondentSurveyRuntime = ({ accessMode }: { accessMode: AccessMode }) => 
         </section>
       )}
 
-      {!submittedAt && currentPage > 0 ? (
-        <button aria-label="Previous question" className="fixed bottom-6 left-6 inline-flex size-11 cursor-pointer items-center justify-center rounded-full border border-app-border [border-style:solid] bg-white text-app-text-soft shadow-sm transition-colors hover:bg-app-surface-muted max-app-mobile:bottom-4 max-app-mobile:left-4" onClick={() => { setNavigationError(null); setCurrentPage((page) => Math.max(0, page - 1)); }} type="button">
-          <ArrowLeft size={19} />
-        </button>
-      ) : null}
     </main>
   );
 };

@@ -159,9 +159,12 @@ export const SurveyPreviewPage = () => {
             </div>
           ) : null}
 
-          <header className="flex items-center justify-between gap-4 px-7 py-6 max-app-mobile:px-5">
-            <strong className="truncate text-sm">{definition.version.title}</strong>
-            {!previewComplete && questions.length > 0 ? <span className="shrink-0 text-xs font-medium text-app-text-soft">Answered {answeredCount} of {questions.length} · Question {currentQuestionIndex + 1}</span> : null}
+          <header className="relative grid min-h-[76px] grid-cols-[44px_minmax(0,1fr)_auto] items-center gap-4 px-7 py-4 max-app-mobile:block max-app-mobile:min-h-[104px] max-app-mobile:px-5 max-app-mobile:py-4">
+            {!previewComplete && currentQuestionIndex > 0 ? (
+              <button aria-label="Previous question" className="inline-flex size-10 cursor-pointer items-center justify-center rounded-full border border-app-border [border-style:solid] bg-white text-app-text-soft shadow-sm transition-colors hover:bg-app-surface-muted" onClick={() => { setPreviewError(null); setCurrentQuestionIndex((index) => Math.max(0, index - 1)); }} type="button"><ArrowLeft size={18} /></button>
+            ) : <span aria-hidden="true" />}
+            <strong className="min-w-0 truncate text-[0.95rem] max-app-mobile:absolute max-app-mobile:top-[25px] max-app-mobile:left-1/2 max-app-mobile:max-w-[45%] max-app-mobile:-translate-x-1/2 max-app-mobile:text-center">{definition.version.title}</strong>
+            {!previewComplete && questions.length > 0 ? <span className="shrink-0 text-xs font-medium text-app-text-soft max-app-mobile:absolute max-app-mobile:top-[68px] max-app-mobile:left-1/2 max-app-mobile:w-full max-app-mobile:-translate-x-1/2 max-app-mobile:text-center">Answered {answeredCount} of {questions.length} · Question {currentQuestionIndex + 1}</span> : null}
           </header>
 
           {previewComplete ? (
@@ -241,9 +244,6 @@ export const SurveyPreviewPage = () => {
             <section className="grid min-h-[510px] place-content-center px-6 text-center"><h2>No questions to preview.</h2></section>
           )}
 
-          {!previewComplete && currentQuestionIndex > 0 ? (
-            <button aria-label="Previous question" className="absolute bottom-5 left-5 inline-flex size-10 cursor-pointer items-center justify-center rounded-full border border-app-border [border-style:solid] bg-white text-app-text-soft shadow-sm hover:bg-app-surface-muted" onClick={() => { setPreviewError(null); setCurrentQuestionIndex((index) => Math.max(0, index - 1)); }} type="button"><ArrowLeft size={18} /></button>
-          ) : null}
         </div>
       </div>
     </div>
