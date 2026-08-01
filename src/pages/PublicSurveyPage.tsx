@@ -1,10 +1,11 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
+import { ArrowLeft, ArrowRight, Check, CheckCircle2 } from "lucide-react";
 
 import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
-import { Input, inputClassName } from "../components/ui/input";
+import { Input } from "../components/ui/input";
 import { ApiError, apiRequest } from "../lib/api";
 import { env } from "../lib/env";
 import { toast } from "../state/toast-store";
@@ -74,6 +75,8 @@ type PublicSurvey = {
   }>;
   settings: {
     confirmationMessage?: string;
+    showProgressBar?: boolean;
+    showQuestionNumbers?: boolean;
     theme?: {
       primaryColor?: string | null;
     };
@@ -90,8 +93,6 @@ type SurveyResponse = {
 };
 
 type AccessMode = "public" | "invitation";
-
-const QUESTIONS_PER_PAGE = 10;
 
 const sortByPosition = <T extends { position: number }>(items: T[]) =>
   [...items].sort((left, right) => left.position - right.position);
@@ -250,6 +251,7 @@ const RespondentSurveyRuntime = ({ accessMode }: { accessMode: AccessMode }) => 
   const [answers, setAnswers] = useState<Record<string, unknown>>({});
   const [submittedAt, setSubmittedAt] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
+  const [navigationError, setNavigationError] = useState<string | null>(null);
 
   const surveyQuery = useQuery({
     enabled: accessMode === "public" ? Boolean(publicSlug) : Boolean(token),
@@ -389,24 +391,11 @@ const RespondentSurveyRuntime = ({ accessMode }: { accessMode: AccessMode }) => 
     () => sortedQuestions.filter((question) => visibleQuestionIds.has(question.id)),
     [sortedQuestions, visibleQuestionIds]
   );
-  const totalPages = Math.max(1, Math.ceil(visibleQuestions.length / QUESTIONS_PER_PAGE));
-  const pagedQuestionIds = useMemo(() => {
-    const start = currentPage * QUESTIONS_PER_PAGE;
-    const end = start + QUESTIONS_PER_PAGE;
-    return new Set(visibleQuestions.slice(start, end).map((question) => question.id));
-  }, [currentPage, visibleQuestions]);
-  const visibleSections = useMemo(
-    () =>
-      sortedSections
-        .map((section) => ({
-          ...section,
-          questions: visibleQuestions.filter(
-            (question) => question.sectionId === section.id && pagedQuestionIds.has(question.id)
-          )
-        }))
-        .filter((section) => section.questions.length > 0),
-    [pagedQuestionIds, sortedSections, visibleQuestions]
-  );
+  const totalPages = Math.max(1, visibleQuestions.length);
+  const activeQuestion = visibleQuestions[currentPage] ?? null;
+  const activeSection = activeQuestion
+    ? sortedSections.find((section) => section.id === activeQuestion.sectionId) ?? null
+    : null;
   const isLastPage = currentPage === totalPages - 1;
 
   useEffect(() => {
@@ -476,6 +465,34 @@ const RespondentSurveyRuntime = ({ accessMode }: { accessMode: AccessMode }) => 
     }
   });
 
+  const handleContinue = () => {
+    if (!activeQuestion) {
+      if (isLastPage) {
+        void submitMutation.mutateAsync();
+      }
+      return;
+    }
+
+    setNavigationError(null);
+    if (isLastPage) {
+      const firstMissingRequiredIndex = visibleQuestions.findIndex((question) =>
+        question.required && !hasAnswer(question, normalizeAnswerForSubmit(question, answers[question.id]))
+      );
+
+      if (firstMissingRequiredIndex >= 0) {
+        setCurrentPage(firstMissingRequiredIndex);
+        setNavigationError("This required question must be answered before you can submit.");
+        toast.danger("Required answer missing", "Please answer all required questions before submitting.");
+        return;
+      }
+
+      void submitMutation.mutateAsync();
+      return;
+    }
+
+    setCurrentPage((page) => Math.min(totalPages - 1, page + 1));
+  };
+
   if (surveyQuery.isLoading) {
     return (
       <div className={publicSurveyTw.shell}>
@@ -505,196 +522,149 @@ const RespondentSurveyRuntime = ({ accessMode }: { accessMode: AccessMode }) => 
     );
   }
 
+  const primaryColor = survey.settings.theme?.primaryColor ?? "#184fbe";
+  const options = activeQuestion
+    ? sortByPosition(survey.options.filter((option) => option.questionId === activeQuestion.id))
+    : [];
+  const progress = visibleQuestions.length > 0 ? ((currentPage + 1) / visibleQuestions.length) * 100 : 100;
+  const answeredCount = visibleQuestions.filter((question) =>
+    hasAnswer(question, normalizeAnswerForSubmit(question, answers[question.id]))
+  ).length;
+  const choiceClassName =
+    "group flex min-h-[58px] cursor-pointer items-center gap-3 rounded-xl border border-app-border-strong [border-style:solid] bg-white px-4 py-3 text-left text-app-text transition-[border-color,background-color,box-shadow,transform] hover:-translate-y-px hover:border-app-primary hover:bg-app-primary-soft hover:shadow-sm has-[:checked]:border-app-primary has-[:checked]:bg-app-primary-soft has-[:checked]:shadow-[0_0_0_2px_rgba(24,79,190,0.12)]";
+
   return (
-    <div className={publicSurveyTw.shell}>
-      <Card className={publicSurveyTw.card}>
-        <div
-          className="h-3 w-full"
-          style={{ backgroundColor: survey.settings.theme?.primaryColor ?? "#184fbe" }}
-        />
-        <div className={publicSurveyTw.header}>
-          <h2>{survey.title}</h2>
-          {survey.description ? <p>{survey.description}</p> : null}
+    <main className="relative min-h-screen overflow-hidden bg-[radial-gradient(circle_at_top_left,rgba(24,79,190,0.1),transparent_34%),linear-gradient(180deg,#fbfdff_0%,#f4f7fb_100%)]">
+      {survey.settings.showProgressBar !== false && !submittedAt ? (
+        <div className="fixed inset-x-0 top-0 z-20 h-1.5 bg-app-primary-soft">
+          <div className="h-full transition-[width] duration-300" style={{ backgroundColor: primaryColor, width: `${progress}%` }} />
         </div>
+      ) : null}
 
-        {submittedAt ? (
-          <Card className={publicSurveyTw.confirmation}>
-            <div className={publicSurveyTw.confirmationBadge}>Submission complete</div>
-            <div className="grid gap-2.5">
-              <h3>Response submitted</h3>
-              <p>{survey.settings.confirmationMessage ?? "Your response has been submitted."}</p>
-            </div>
-            <div className={publicSurveyTw.confirmationMeta}>
-              <span className="text-[0.8rem] font-bold tracking-[0.08em] text-app-text-soft uppercase">Submitted</span>
-              <strong>{formatDateTime(submittedAt)}</strong>
-            </div>
-          </Card>
-        ) : (
-          <>
-            {visibleSections.map((section) => (
-            <section className={surveyTw.runtimeSection} key={section.id}>
-              <div>
-                  <span>Section</span>
-                  <h3>{section.title}</h3>
-                  {section.description ? <p>{section.description}</p> : null}
+      <header className="flex items-center justify-between gap-4 px-8 py-6 max-app-mobile:px-5 max-app-mobile:py-5">
+        <strong className="max-w-[70vw] truncate text-[0.95rem]">{survey.title}</strong>
+        {!submittedAt && visibleQuestions.length > 0 ? (
+          <span className="text-sm font-medium text-app-text-soft">Answered {answeredCount} of {visibleQuestions.length} · Question {currentPage + 1}</span>
+        ) : null}
+      </header>
+
+      {submittedAt ? (
+        <section className="mx-auto flex min-h-[calc(100vh-92px)] w-full max-w-[720px] items-center px-6 pb-20">
+          <div className="grid w-full justify-items-center gap-5 text-center">
+            <CheckCircle2 color={primaryColor} size={64} strokeWidth={1.7} />
+            <span className="text-sm font-bold tracking-[0.08em] text-app-success uppercase">Submission complete</span>
+            <h1 className="m-0 text-[clamp(2rem,5vw,3.5rem)] leading-[1.12]">Thank you!</h1>
+            <p className="m-0 max-w-[56ch] text-lg leading-8 text-app-text-soft">
+              {survey.settings.confirmationMessage ?? "Your response has been submitted."}
+            </p>
+            <span className="text-sm text-app-text-faint">Submitted {formatDateTime(submittedAt)}</span>
+          </div>
+        </section>
+      ) : activeQuestion ? (
+        <section className="mx-auto flex min-h-[calc(100vh-92px)] w-full max-w-[760px] items-center px-6 pt-4 pb-24 max-app-mobile:items-start max-app-mobile:px-5 max-app-mobile:pt-16">
+          <form
+            className="grid w-full gap-7"
+            onSubmit={(event) => {
+              event.preventDefault();
+              handleContinue();
+            }}
+          >
+            <div className="grid gap-3">
+              {activeSection ? (
+                <span className="text-sm font-semibold" style={{ color: primaryColor }}>{activeSection.title}</span>
+              ) : null}
+              <div className="flex items-start gap-3">
+                {survey.settings.showQuestionNumbers !== false ? (
+                  <span className="mt-1 shrink-0 text-lg font-semibold" style={{ color: primaryColor }}>{currentPage + 1} →</span>
+                ) : null}
+                <div className="grid gap-3">
+                  <h1 className="m-0 text-[clamp(1.7rem,4vw,2.65rem)] leading-[1.2] font-semibold tracking-[-0.025em]">
+                    {activeQuestion.title}{activeQuestion.required ? <span style={{ color: primaryColor }}> *</span> : null}
+                  </h1>
+                  {activeQuestion.description ? <p className="m-0 text-lg leading-8 text-app-text-soft">{activeQuestion.description}</p> : null}
                 </div>
+              </div>
+            </div>
 
-              <div className="grid gap-4">
-                  {section.questions.map((question) => {
-                    const options = sortByPosition(survey.options.filter((option) => option.questionId === question.id));
-
-                    return (
-                    <div className={surveyTw.runtimeQuestion} key={question.id}>
-                      <div className="flex items-center justify-between">
-                          <h4>
-                            {question.title}
-                            {question.required ? <span> *</span> : null}
-                          </h4>
-                          <span>{question.type.replace(/_/g, " ")}</span>
-                        </div>
-                        {question.description ? <p>{question.description}</p> : null}
-
-                        {(question.type === "short_text" || question.type === "rating") && (
-                          <Input
-                            className={inputClassName}
-                            inputMode={question.type === "rating" ? "numeric" : undefined}
-                            onChange={(event) =>
-                              setAnswers((current) => ({
-                                ...current,
-                                [question.id]: event.target.value
-                              }))
-                            }
-                            placeholder={readPlaceholder(question.type)}
-                            type={question.type === "rating" ? "number" : "text"}
-                            value={
-                              typeof answers[question.id] === "string" || typeof answers[question.id] === "number"
-                                ? String(answers[question.id])
-                                : ""
-                            }
-                          />
-                        )}
-
-                        {question.type === "long_text" && (
-                          <textarea
-                            className={surveyTw.textarea}
-                            onChange={(event) =>
-                              setAnswers((current) => ({
-                                ...current,
-                                [question.id]: event.target.value
-                              }))
-                            }
-                            placeholder={readPlaceholder(question.type)}
-                            rows={4}
-                            value={typeof answers[question.id] === "string" ? (answers[question.id] as string) : ""}
-                          />
-                        )}
-
-                        {(question.type === "single_choice" || question.type === "vote") && (
-                        <div className="grid gap-2.5">
-                            {options.map((option) => (
-                            <label className={surveyTw.runtimeOption} key={option.id}>
-                                <input
-                                  checked={answers[question.id] === option.id}
-                                  name={question.id}
-                                  onChange={() =>
-                                    setAnswers((current) => ({
-                                      ...current,
-                                      [question.id]: option.id
-                                    }))
-                                  }
-                                  type="radio"
-                                />
-                                <span>{option.label}</span>
-                              </label>
-                            ))}
-                          </div>
-                        )}
-
-                        {question.type === "multiple_choice" && (
-                        <div className="grid gap-2.5">
-                            {options.map((option) => {
-                              const selected = Array.isArray(answers[question.id])
-                                ? (answers[question.id] as string[]).includes(option.id)
-                                : false;
-
-                              return (
-                              <label className={surveyTw.runtimeOption} key={option.id}>
-                                  <input
-                                    checked={selected}
-                                    onChange={(event) =>
-                                      setAnswers((current) => {
-                                        const currentValues = Array.isArray(current[question.id])
-                                          ? ([...(current[question.id] as string[])] as string[])
-                                          : [];
-
-                                        return {
-                                          ...current,
-                                          [question.id]: event.target.checked
-                                            ? [...currentValues, option.id]
-                                            : currentValues.filter((value) => value !== option.id)
-                                        };
-                                      })
-                                    }
-                                    type="checkbox"
-                                  />
-                                  <span>{option.label}</span>
-                                </label>
-                              );
-                            })}
-                          </div>
-                        )}
-
-                        {question.type === "yes_no" && (
-                        <div className="grid gap-2.5">
-                            {[
-                              { label: "Yes", value: true },
-                              { label: "No", value: false }
-                            ].map((option) => (
-                            <label className={surveyTw.runtimeOption} key={option.label}>
-                                <input
-                                  checked={answers[question.id] === option.value}
-                                  name={question.id}
-                                  onChange={() =>
-                                    setAnswers((current) => ({
-                                      ...current,
-                                      [question.id]: option.value
-                                    }))
-                                  }
-                                  type="radio"
-                                />
-                                <span>{option.label}</span>
-                              </label>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </section>
-            ))}
-
-          <div className="flex items-center justify-center gap-3">
-              {totalPages > 1 && currentPage > 0 ? (
-                <Button onClick={() => setCurrentPage((page) => Math.max(0, page - 1))} size="lg" variant="secondary">
-                  Previous
-                </Button>
+            <div className="grid gap-3">
+              {(activeQuestion.type === "short_text" || activeQuestion.type === "rating") ? (
+                <Input
+                  autoFocus
+                  className="min-h-16 rounded-none border-x-0 border-t-0 border-b-2 bg-transparent px-1 text-xl shadow-none focus:border-app-primary focus:shadow-none"
+                  inputMode={activeQuestion.type === "rating" ? "numeric" : undefined}
+                  onChange={(event) => setAnswers((current) => ({ ...current, [activeQuestion.id]: event.target.value }))}
+                  placeholder={readPlaceholder(activeQuestion.type)}
+                  type={activeQuestion.type === "rating" ? "number" : "text"}
+                  value={typeof answers[activeQuestion.id] === "string" || typeof answers[activeQuestion.id] === "number" ? String(answers[activeQuestion.id]) : ""}
+                />
               ) : null}
 
-              {!isLastPage ? (
-                <Button onClick={() => setCurrentPage((page) => Math.min(totalPages - 1, page + 1))} size="lg">
-                  Next
-                </Button>
-              ) : (
-                <Button disabled={submitMutation.isPending || responseQuery.isLoading} onClick={() => void submitMutation.mutateAsync()} size="lg">
-                  {submitMutation.isPending ? "Submitting..." : "Submit response"}
-                </Button>
-              )}
+              {activeQuestion.type === "long_text" ? (
+                <textarea
+                  autoFocus
+                  className="min-h-36 resize-y rounded-xl border border-app-border-strong [border-style:solid] bg-white p-4 text-lg text-app-text outline-none transition-shadow focus:border-app-primary focus:shadow-[0_0_0_4px_rgba(24,79,190,0.12)]"
+                  onChange={(event) => setAnswers((current) => ({ ...current, [activeQuestion.id]: event.target.value }))}
+                  placeholder={readPlaceholder(activeQuestion.type)}
+                  value={typeof answers[activeQuestion.id] === "string" ? answers[activeQuestion.id] as string : ""}
+                />
+              ) : null}
+
+              {(activeQuestion.type === "single_choice" || activeQuestion.type === "vote") ? options.map((option, index) => (
+                <label className={choiceClassName} key={option.id}>
+                  <input className="sr-only" checked={answers[activeQuestion.id] === option.id} name={activeQuestion.id} onChange={() => setAnswers((current) => ({ ...current, [activeQuestion.id]: option.id }))} type="radio" />
+                  <span className="inline-flex size-7 shrink-0 items-center justify-center rounded-md border border-app-border-strong text-xs font-bold group-has-[:checked]:border-app-primary group-has-[:checked]:text-white" style={answers[activeQuestion.id] === option.id ? { backgroundColor: primaryColor } : undefined}>{String.fromCharCode(65 + index)}</span>
+                  <span className="flex-1 font-medium">{option.label}</span>
+                  {answers[activeQuestion.id] === option.id ? <Check size={18} style={{ color: primaryColor }} /> : null}
+                </label>
+              )) : null}
+
+              {activeQuestion.type === "multiple_choice" ? options.map((option, index) => {
+                const selected = Array.isArray(answers[activeQuestion.id]) && (answers[activeQuestion.id] as string[]).includes(option.id);
+                return (
+                  <label className={choiceClassName} key={option.id}>
+                    <input className="sr-only" checked={selected} onChange={(event) => setAnswers((current) => {
+                      const values = Array.isArray(current[activeQuestion.id]) ? current[activeQuestion.id] as string[] : [];
+                      return { ...current, [activeQuestion.id]: event.target.checked ? [...values, option.id] : values.filter((value) => value !== option.id) };
+                    })} type="checkbox" />
+                    <span className="inline-flex size-7 shrink-0 items-center justify-center rounded-md border border-app-border-strong text-xs font-bold" style={selected ? { backgroundColor: primaryColor, borderColor: primaryColor, color: "white" } : undefined}>{String.fromCharCode(65 + index)}</span>
+                    <span className="flex-1 font-medium">{option.label}</span>
+                    {selected ? <Check size={18} style={{ color: primaryColor }} /> : null}
+                  </label>
+                );
+              }) : null}
+
+              {activeQuestion.type === "yes_no" ? [{ label: "Yes", value: true }, { label: "No", value: false }].map((option, index) => (
+                <label className={choiceClassName} key={option.label}>
+                  <input className="sr-only" checked={answers[activeQuestion.id] === option.value} name={activeQuestion.id} onChange={() => setAnswers((current) => ({ ...current, [activeQuestion.id]: option.value }))} type="radio" />
+                  <span className="inline-flex size-7 shrink-0 items-center justify-center rounded-md border border-app-border-strong text-xs font-bold" style={answers[activeQuestion.id] === option.value ? { backgroundColor: primaryColor, borderColor: primaryColor, color: "white" } : undefined}>{String.fromCharCode(65 + index)}</span>
+                  <span className="flex-1 font-medium">{option.label}</span>
+                </label>
+              )) : null}
             </div>
-          </>
-        )}
-      </Card>
-    </div>
+
+            {navigationError ? <p className="m-0 text-sm font-semibold text-app-danger" role="alert">{navigationError}</p> : null}
+
+            <div className="flex flex-wrap items-center gap-3">
+              <Button className="hover:brightness-90" disabled={submitMutation.isPending || responseQuery.isLoading} size="lg" style={{ backgroundColor: primaryColor }} type="submit">
+                {isLastPage ? (submitMutation.isPending ? "Submitting..." : "Submit") : "Next"}
+                {isLastPage ? <Check size={18} /> : <ArrowRight size={18} />}
+              </Button>
+              <span className="text-sm text-app-text-faint max-app-mobile:hidden">press Enter ↵</span>
+            </div>
+          </form>
+        </section>
+      ) : (
+        <section className="mx-auto grid min-h-[calc(100vh-92px)] max-w-[680px] place-content-center gap-5 px-6 text-center">
+          <h1>This survey has no questions.</h1>
+        </section>
+      )}
+
+      {!submittedAt && currentPage > 0 ? (
+        <button aria-label="Previous question" className="fixed bottom-6 left-6 inline-flex size-11 cursor-pointer items-center justify-center rounded-full border border-app-border [border-style:solid] bg-white text-app-text-soft shadow-sm transition-colors hover:bg-app-surface-muted max-app-mobile:bottom-4 max-app-mobile:left-4" onClick={() => { setNavigationError(null); setCurrentPage((page) => Math.max(0, page - 1)); }} type="button">
+          <ArrowLeft size={19} />
+        </button>
+      ) : null}
+    </main>
   );
 };
 
