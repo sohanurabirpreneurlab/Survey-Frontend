@@ -4,11 +4,12 @@ import { useParams } from "react-router-dom";
 
 import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
-import { Input } from "../components/ui/input";
+import { Input, inputClassName } from "../components/ui/input";
 import { ApiError, apiRequest } from "../lib/api";
 import { env } from "../lib/env";
 import { toast } from "../state/toast-store";
 import { formatDateTime } from "../features/surveys/surveys.utils";
+import { publicSurveyTw, surveyTw } from "../lib/page-tailwind";
 
 type PublicSurveyQuestion = {
   description: string | null;
@@ -477,8 +478,8 @@ const RespondentSurveyRuntime = ({ accessMode }: { accessMode: AccessMode }) => 
 
   if (surveyQuery.isLoading) {
     return (
-      <div className="survey-preview-shell">
-        <div className="survey-preview-header">
+      <div className={publicSurveyTw.shell}>
+        <div className={surveyTw.previewHeader}>
           <div>
             <h1>Loading survey</h1>
             <p>The public survey is loading.</p>
@@ -495,8 +496,8 @@ const RespondentSurveyRuntime = ({ accessMode }: { accessMode: AccessMode }) => 
         : "This survey could not be opened from the shared link.";
 
     return (
-      <div className="survey-preview-shell">
-        <Card className="survey-preview-banner">
+      <div className={publicSurveyTw.shell}>
+        <Card className="p-6 max-app-mobile:p-[18px]">
           <h2>Survey unavailable</h2>
           <p>{message}</p>
         </Card>
@@ -505,46 +506,46 @@ const RespondentSurveyRuntime = ({ accessMode }: { accessMode: AccessMode }) => 
   }
 
   return (
-    <div className="survey-preview-shell">
-      <Card className="survey-runtime-card">
+    <div className={publicSurveyTw.shell}>
+      <Card className={publicSurveyTw.card}>
         <div
-          className="survey-runtime-accent"
+          className="h-3 w-full"
           style={{ backgroundColor: survey.settings.theme?.primaryColor ?? "#184fbe" }}
         />
-        <div className="survey-runtime-header">
+        <div className={publicSurveyTw.header}>
           <h2>{survey.title}</h2>
           {survey.description ? <p>{survey.description}</p> : null}
         </div>
 
         {submittedAt ? (
-          <Card className="survey-runtime-confirmation">
-            <div className="survey-runtime-confirmation-badge">Submission complete</div>
-            <div className="survey-runtime-confirmation-copy">
+          <Card className={publicSurveyTw.confirmation}>
+            <div className={publicSurveyTw.confirmationBadge}>Submission complete</div>
+            <div className="grid gap-2.5">
               <h3>Response submitted</h3>
               <p>{survey.settings.confirmationMessage ?? "Your response has been submitted."}</p>
             </div>
-            <div className="survey-runtime-confirmation-meta">
-              <span className="survey-runtime-confirmation-label">Submitted</span>
+            <div className={publicSurveyTw.confirmationMeta}>
+              <span className="text-[0.8rem] font-bold tracking-[0.08em] text-app-text-soft uppercase">Submitted</span>
               <strong>{formatDateTime(submittedAt)}</strong>
             </div>
           </Card>
         ) : (
           <>
             {visibleSections.map((section) => (
-              <section className="survey-runtime-section" key={section.id}>
-                <div className="survey-runtime-section-head">
+            <section className={surveyTw.runtimeSection} key={section.id}>
+              <div>
                   <span>Section</span>
                   <h3>{section.title}</h3>
                   {section.description ? <p>{section.description}</p> : null}
                 </div>
 
-                <div className="survey-runtime-question-stack">
+              <div className="grid gap-4">
                   {section.questions.map((question) => {
                     const options = sortByPosition(survey.options.filter((option) => option.questionId === question.id));
 
                     return (
-                      <div className="survey-runtime-question" key={question.id}>
-                        <div className="survey-runtime-question-head">
+                    <div className={surveyTw.runtimeQuestion} key={question.id}>
+                      <div className="flex items-center justify-between">
                           <h4>
                             {question.title}
                             {question.required ? <span> *</span> : null}
@@ -555,7 +556,7 @@ const RespondentSurveyRuntime = ({ accessMode }: { accessMode: AccessMode }) => 
 
                         {(question.type === "short_text" || question.type === "rating") && (
                           <Input
-                            className="survey-runtime-input"
+                            className={inputClassName}
                             inputMode={question.type === "rating" ? "numeric" : undefined}
                             onChange={(event) =>
                               setAnswers((current) => ({
@@ -575,7 +576,7 @@ const RespondentSurveyRuntime = ({ accessMode }: { accessMode: AccessMode }) => 
 
                         {question.type === "long_text" && (
                           <textarea
-                            className="textarea survey-runtime-textarea"
+                            className={surveyTw.textarea}
                             onChange={(event) =>
                               setAnswers((current) => ({
                                 ...current,
@@ -589,9 +590,9 @@ const RespondentSurveyRuntime = ({ accessMode }: { accessMode: AccessMode }) => 
                         )}
 
                         {(question.type === "single_choice" || question.type === "vote") && (
-                          <div className="survey-runtime-options">
+                        <div className="grid gap-2.5">
                             {options.map((option) => (
-                              <label className="survey-runtime-option" key={option.id}>
+                            <label className={surveyTw.runtimeOption} key={option.id}>
                                 <input
                                   checked={answers[question.id] === option.id}
                                   name={question.id}
@@ -610,14 +611,14 @@ const RespondentSurveyRuntime = ({ accessMode }: { accessMode: AccessMode }) => 
                         )}
 
                         {question.type === "multiple_choice" && (
-                          <div className="survey-runtime-options">
+                        <div className="grid gap-2.5">
                             {options.map((option) => {
                               const selected = Array.isArray(answers[question.id])
                                 ? (answers[question.id] as string[]).includes(option.id)
                                 : false;
 
                               return (
-                                <label className="survey-runtime-option" key={option.id}>
+                              <label className={surveyTw.runtimeOption} key={option.id}>
                                   <input
                                     checked={selected}
                                     onChange={(event) =>
@@ -644,12 +645,12 @@ const RespondentSurveyRuntime = ({ accessMode }: { accessMode: AccessMode }) => 
                         )}
 
                         {question.type === "yes_no" && (
-                          <div className="survey-runtime-options">
+                        <div className="grid gap-2.5">
                             {[
                               { label: "Yes", value: true },
                               { label: "No", value: false }
                             ].map((option) => (
-                              <label className="survey-runtime-option" key={option.label}>
+                            <label className={surveyTw.runtimeOption} key={option.label}>
                                 <input
                                   checked={answers[question.id] === option.value}
                                   name={question.id}
@@ -673,7 +674,7 @@ const RespondentSurveyRuntime = ({ accessMode }: { accessMode: AccessMode }) => 
               </section>
             ))}
 
-            <div className="survey-form-footer survey-form-footer-centered">
+          <div className="flex items-center justify-center gap-3">
               {totalPages > 1 && currentPage > 0 ? (
                 <Button onClick={() => setCurrentPage((page) => Math.max(0, page - 1))} size="lg" variant="secondary">
                   Previous

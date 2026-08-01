@@ -7,6 +7,7 @@ import { Card } from "../components/ui/card";
 import { useAuth } from "../features/auth/use-auth";
 import { getSurveyRequest, getSurveyResultsRequest } from "../features/surveys/surveys.api";
 import { surveyKeys } from "../features/surveys/surveys.keys";
+import { pageTw } from "../lib/page-tailwind";
 
 export const SurveyResponsesPage = () => {
   const { surveyId = "" } = useParams();
@@ -27,18 +28,18 @@ export const SurveyResponsesPage = () => {
 
   if (surveyQuery.isLoading || resultsQuery.isLoading || !surveyQuery.data || !resultsQuery.data) {
     return (
-      <div className="dashboard-page">
-        <section className="dashboard-hero">
-          <h1>Loading responses...</h1>
-          <p>The response summary is loading.</p>
+      <div className={pageTw.page}>
+        <section className={pageTw.hero}>
+          <h1 className={pageTw.heroTitle}>Loading responses...</h1>
+          <p className={pageTw.muted}>The response summary is loading.</p>
         </section>
       </div>
     );
   }
 
   return (
-    <div className="dashboard-page">
-      <section className="dashboard-hero survey-page-hero">
+    <div className={pageTw.page}>
+      <section className={`${pageTw.hero} ${pageTw.heroSplit}`}>
         <div>
           <h1>{surveyQuery.data.slug}</h1>
           <p>Response summary for this survey. Full respondent records stay outside the builder.</p>
@@ -48,9 +49,9 @@ export const SurveyResponsesPage = () => {
         </Button>
       </section>
 
-      <section className="dashboard-grid survey-summary-grid">
-        <Card className="dashboard-card">
-          <div className="dashboard-card-icon">
+      <section className={pageTw.gridThree}>
+        <Card className={pageTw.metricCard}>
+          <div className={pageTw.metricIcon}>
             <Send size={18} />
           </div>
           <div>
@@ -58,8 +59,8 @@ export const SurveyResponsesPage = () => {
             <p>Submitted responses</p>
           </div>
         </Card>
-        <Card className="dashboard-card">
-          <div className="dashboard-card-icon">
+        <Card className={pageTw.metricCard}>
+          <div className={pageTw.metricIcon}>
             <Clock3 size={18} />
           </div>
           <div>
@@ -67,8 +68,8 @@ export const SurveyResponsesPage = () => {
             <p>In progress responses</p>
           </div>
         </Card>
-        <Card className="dashboard-card">
-          <div className="dashboard-card-icon">
+        <Card className={pageTw.metricCard}>
+          <div className={pageTw.metricIcon}>
             <BarChart3 size={18} />
           </div>
           <div>
@@ -78,7 +79,7 @@ export const SurveyResponsesPage = () => {
         </Card>
       </section>
 
-      <Card className="dashboard-empty-state">
+      <Card className={pageTw.empty}>
         <div>
           <h2>Responses stay on a separate route</h2>
           <p>

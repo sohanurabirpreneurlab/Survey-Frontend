@@ -2,17 +2,18 @@ import { Building2, Mail, ShieldCheck, UserCog } from "lucide-react";
 
 import { Card } from "../components/ui/card";
 import { useAuth } from "../features/auth/use-auth";
+import { pageTw } from "../lib/page-tailwind";
 
 export const SettingsPage = () => {
   const auth = useAuth();
 
   return (
-    <div className="dashboard-page">
-      <section className="dashboard-hero">
+    <div className={pageTw.page}>
+      <section className={pageTw.hero}>
         <div>
-          <p className="eyebrow">Workspace settings</p>
-          <h1>Settings</h1>
-          <p>
+          <p className={pageTw.eyebrow}>Workspace settings</p>
+          <h1 className={pageTw.heroTitle}>Settings</h1>
+          <p className={pageTw.muted}>
             Review your account identity, role scope, and organization context so the workspace stays understandable.
           </p>
         </div>
@@ -39,69 +40,69 @@ export const SettingsPage = () => {
         </Card>
       </section> */}
 
-      <section className="survey-grid">
-        <Card className="survey-card">
-          <div className="survey-card-head">
+      <section className={pageTw.gridTwo}>
+        <Card className={pageTw.surfaceCard}>
+          <div className={pageTw.cardHead}>
             <div>
-              <h2>Profile overview</h2>
-              <p>Identity details coming directly from the current authenticated session.</p>
+              <h2 className={pageTw.cardTitle}>Profile overview</h2>
+              <p className={pageTw.muted}>Identity details coming directly from the current authenticated session.</p>
             </div>
           </div>
-          <div className="settings-details">
-            <div className="settings-item">
-              <span className="settings-label">Full name</span>
+          <div className={pageTw.details}>
+            <div className={pageTw.inset}>
+              <span className={pageTw.label}>Full name</span>
               <strong>{auth.user?.fullName}</strong>
             </div>
-            <div className="settings-item">
-              <span className="settings-label">Email</span>
+            <div className={pageTw.inset}>
+              <span className={pageTw.label}>Email</span>
               <strong>{auth.user?.email}</strong>
             </div>
-            <div className="settings-item">
-              <span className="settings-label">Account status</span>
+            <div className={pageTw.inset}>
+              <span className={pageTw.label}>Account status</span>
               <strong>{auth.user?.accountStatus}</strong>
             </div>
           </div>
         </Card>
-        <Card className="survey-card">
-          <div className="survey-card-head">
+        <Card className={pageTw.surfaceCard}>
+          <div className={pageTw.cardHead}>
             <div>
-              <h2>Role and access scope</h2>
-              <p>Understand your workspace permissions before jumping into builder or admin tasks.</p>
+              <h2 className={pageTw.cardTitle}>Role and access scope</h2>
+              <p className={pageTw.muted}>Understand your workspace permissions before jumping into builder or admin tasks.</p>
             </div>
           </div>
-          <div className="settings-details">
-            <div className="settings-item">
-              <span className="settings-label">Platform role</span>
+          <div className={pageTw.details}>
+            <div className={pageTw.inset}>
+              <span className={pageTw.label}>Platform role</span>
               <strong>{auth.platformRole === "admin" ? "Platform Admin" : "Business Owner"}</strong>
             </div>
-            <div className="settings-item">
-              <span className="settings-label">Admin access</span>
+            <div className={pageTw.inset}>
+              <span className={pageTw.label}>Admin access</span>
               <strong>{auth.isPlatformAdmin ? "Enabled" : "Not available"}</strong>
             </div>
-            <div className="settings-item">
-              <span className="settings-label">Organization memberships</span>
+            <div className={pageTw.inset}>
+              <span className={pageTw.label}>Organization memberships</span>
               <strong>{auth.organizations.length}</strong>
             </div>
           </div>
         </Card>
       </section>
 
-      <Card className="dashboard-empty-state">
-        <div className="settings-details">
+      <Card className={pageTw.empty}>
+        <div className={pageTw.details}>
           {auth.organizations.map((organization) => (
-            <div className="settings-item" key={organization.organizationId}>
-              <span className="settings-label">Organization</span>
+            <div className={pageTw.inset} key={organization.organizationId}>
+              <span className={pageTw.label}>Organization</span>
               <strong>{organization.organizationName}</strong>
-              <span className="settings-inline-meta">
+              <span className={pageTw.inlineMeta}>
                 <Building2 size={14} />
                 {organization.membershipRole}
               </span>
             </div>
           ))}
-          <div className="settings-item">
-            <span className="settings-label">Sharing reminder</span>
+          <div className={pageTw.inset}>
+            <span className={pageTw.label}>Sharing reminder</span>
             <strong>Publish before sharing</strong>
-            <span className="settings-inline-meta">
+            <span className={pageTw.inlineMeta}>
               <Mail size={14} />
               Public links and invitation sends remain disabled until a survey has been published.
             </span>

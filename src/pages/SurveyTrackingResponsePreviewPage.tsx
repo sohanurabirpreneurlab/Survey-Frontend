@@ -7,6 +7,7 @@ import { useAuth } from "../features/auth/use-auth";
 import { getTrackingResponsePreviewRequest } from "../features/survey-tracking/survey-tracking.api";
 import { surveyTrackingKeys } from "../features/survey-tracking/survey-tracking.keys";
 import { formatDateTime } from "../features/surveys/surveys.utils";
+import { pageTw, publicSurveyTw, surveyTw, trackingTw } from "../lib/page-tailwind";
 
 const readAnswerValue = (
   questionType: string,
@@ -77,8 +78,8 @@ export const SurveyTrackingResponsePreviewPage = () => {
 
   if (previewQuery.isLoading || !previewQuery.data) {
     return (
-      <div className="dashboard-page">
-        <section className="dashboard-hero">
+      <div className={pageTw.page}>
+        <section className={pageTw.hero}>
           <h1>Loading response preview...</h1>
           <p>The filled survey form is loading.</p>
         </section>
@@ -92,39 +93,39 @@ export const SurveyTrackingResponsePreviewPage = () => {
   const questions = [...definition.questions].sort((left, right) => left.position - right.position);
 
   return (
-    <div className="survey-preview-shell">
-      <Card className="survey-runtime-card">
+    <div className={publicSurveyTw.shell}>
+      <Card className={publicSurveyTw.card}>
         <div
-          className="survey-runtime-accent"
+          className="h-3 w-full"
           style={{ backgroundColor: definition.version.settings.theme?.primaryColor ?? "#184fbe" }}
         />
-        <div className="survey-runtime-header">
+        <div className={publicSurveyTw.header}>
           <h2>{survey.title ?? definition.version.title}</h2>
           <p>
             Read-only respondent preview. Respondent: {response.respondentEmail ?? "Anonymous public respondent"}.
           </p>
         </div>
 
-        <Card className="survey-runtime-confirmation">
-          <div className="survey-runtime-confirmation-meta">
-            <span className="survey-runtime-confirmation-label">Response status</span>
+        <Card className={publicSurveyTw.confirmation}>
+          <div className={publicSurveyTw.confirmationMeta}>
+            <span className="text-[0.8rem] font-bold tracking-[0.08em] text-app-text-soft uppercase">Response status</span>
             <strong>{response.responseStatus}</strong>
           </div>
-          <div className="survey-runtime-confirmation-meta">
-            <span className="survey-runtime-confirmation-label">Submitted</span>
+          <div className={publicSurveyTw.confirmationMeta}>
+            <span className="text-[0.8rem] font-bold tracking-[0.08em] text-app-text-soft uppercase">Submitted</span>
             <strong>{response.submittedAt ? formatDateTime(response.submittedAt) ?? response.submittedAt : "Not submitted"}</strong>
           </div>
         </Card>
 
         {sections.map((section) => (
-          <section className="survey-runtime-section" key={section.id}>
-            <div className="survey-runtime-section-head">
+          <section className={surveyTw.runtimeSection} key={section.id}>
+            <div>
               <span>Section</span>
               <h3>{section.title}</h3>
               {section.description ? <p>{section.description}</p> : null}
             </div>
 
-            <div className="survey-runtime-question-stack">
+            <div className="grid gap-4">
               {questions
                 .filter((question) => question.sectionId === section.id)
                 .map((question) => {
@@ -132,13 +133,13 @@ export const SurveyTrackingResponsePreviewPage = () => {
                   const options = definition.options.filter((option) => option.questionId === question.id);
 
                   return (
-                    <div className="survey-runtime-question" key={question.id}>
-                      <div className="survey-runtime-question-head">
+                    <div className={surveyTw.runtimeQuestion} key={question.id}>
+                      <div className="flex items-center justify-between">
                         <h4>{question.title}</h4>
                         <span>{question.type.replace(/_/g, " ")}</span>
                       </div>
                       {question.description ? <p>{question.description}</p> : null}
-                      <div className="tracking-answer-box">
+                      <div className={trackingTw.answer}>
                         {readAnswerValue(question.type, answer, options)}
                       </div>
                     </div>
@@ -148,7 +149,7 @@ export const SurveyTrackingResponsePreviewPage = () => {
           </section>
         ))}
 
-        <div className="survey-form-footer survey-form-footer-centered">
+        <div className="flex items-center justify-center gap-3">
           <Button asChild size="lg" variant="secondary">
             <Link to={`/app/tracking-surveys/${surveyId}/responses`}>Back to responses</Link>
           </Button>

@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
+import { inputClassName } from "../components/ui/input";
 import { useAuth } from "../features/auth/use-auth";
 import { getSurveyRequest, getSurveyVersionRequest } from "../features/surveys/surveys.api";
 import { surveyKeys } from "../features/surveys/surveys.keys";
@@ -17,6 +18,8 @@ import {
   sortQuestions,
   sortSections
 } from "../features/surveys/surveys.utils";
+import { cn } from "../lib/cn";
+import { pageTw, surveyTw } from "../lib/page-tailwind";
 
 export const SurveyPreviewPage = () => {
   const { surveyId = "" } = useParams();
@@ -44,8 +47,8 @@ export const SurveyPreviewPage = () => {
 
   if (surveyQuery.isLoading || versionQuery.isLoading || !surveyQuery.data || !definition) {
     return (
-      <div className="dashboard-page">
-        <section className="dashboard-hero">
+      <div className={pageTw.page}>
+        <section className={pageTw.hero}>
           <h1>Loading preview...</h1>
           <p>The selected survey version is loading.</p>
         </section>
@@ -54,20 +57,20 @@ export const SurveyPreviewPage = () => {
   }
 
   return (
-    <div className="dashboard-page">
-      <section className="survey-preview-header">
+    <div className={pageTw.page}>
+      <section className={surveyTw.previewHeader}>
         <div>
           <h1>Preview</h1>
           <p>Responses entered here will not be saved.</p>
         </div>
-        <div className="survey-preview-actions">
+        <div className={surveyTw.actions}>
           <Button asChild size="sm" variant="secondary">
             <Link to={`/app/surveys/${surveyId}/builder`}>Back to builder</Link>
           </Button>
-          <div className="survey-preview-toggle" role="tablist" aria-label="Preview mode">
+          <div className="flex flex-wrap gap-2.5" role="tablist" aria-label="Preview mode">
             <button
               aria-pressed={mode === "desktop"}
-              className={mode === "desktop" ? "survey-tab survey-tab-active" : "survey-tab"}
+              className={cn(surveyTw.tab, mode === "desktop" && surveyTw.tabActive)}
               onClick={() => setMode("desktop")}
               type="button"
             >
@@ -76,7 +79,7 @@ export const SurveyPreviewPage = () => {
             </button>
             <button
               aria-pressed={mode === "mobile"}
-              className={mode === "mobile" ? "survey-tab survey-tab-active" : "survey-tab"}
+              className={cn(surveyTw.tab, mode === "mobile" && surveyTw.tabActive)}
               onClick={() => setMode("mobile")}
               type="button"
             >
@@ -87,7 +90,7 @@ export const SurveyPreviewPage = () => {
         </div>
       </section>
 
-      <Card className="survey-preview-banner">
+      <Card className="p-6 max-app-mobile:p-[18px]">
         <p>
           Preview mode only. This page renders the active {surveyQuery.data.currentDraftVersionId ? "draft" : "published"} version.
         </p>
@@ -98,31 +101,31 @@ export const SurveyPreviewPage = () => {
         {surveyQuery.data.access.message ? <span>{surveyQuery.data.access.message}</span> : null}
       </Card>
 
-      <div className={mode === "mobile" ? "survey-preview-shell survey-preview-shell-mobile" : "survey-preview-shell"}>
-        <Card className="survey-runtime-card">
+      <div className="flex items-center justify-center px-6 pt-10 pb-14 max-app-mobile:px-4 max-app-mobile:pt-6 max-app-mobile:pb-10">
+        <Card className={cn("grid w-full max-w-[840px] gap-[22px] overflow-hidden pb-6", mode === "mobile" && "max-w-[420px]")}>
           <div
-            className="survey-runtime-accent"
+            className="h-3 w-full"
             style={{ backgroundColor: definition.version.settings.theme.primaryColor ?? "#184fbe" }}
           />
-          <div className="survey-runtime-header">
+          <div className="mx-6 grid gap-3.5 pt-2">
             <h2>{definition.version.title}</h2>
             {definition.version.description ? <p>{definition.version.description}</p> : null}
           </div>
 
           {sections.map((section, sectionIndex) => (
-            <section className="survey-runtime-section" key={section.id}>
-              <div className="survey-runtime-section-head">
+            <section className={surveyTw.runtimeSection} key={section.id}>
+              <div>
                 <span>Section {sectionIndex + 1}</span>
                 <h3>{section.title}</h3>
                 {section.description ? <p>{section.description}</p> : null}
               </div>
-              <div className="survey-runtime-question-stack">
+              <div className="grid gap-4">
                 {sortQuestions(definition.questions.filter((question) => question.sectionId === section.id)).map((question) => {
                   const options = getQuestionOptions(definition, question.id);
 
                   return (
-                    <div className="survey-runtime-question" key={question.id}>
-                      <div className="survey-runtime-question-head">
+                    <div className={surveyTw.runtimeQuestion} key={question.id}>
+                      <div className="flex items-center justify-between">
                         <h4>
                           {question.title}
                           {question.required ? <span> *</span> : null}
@@ -131,16 +134,16 @@ export const SurveyPreviewPage = () => {
                       </div>
                       {question.description ? <p>{question.description}</p> : null}
                       {questionSupportsOptions(question.type) ? (
-                        <div className="survey-runtime-options">
+                        <div className="grid gap-2.5">
                           {options.map((option) => (
-                            <label className="survey-runtime-option" key={option.id}>
+                            <label className={surveyTw.runtimeOption} key={option.id}>
                               <input type={question.type === "multiple_choice" ? "checkbox" : "radio"} />
                               <span>{option.label}</span>
                             </label>
                           ))}
                         </div>
                       ) : (
-                        <input className="input" disabled placeholder={readQuestionPlaceholder(question.type)} />
+                        <input className={inputClassName} disabled placeholder={readQuestionPlaceholder(question.type)} />
                       )}
                     </div>
                   );
@@ -148,11 +151,6 @@ export const SurveyPreviewPage = () => {
               </div>
             </section>
           ))}
-
-          {/* <Card className="survey-runtime-confirmation">
-            <h3>Confirmation screen preview</h3>
-            <p>{definition.version.settings.confirmationMessage}</p>
-          </Card> */}
         </Card>
       </div>
     </div>

@@ -11,6 +11,7 @@ import { useAuth } from "../features/auth/use-auth";
 import { ApiError } from "../lib/api";
 import { toast } from "../state/toast-store";
 import { formatDateTime, formatRelativeTime } from "../features/surveys/surveys.utils";
+import { adminTw, pageTw } from "../lib/page-tailwind";
 
 export const AdminUsersPage = () => {
   const auth = useAuth();
@@ -58,29 +59,29 @@ export const AdminUsersPage = () => {
   };
 
   return (
-    <div className="dashboard-page">
-      <section className="dashboard-hero">
+    <div className={pageTw.page}>
+      <section className={pageTw.hero}>
         <div>
           <h1>Users</h1>
           <p>Show all users in a table and let admins update platform roles safely.</p>
         </div>
       </section>
 
-      <Card className="survey-filter-card">
-        <div className="survey-filter-grid admin-filter-grid">
-          <label className="survey-search-field">
+      <Card className={adminTw.filterCard}>
+        <div className={adminTw.filterGrid}>
+          <label className={adminTw.searchField}>
             <Search size={16} />
             <input
-              className="survey-search-input"
+              className={adminTw.searchInput}
               onChange={(event) => updateFilters({ page: "1", q: event.target.value })}
               placeholder="Search by name or email"
               value={q}
             />
           </label>
-          <label className="survey-select-field">
-            <span className="field-label">Status</span>
+          <label className={adminTw.selectField}>
+            <span className={adminTw.fieldLabel}>Status</span>
             <select
-              className="input"
+              className={adminTw.select}
               onChange={(event) => updateFilters({ page: "1", status: event.target.value })}
               value={status}
             >
@@ -95,13 +96,13 @@ export const AdminUsersPage = () => {
       </Card>
 
       {usersQuery.isLoading ? (
-        <Card className="dashboard-empty-state">
+        <Card className={pageTw.empty}>
           <p>Loading users...</p>
         </Card>
       ) : null}
 
       {usersQuery.isError ? (
-        <Card className="dashboard-empty-state">
+        <Card className={pageTw.empty}>
           <div>
             <h2>We could not load users.</h2>
             <p>Try the request again.</p>
@@ -112,9 +113,9 @@ export const AdminUsersPage = () => {
 
       {!usersQuery.isLoading && !usersQuery.isError && usersQuery.data ? (
         <>
-          <Card className="admin-table-card">
-            <div className="admin-table-wrap">
-              <table className="admin-table">
+          <Card className={adminTw.tableCard}>
+            <div className={adminTw.tableWrap}>
+              <table className={adminTw.table}>
                 <thead>
                   <tr>
                     <th>Name</th>
@@ -143,11 +144,11 @@ export const AdminUsersPage = () => {
             </div>
           </Card>
 
-          <div className="survey-pagination">
+          <div className={adminTw.pagination}>
             <span>
               Page {usersQuery.data.pagination.page} of {usersQuery.data.pagination.totalPages}
             </span>
-            <div className="survey-card-actions">
+            <div className={adminTw.actionRow}>
               <Button
                 disabled={page <= 1}
                 onClick={() => updateFilters({ page: String(Math.max(1, page - 1)) })}
@@ -192,13 +193,13 @@ const AdminUserRow = ({
       </td>
       <td data-label="Email">{user.email}</td>
       <td data-label="Status">
-        <span className={`survey-badge ${statusBadgeClassName(user.accountStatus)}`}>{user.accountStatus}</span>
+        <span className={`rounded-full px-2.5 py-1.5 text-[0.82rem] font-bold capitalize ${statusBadgeClassName(user.accountStatus)}`}>{user.accountStatus}</span>
       </td>
       <td data-label="Organization">{user.organizationName ?? "No organization"}</td>
       <td data-label="Role">
-        <div className="admin-role-editor">
+        <div className="grid min-w-[180px] gap-1.5 max-app-mobile:min-w-0">
           <select
-            className="input"
+            className={adminTw.select}
             defaultValue={user.platformRole}
             disabled={disableRoleChange || rolePending}
             onChange={(event) => void onUpdateRole(event.target.value as "admin" | "business_owner")}
@@ -206,11 +207,11 @@ const AdminUserRow = ({
             <option value="business_owner">Business owner</option>
             <option value="admin">Admin</option>
           </select>
-          {disableRoleChange ? <span className="field-hint">Current account</span> : null}
+          {disableRoleChange ? <span className="text-[0.9rem] text-app-text-faint">Current account</span> : null}
         </div>
       </td>
       <td data-label="Updated">
-        <div className="admin-table-meta">
+        <div className={adminTw.tableMeta}>
           <strong>{formatRelativeTime(user.updatedAt)}</strong>
           <span>{formatDateTime(user.updatedAt) ?? user.updatedAt}</span>
         </div>
@@ -226,12 +227,12 @@ const AdminUserRow = ({
 
 const statusBadgeClassName = (status: AdminUserSummary["accountStatus"]) => {
   if (status === "approved") {
-    return "survey-badge-published";
+    return "bg-app-success-soft text-app-success";
   }
 
   if (status === "pending") {
-    return "survey-badge-draft";
+    return "bg-app-warning-soft text-app-warning";
   }
 
-  return "survey-badge-closed";
+  return "bg-app-surface-muted text-app-text-soft";
 };

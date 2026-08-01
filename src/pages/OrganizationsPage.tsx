@@ -20,6 +20,7 @@ import { useAuth } from "../features/auth/use-auth";
 import { ApiError } from "../lib/api";
 import { toast } from "../state/toast-store";
 import { formatDateTime, formatRelativeTime } from "../features/surveys/surveys.utils";
+import { adminTw, pageTw } from "../lib/page-tailwind";
 
 const createOrganizationSchema = z.object({
   name: z.string().trim().min(2, "Organization name is required.").max(120)
@@ -65,8 +66,8 @@ export const OrganizationsPage = () => {
   };
 
   return (
-    <div className="dashboard-page">
-      <section className="dashboard-hero survey-page-hero">
+    <div className={pageTw.page}>
+      <section className={`${pageTw.hero} ${pageTw.heroSplit}`}>
         <div>
           <h1>Organizations</h1>
           <p>Show organizations in a table and create new organizations from a modal.</p>
@@ -77,11 +78,11 @@ export const OrganizationsPage = () => {
         />
       </section>
 
-      <Card className="survey-filter-card">
-        <label className="survey-search-field">
+      <Card className={adminTw.filterCard}>
+        <label className={adminTw.searchField}>
           <Search size={16} />
           <input
-            className="survey-search-input"
+            className={adminTw.searchInput}
             onChange={(event) => updateFilters({ page: "1", q: event.target.value })}
             placeholder="Search organizations"
             value={q}
@@ -90,13 +91,13 @@ export const OrganizationsPage = () => {
       </Card>
 
       {organizationsQuery.isLoading ? (
-        <Card className="dashboard-empty-state">
+        <Card className={pageTw.empty}>
           <p>Loading organizations...</p>
         </Card>
       ) : null}
 
       {organizationsQuery.isError ? (
-        <Card className="dashboard-empty-state">
+        <Card className={pageTw.empty}>
           <div>
             <h2>We could not load organizations.</h2>
             <p>Try again from this page.</p>
@@ -107,9 +108,9 @@ export const OrganizationsPage = () => {
 
       {!organizationsQuery.isLoading && !organizationsQuery.isError && organizationsQuery.data ? (
         <>
-          <Card className="admin-table-card">
-            <div className="admin-table-wrap">
-              <table className="admin-table">
+          <Card className={adminTw.tableCard}>
+            <div className={adminTw.tableWrap}>
+              <table className={adminTw.table}>
                 <thead>
                   <tr>
                     <th>Name</th>
@@ -129,11 +130,11 @@ export const OrganizationsPage = () => {
             </div>
           </Card>
 
-          <div className="survey-pagination">
+          <div className={adminTw.pagination}>
             <span>
               Page {organizationsQuery.data.pagination.page} of {organizationsQuery.data.pagination.totalPages}
             </span>
-            <div className="survey-card-actions">
+            <div className={adminTw.actionRow}>
               <Button
                 disabled={page <= 1}
                 onClick={() => updateFilters({ page: String(Math.max(1, page - 1)) })}
@@ -176,21 +177,21 @@ const CreateOrganizationDialog = ({
         <Button>Create organization</Button>
       </Dialog.Trigger>
       <Dialog.Portal>
-        <Dialog.Overlay className="dialog-overlay" />
-        <Dialog.Content className="survey-dialog">
-          <div className="mobile-nav-header">
+        <Dialog.Overlay className={adminTw.dialogOverlay} />
+        <Dialog.Content className={adminTw.dialog}>
+          <div className={adminTw.actionRow}>
             <Dialog.Title>Create organization</Dialog.Title>
             <Dialog.Close asChild>
-              <button aria-label="Close create organization dialog" className="mobile-nav-close" type="button">
+              <button aria-label="Close create organization dialog" className="inline-flex cursor-pointer items-center justify-center border-0 bg-transparent text-app-text-soft" type="button">
                 <X size={18} />
               </button>
             </Dialog.Close>
           </div>
-          <Dialog.Description className="survey-dialog-copy">
+          <Dialog.Description className={adminTw.dialogCopy}>
             This creates a new organization record from the Admin Panel.
           </Dialog.Description>
           <form
-            className="builder-settings-stack"
+            className={adminTw.formStack}
             onSubmit={form.handleSubmit(async (values) => {
               await onCreate(values.name);
               form.reset({ name: "" });
@@ -199,7 +200,7 @@ const CreateOrganizationDialog = ({
             <Field error={form.formState.errors.name?.message} label="Organization name">
               <Input {...form.register("name")} />
             </Field>
-            <div className="survey-dialog-actions">
+            <div className={adminTw.dialogActions}>
               <Dialog.Close asChild>
                 <Button size="sm" type="button" variant="secondary">
                   Cancel
@@ -222,7 +223,7 @@ const OrganizationRow = ({ organization }: { organization: AdminOrganizationSumm
       <strong>{organization.name}</strong>
     </td>
     <td data-label="Owner">
-      <div className="admin-table-meta">
+      <div className={adminTw.tableMeta}>
         <strong>{organization.ownerName ?? "No owner"}</strong>
         <span>{organization.ownerEmail ?? "No email"}</span>
       </div>
@@ -230,7 +231,7 @@ const OrganizationRow = ({ organization }: { organization: AdminOrganizationSumm
     <td data-label="Members">{organization.memberCount}</td>
     <td data-label="Surveys">{organization.surveyCount}</td>
     <td data-label="Updated">
-      <div className="admin-table-meta">
+      <div className={adminTw.tableMeta}>
         <strong>{formatRelativeTime(organization.updatedAt)}</strong>
         <span>{formatDateTime(organization.updatedAt) ?? organization.updatedAt}</span>
       </div>

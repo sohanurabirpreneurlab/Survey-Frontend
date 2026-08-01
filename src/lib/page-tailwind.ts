@@ -1,0 +1,117 @@
+export const pageTw = {
+  page: "grid gap-6",
+  hero: "rounded-app-lg border border-[rgba(216,225,239,0.92)] [border-style:solid] bg-white/[0.85] p-7 max-app-mobile:p-[22px]",
+  heroSplit: "flex items-start justify-between gap-4 max-app-mobile:flex-col max-app-mobile:items-stretch",
+  eyebrow: "mt-0 mb-3 text-[0.82rem] font-bold tracking-[0.08em] text-app-primary uppercase",
+  heroTitle: "mt-0 mb-2.5 text-[clamp(1.6rem,2.2vw,2.2rem)] leading-[1.1]",
+  muted: "m-0 text-app-text-soft",
+  empty: "rounded-app-lg border border-[rgba(216,225,239,0.92)] [border-style:solid] bg-white/[0.85] p-7 max-app-mobile:p-[22px]",
+  gridTwo: "grid grid-cols-2 gap-[18px] max-app-wide:grid-cols-1",
+  gridThree: "grid grid-cols-3 gap-[18px] max-app-wide:grid-cols-1",
+  metricCard: "grid gap-[18px] p-6 max-app-mobile:p-[22px]",
+  metricIcon: "inline-flex size-12 items-center justify-center rounded-2xl bg-app-surface-strong text-app-primary",
+  metricTitle: "mt-0 mb-2.5 text-[clamp(1.6rem,2.2vw,2.2rem)] leading-[1.1]",
+  surfaceCard: "relative grid gap-[18px] overflow-hidden p-[22px] max-app-mobile:p-[18px]",
+  cardHead: "flex items-start justify-between gap-3 max-app-mobile:flex-col max-app-mobile:items-stretch",
+  cardTitle: "mt-0 mb-2 text-xl font-bold",
+  details: "grid gap-3.5",
+  inset: "grid gap-1 rounded-app-md border border-app-border [border-style:solid] bg-app-surface-muted p-4",
+  label: "text-[0.84rem] font-bold tracking-[0.06em] text-app-text-faint uppercase",
+  inlineMeta: "mt-1.5 inline-flex items-center gap-2 text-app-text-soft",
+  listRow: "flex items-center justify-between gap-4 border-t border-app-border [border-top-style:solid] pt-3.5 first:border-t-0 first:pt-0",
+  tableCard: "overflow-hidden p-0",
+  tableWrap: "overflow-x-auto",
+  filters: "grid grid-cols-[minmax(0,1.6fr)_minmax(180px,0.7fr)] items-end gap-4 max-app-wide:grid-cols-1",
+  pagination: "flex items-center justify-between gap-3 max-app-mobile:flex-col max-app-mobile:items-stretch"
+} as const;
+
+export const adminTw = {
+  filterCard: "p-6 max-app-mobile:p-[18px]",
+  filterGrid: "grid grid-cols-[minmax(0,1.6fr)_minmax(180px,0.7fr)] items-end gap-4 max-app-wide:grid-cols-1",
+  searchField: "flex min-h-[50px] items-center gap-2.5 rounded-[14px] border border-app-border [border-style:solid] bg-white px-3.5",
+  searchInput: "min-w-0 flex-1 border-0 bg-transparent p-0 text-app-text outline-none",
+  selectField: "grid gap-2",
+  fieldLabel: "text-[0.95rem] font-semibold",
+  select: "min-h-[50px] w-full appearance-none rounded-[14px] border border-app-border [border-style:solid] bg-white px-4 text-app-text outline-none focus:border-app-primary focus:shadow-[0_0_0_4px_rgba(24,79,190,0.12)]",
+  tableCard: "overflow-hidden p-0",
+  tableWrap: "overflow-x-auto",
+  table: "w-full min-w-[860px] border-collapse max-app-mobile:min-w-0 max-app-mobile:block max-app-mobile:[&_thead]:hidden max-app-mobile:[&_tbody]:block max-app-mobile:[&_tr]:block max-app-mobile:[&_tr]:w-full max-app-mobile:[&_tr]:border-b max-app-mobile:[&_tr]:border-app-border max-app-mobile:[&_tr]:px-4 max-app-mobile:[&_tr]:py-3.5 max-app-mobile:[&_td]:grid max-app-mobile:[&_td]:w-full max-app-mobile:[&_td]:gap-1.5 max-app-mobile:[&_td]:border-b-0 max-app-mobile:[&_td]:pb-3 max-app-mobile:[&_td]:pt-0 max-app-mobile:[&_td]:before:content-[attr(data-label)] max-app-mobile:[&_td]:before:text-[0.78rem] max-app-mobile:[&_td]:before:font-bold max-app-mobile:[&_td]:before:tracking-[0.06em] max-app-mobile:[&_td]:before:text-app-text-faint max-app-mobile:[&_td]:before:uppercase",
+  tableActions: "flex flex-wrap gap-2 max-app-mobile:w-full max-app-mobile:[&_[data-slot=button]]:w-full",
+  tableMeta: "grid gap-0.5 [&_span]:text-[0.9rem] [&_span]:text-app-text-soft",
+  pagination: "flex items-center justify-between gap-3 max-app-mobile:flex-col max-app-mobile:items-stretch",
+  actionRow: "flex items-center justify-between gap-3 max-app-mobile:flex-col max-app-mobile:items-stretch",
+  details: "grid gap-3.5",
+  detailItem: "grid gap-1 rounded-app-md border border-app-border [border-style:solid] bg-app-surface-muted p-4",
+  detailLabel: "text-[0.84rem] font-bold tracking-[0.06em] text-app-text-faint uppercase",
+  listRow: "flex items-center justify-between gap-4 border-t border-app-border [border-top-style:solid] pt-3.5 first:border-t-0 first:pt-0",
+  dialogOverlay: "fixed inset-0 z-[45] bg-[rgba(18,48,79,0.32)]",
+  dialog: "fixed top-1/2 left-1/2 z-[46] grid max-h-[min(720px,calc(100vh-32px))] w-full max-w-[min(520px,calc(100vw-32px))] -translate-x-1/2 -translate-y-1/2 gap-4 overflow-y-auto rounded-app-md border border-app-border [border-style:solid] bg-white p-6 shadow-app",
+  dialogCopy: "m-0 text-app-text-soft",
+  dialogActions: "flex items-center justify-between gap-3 max-app-mobile:flex-col max-app-mobile:items-stretch",
+  formStack: "grid gap-4"
+} as const;
+
+export const surveyTw = {
+  textarea: "min-h-[120px] w-full resize-y appearance-none rounded-[14px] border border-app-border [border-style:solid] bg-white px-4 py-3.5 text-app-text outline-none focus:border-app-primary focus:shadow-[0_0_0_4px_rgba(24,79,190,0.12)]",
+  formCard: "p-6 max-app-mobile:p-[18px]",
+  form: "grid gap-7",
+  formSection: "grid gap-[18px]",
+  radioGrid: "grid grid-cols-2 gap-3.5 max-app-wide:grid-cols-1",
+  radioCard: "flex cursor-pointer gap-3 rounded-app-md border border-app-border [border-style:solid] bg-white/[0.94] p-4 accent-app-primary",
+  scheduleGrid: "grid grid-cols-2 gap-3.5 max-app-wide:grid-cols-1",
+  scheduleCard: "grid gap-3.5 rounded-app-md border border-app-border [border-style:solid] bg-white/[0.94] p-[18px]",
+  radioInline: "grid gap-1.5 accent-app-primary [&_span]:text-app-text-soft",
+  formFooter: "flex items-center justify-between gap-3 max-app-mobile:flex-col max-app-mobile:items-stretch",
+  actions: "flex items-center justify-between gap-3 max-app-mobile:flex-col max-app-mobile:items-stretch",
+  previewHeader: "flex items-center justify-between gap-4 max-app-mobile:flex-col max-app-mobile:items-stretch",
+  tab: "inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-full border border-app-border [border-style:solid] bg-app-surface-muted px-3.5 text-app-text-soft",
+  tabActive: "border-app-border-strong bg-app-primary-soft text-app-primary-strong",
+  runtimeSection: "mx-6 grid gap-4 rounded-app-md border border-app-border [border-style:solid] bg-white/[0.94] p-5 max-app-mobile:mx-[18px] max-app-mobile:p-[18px]",
+  runtimeQuestion: "grid gap-3 rounded-app-md border border-app-border [border-style:solid] bg-white/[0.94] p-[18px]",
+  runtimeOption: "inline-flex w-fit items-center justify-start gap-2.5 accent-app-primary"
+} as const;
+
+export const surveysPageTw = {
+  card: "relative grid gap-[18px] overflow-hidden p-[22px] max-app-mobile:p-[18px]",
+  cardHead: "flex items-start justify-between gap-3 max-app-mobile:flex-col max-app-mobile:items-stretch",
+  cardActions: "flex items-center justify-between gap-3 max-app-mobile:flex-col max-app-mobile:items-stretch",
+  menu: "z-[60] min-w-[220px] rounded-app-md border border-app-border [border-style:solid] bg-white p-2 shadow-app",
+  menuItem: "flex min-h-10 cursor-pointer items-center gap-2.5 rounded-[10px] px-3 text-app-text outline-none hover:bg-app-surface-muted hover:no-underline",
+  dialogOverlay: "fixed inset-0 z-[45] bg-[rgba(18,48,79,0.32)]",
+  dialog: "fixed top-1/2 left-1/2 z-[46] grid max-h-[min(720px,calc(100vh-32px))] w-full max-w-[min(520px,calc(100vw-32px))] -translate-x-1/2 -translate-y-1/2 gap-4 overflow-y-auto rounded-app-md border border-app-border [border-style:solid] bg-white p-6 shadow-app",
+  dialogStack: "grid gap-4",
+  dialogCopy: "m-0 text-app-text-soft",
+  dialogActions: "flex items-center justify-between gap-3 max-app-mobile:flex-col max-app-mobile:items-stretch",
+  close: "inline-flex cursor-pointer items-center justify-center border-0 bg-transparent text-app-text-soft",
+  shareModeGrid: "grid grid-cols-2 gap-3 max-app-mobile:grid-cols-1",
+  shareModeCard: "grid cursor-pointer gap-1.5 rounded-app-md border border-app-border [border-style:solid] bg-white p-4 text-left text-app-text outline-none transition-[border-color,box-shadow] hover:border-app-primary focus-visible:border-app-primary focus-visible:shadow-[0_0_0_3px_rgba(24,79,190,0.12)]",
+  shareModeActive: "border-app-primary bg-app-primary-soft",
+  linkBox: "grid gap-2 rounded-app-md border border-app-border [border-style:solid] bg-app-surface-muted p-4",
+  chipBox: "flex min-h-[52px] flex-wrap items-center gap-2 rounded-[14px] border border-app-border [border-style:solid] bg-white px-3 py-2.5",
+  chip: "inline-flex items-center gap-2 rounded-full border border-app-border-strong [border-style:solid] bg-app-primary-soft px-2.5 py-1.5 text-app-primary-strong",
+  invitationRow: "flex items-center justify-between gap-3 rounded-app-md border border-app-border [border-style:solid] px-4 py-3.5",
+  accessPill: "inline-flex items-center rounded-full px-2.5 py-[5px] text-[0.8rem] font-bold",
+  skeleton: "h-3 w-[72%] rounded-full bg-[linear-gradient(90deg,#eff5ff_0%,#f8fbff_50%,#eff5ff_100%)]"
+} as const;
+
+export const trackingTw = {
+  controlsCard: "px-[22px] py-5",
+  controls: "flex flex-wrap items-center justify-between gap-4 max-app-mobile:items-stretch",
+  filters: "flex flex-[420px] flex-wrap items-center justify-end gap-3 max-app-mobile:justify-stretch",
+  search: "flex flex-[280px] items-center gap-2.5 text-app-text-soft max-app-mobile:basis-full",
+  searchInput: "min-w-[220px] flex-1 border-0 bg-transparent text-app-text outline-none max-app-mobile:w-full",
+  metric: "grid gap-1 [&_span]:text-[0.92rem] [&_span]:text-app-text-soft",
+  recipientList: "grid max-h-[360px] gap-3 overflow-auto",
+  recipientRow: "flex items-center justify-between gap-4 rounded-app-md border border-app-border [border-style:solid] px-4 py-3.5",
+  answer: "whitespace-pre-wrap rounded-2xl border border-[rgba(24,79,190,0.1)] [border-style:solid] bg-[rgba(24,79,190,0.05)] px-4 py-3.5 leading-7 text-app-text",
+  badge: "rounded-full px-2.5 py-1.5 text-[0.82rem] font-bold capitalize"
+} as const;
+
+export const publicSurveyTw = {
+  shell: "flex items-center justify-center px-6 pt-10 pb-14 max-app-mobile:px-4 max-app-mobile:pt-6 max-app-mobile:pb-10",
+  card: "grid w-full max-w-[840px] gap-[22px] overflow-hidden pb-6",
+  header: "mx-6 grid gap-3.5 pt-2",
+  confirmation: "mx-6 grid gap-[18px] rounded-app-md border border-app-border [border-style:solid] bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(244,249,255,0.98))] p-7 max-app-mobile:mx-[18px] max-app-mobile:p-[18px]",
+  confirmationBadge: "inline-flex w-fit items-center rounded-full border border-[rgba(21,115,71,0.15)] [border-style:solid] bg-app-success-soft px-3.5 py-2 text-[0.78rem] font-extrabold tracking-[0.08em] text-app-success uppercase",
+  confirmationMeta: "grid items-start gap-1.5 rounded-[18px] border border-[rgba(24,79,190,0.1)] [border-style:solid] bg-[rgba(24,79,190,0.05)] px-[18px] py-4"
+} as const;

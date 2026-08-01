@@ -13,6 +13,7 @@ import {
 import { surveyTrackingKeys } from "../features/survey-tracking/survey-tracking.keys";
 import type { SurveyTrackingSummary } from "../features/survey-tracking/survey-tracking.types";
 import { formatDateTime, formatRelativeTime } from "../features/surveys/surveys.utils";
+import { adminTw, pageTw, trackingTw } from "../lib/page-tailwind";
 
 export const SurveyTrackingPage = () => {
   const auth = useAuth();
@@ -33,8 +34,8 @@ export const SurveyTrackingPage = () => {
   };
 
   return (
-    <div className="dashboard-page">
-      <section className="dashboard-hero dashboard-hero-split">
+    <div className={pageTw.page}>
+      <section className={`${pageTw.hero} ${pageTw.heroSplit}`}>
         <div>
           <h1>Tracking Survey</h1>
           <p>
@@ -43,12 +44,12 @@ export const SurveyTrackingPage = () => {
               : "Monitor surveys from your organization, invited recipients, and filled responses."}
           </p>
         </div>
-        <div className="dashboard-hero-chips">
-          <span className="dashboard-hero-chip">
+        <div className="flex flex-wrap gap-2.5">
+          <span className="rounded-full border border-app-border [border-style:solid] bg-white/90 px-3 py-2 text-[0.86rem] font-bold text-app-text-soft">
             <Users size={14} />
             Response tracking
           </span>
-          <span className="dashboard-hero-chip">
+          <span className="rounded-full border border-app-border [border-style:solid] bg-white/90 px-3 py-2 text-[0.86rem] font-bold text-app-text-soft">
             <Mail size={14} />
             Invitation visibility
           </span>
@@ -56,13 +57,13 @@ export const SurveyTrackingPage = () => {
       </section>
 
       {trackingQuery.isLoading ? (
-        <Card className="dashboard-empty-state">
+        <Card className={pageTw.empty}>
           <p>Loading tracked surveys...</p>
         </Card>
       ) : null}
 
       {trackingQuery.isError ? (
-        <Card className="dashboard-empty-state">
+        <Card className={pageTw.empty}>
           <div>
             <h2>We could not load tracking data.</h2>
             <p>Try the request again.</p>
@@ -73,9 +74,9 @@ export const SurveyTrackingPage = () => {
 
       {!trackingQuery.isLoading && !trackingQuery.isError && trackingQuery.data ? (
         <>
-          <Card className="admin-table-card">
-            <div className="admin-table-wrap">
-              <table className="admin-table">
+      <Card className={adminTw.tableCard}>
+        <div className={adminTw.tableWrap}>
+          <table className={adminTw.table}>
                 <thead>
                   <tr>
                     <th>Survey</th>
@@ -96,11 +97,11 @@ export const SurveyTrackingPage = () => {
             </div>
           </Card>
 
-          <div className="survey-pagination">
+      <div className={adminTw.pagination}>
             <span>
               Page {trackingQuery.data.pagination.page} of {trackingQuery.data.pagination.totalPages}
             </span>
-            <div className="survey-card-actions">
+            <div className={adminTw.actionRow}>
               <Button
                 disabled={page <= 1}
                 onClick={() => updatePage(page - 1)}
@@ -135,19 +136,19 @@ const SurveyTrackingRow = ({ survey, token }: { survey: SurveyTrackingSummary; t
   return (
     <tr>
       <td data-label="Survey">
-        <div className="admin-table-meta">
+      <div className={adminTw.tableMeta}>
           <strong>{survey.title ?? "Untitled survey"}</strong>
           <span>{survey.status}</span>
         </div>
       </td>
       <td data-label="Organization">{survey.organizationName}</td>
       <td data-label="Private">
-        <span className={`survey-badge ${survey.isPrivate ? "survey-badge-draft" : "survey-badge-published"}`}>
+        <span className={`${trackingTw.badge} ${survey.isPrivate ? "bg-app-warning-soft text-app-warning" : "bg-app-success-soft text-app-success"}`}>
           {survey.isPrivate ? "Private" : "Public"}
         </span>
       </td>
       <td data-label="Invitations">
-        <div className="tracking-metric-stack">
+      <div className={trackingTw.metric}>
           <strong>{survey.invitationCount}</strong>
           <span>
             {survey.invitationOpenedCount} opened • {survey.invitationCompletedCount} completed
@@ -155,19 +156,19 @@ const SurveyTrackingRow = ({ survey, token }: { survey: SurveyTrackingSummary; t
         </div>
       </td>
       <td data-label="Responses">
-        <div className="tracking-metric-stack">
+      <div className={trackingTw.metric}>
           <strong>{survey.submittedResponseCount}</strong>
           <span>{survey.inProgressResponseCount} in progress</span>
         </div>
       </td>
       <td data-label="Updated">
-        <div className="admin-table-meta">
+      <div className={adminTw.tableMeta}>
           <strong>{formatRelativeTime(survey.updatedAt)}</strong>
           <span>{formatDateTime(survey.updatedAt) ?? survey.updatedAt}</span>
         </div>
       </td>
       <td data-label="Actions">
-        <div className="admin-table-actions tracking-actions">
+      <div className={adminTw.tableActions}>
           <Dialog.Root
             onOpenChange={(open) => {
               if (open && !recipientsQuery.data && !recipientsQuery.isFetching) {
@@ -182,22 +183,22 @@ const SurveyTrackingRow = ({ survey, token }: { survey: SurveyTrackingSummary; t
               </Button>
             </Dialog.Trigger>
             <Dialog.Portal>
-              <Dialog.Overlay className="dialog-overlay" />
-              <Dialog.Content className="survey-dialog">
+        <Dialog.Overlay className={adminTw.dialogOverlay} />
+        <Dialog.Content className={adminTw.dialog}>
                 <Dialog.Title>Invited recipients</Dialog.Title>
-                <p className="survey-dialog-copy">
+          <p className={adminTw.dialogCopy}>
                   {survey.title ?? "This survey"} currently has {survey.invitationCount} tracked invitation
                   {survey.invitationCount === 1 ? "" : "s"}.
                 </p>
-                <div className="tracking-recipient-list">
+          <div className={trackingTw.recipientList}>
                   {recipientsQuery.isLoading || recipientsQuery.isFetching ? (
-                    <p className="survey-dialog-copy">Loading recipients...</p>
+              <p className={adminTw.dialogCopy}>Loading recipients...</p>
                   ) : null}
                   {!recipientsQuery.isLoading && !recipientsQuery.isFetching && (recipientsQuery.data?.length ?? 0) === 0 ? (
-                    <p className="survey-dialog-copy">No invitation recipients have been recorded for this survey.</p>
+              <p className={adminTw.dialogCopy}>No invitation recipients have been recorded for this survey.</p>
                   ) : null}
                   {recipientsQuery.data?.map((recipient) => (
-                    <div className="tracking-recipient-row" key={recipient.id}>
+              <div className={trackingTw.recipientRow} key={recipient.id}>
                       <div>
                         <strong>{recipient.email ?? "Recipient hidden"}</strong>
                         <p>

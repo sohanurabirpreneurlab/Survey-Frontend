@@ -21,6 +21,7 @@ import { useAuth } from "../features/auth/use-auth";
 import { formatDateTime } from "../features/surveys/surveys.utils";
 import { ApiError } from "../lib/api";
 import { toast } from "../state/toast-store";
+import { adminTw, pageTw } from "../lib/page-tailwind";
 
 const approveSchema = z.object({
   organizationName: z.string().trim().min(2, "Organization name is required.").max(120)
@@ -90,19 +91,19 @@ export const PendingApprovalsPage = () => {
   };
 
   return (
-    <div className="dashboard-page">
-      <section className="dashboard-hero">
+    <div className={pageTw.page}>
+      <section className={pageTw.hero}>
         <div>
           <h1>Pending Approvals</h1>
           <p>Review pending registrations from `user_profiles` and `app_users` in one table.</p>
         </div>
       </section>
 
-      <Card className="survey-filter-card">
-        <label className="survey-search-field">
+      <Card className={adminTw.filterCard}>
+        <label className={adminTw.searchField}>
           <Search size={16} />
           <input
-            className="survey-search-input"
+            className={adminTw.searchInput}
             onChange={(event) => updateFilters({ page: "1", q: event.target.value })}
             placeholder="Search by name or email"
             value={q}
@@ -111,13 +112,13 @@ export const PendingApprovalsPage = () => {
       </Card>
 
       {pendingQuery.isLoading ? (
-        <Card className="dashboard-empty-state">
+        <Card className={pageTw.empty}>
           <p>Loading pending approvals...</p>
         </Card>
       ) : null}
 
       {pendingQuery.isError ? (
-        <Card className="dashboard-empty-state">
+        <Card className={pageTw.empty}>
           <div>
             <h2>We could not load pending approvals.</h2>
             <p>Try again without leaving the admin panel.</p>
@@ -127,7 +128,7 @@ export const PendingApprovalsPage = () => {
       ) : null}
 
       {!pendingQuery.isLoading && !pendingQuery.isError && pendingQuery.data?.items.length === 0 ? (
-        <Card className="dashboard-empty-state">
+        <Card className={pageTw.empty}>
           <div>
             <h2>No pending approvals</h2>
             <p>There are no registrations waiting for review.</p>
@@ -137,9 +138,9 @@ export const PendingApprovalsPage = () => {
 
       {!pendingQuery.isLoading && !pendingQuery.isError && pendingQuery.data ? (
         <>
-          <Card className="admin-table-card">
-            <div className="admin-table-wrap">
-              <table className="admin-table">
+          <Card className={adminTw.tableCard}>
+            <div className={adminTw.tableWrap}>
+              <table className={adminTw.table}>
                 <thead>
                   <tr>
                     <th>Name</th>
@@ -168,11 +169,11 @@ export const PendingApprovalsPage = () => {
             </div>
           </Card>
 
-          <div className="survey-pagination">
+          <div className={adminTw.pagination}>
             <span>
               Page {pendingQuery.data.pagination.page} of {pendingQuery.data.pagination.totalPages}
             </span>
-            <div className="survey-card-actions">
+            <div className={adminTw.actionRow}>
               <Button
                 disabled={page <= 1}
                 onClick={() => updateFilters({ page: String(Math.max(1, page - 1)) })}
@@ -228,10 +229,10 @@ const PendingApprovalRow = ({
       <td data-label="Requested organization">{user.organizationName ?? "Not provided"}</td>
       <td data-label="Registered">{formatDateTime(user.createdAt) ?? user.createdAt}</td>
       <td data-label="Status">
-        <span className="survey-badge survey-badge-draft">{user.accountStatus}</span>
+        <span className="rounded-full bg-app-warning-soft px-2.5 py-1.5 text-[0.82rem] font-bold text-app-warning capitalize">{user.accountStatus}</span>
       </td>
       <td data-label="Actions">
-        <div className="admin-table-actions">
+        <div className={adminTw.tableActions}>
           <Button asChild size="sm" variant="secondary">
             <Link to={`/admin/users/${user.userId}`}>Review</Link>
           </Button>
@@ -240,14 +241,14 @@ const PendingApprovalRow = ({
               <Button size="sm">Approve</Button>
             </AlertDialog.Trigger>
             <AlertDialog.Portal>
-              <AlertDialog.Overlay className="dialog-overlay" />
-              <AlertDialog.Content className="survey-dialog">
+              <AlertDialog.Overlay className={adminTw.dialogOverlay} />
+              <AlertDialog.Content className={adminTw.dialog}>
                 <AlertDialog.Title>Approve account</AlertDialog.Title>
-                <AlertDialog.Description className="survey-dialog-copy">
+                <AlertDialog.Description className={adminTw.dialogCopy}>
                   Create the organization, add the owner membership, and approve the account in one transaction.
                 </AlertDialog.Description>
                 <form
-                  className="builder-settings-stack"
+                  className={adminTw.formStack}
                   onSubmit={approveForm.handleSubmit(async (values) => {
                     await onApprove(values.organizationName);
                   })}
@@ -255,7 +256,7 @@ const PendingApprovalRow = ({
                   <Field error={approveForm.formState.errors.organizationName?.message} label="Organization name">
                     <Input {...approveForm.register("organizationName")} />
                   </Field>
-                  <div className="survey-dialog-actions">
+                  <div className={adminTw.dialogActions}>
                     <AlertDialog.Cancel asChild>
                       <Button size="sm" type="button" variant="secondary">
                         Cancel
@@ -276,14 +277,14 @@ const PendingApprovalRow = ({
               </Button>
             </AlertDialog.Trigger>
             <AlertDialog.Portal>
-              <AlertDialog.Overlay className="dialog-overlay" />
-              <AlertDialog.Content className="survey-dialog">
+              <AlertDialog.Overlay className={adminTw.dialogOverlay} />
+              <AlertDialog.Content className={adminTw.dialog}>
                 <AlertDialog.Title>Reject registration</AlertDialog.Title>
-                <AlertDialog.Description className="survey-dialog-copy">
+                <AlertDialog.Description className={adminTw.dialogCopy}>
                   This keeps the user record and marks the registration as rejected.
                 </AlertDialog.Description>
                 <form
-                  className="builder-settings-stack"
+                  className={adminTw.formStack}
                   onSubmit={rejectForm.handleSubmit(async (values) => {
                     await onReject(values.reason?.trim() || null);
                   })}
@@ -291,7 +292,7 @@ const PendingApprovalRow = ({
                   <Field error={rejectForm.formState.errors.reason?.message} label="Reason">
                     <Input {...rejectForm.register("reason")} placeholder="Optional reason" />
                   </Field>
-                  <div className="survey-dialog-actions">
+                  <div className={adminTw.dialogActions}>
                     <AlertDialog.Cancel asChild>
                       <Button size="sm" type="button" variant="secondary">
                         Cancel

@@ -35,11 +35,30 @@ import type {
   QuestionType,
   SurveyCalculatedScore
 } from "../features/surveys/surveys.types";
+import { cn } from "../lib/cn";
+import { pageTw } from "../lib/page-tailwind";
 
 const DEFAULT_SURVEY_TITLE = "Untitled survey";
 const DEFAULT_SECTION_TITLE = "Untitled section";
 const DEFAULT_QUESTION_TITLE = "Untitled question";
 const CALCULATED_SCORES_TAB_ID = "calculated-scores";
+const workspaceTabClassName =
+  "grid min-w-[220px] shrink-0 cursor-pointer gap-2 rounded-[18px] border border-app-border [border-style:solid] bg-app-builder-tab px-[18px] py-3.5 text-left shadow-[0_10px_24px_rgba(18,48,79,0.06)] transition-[transform,box-shadow,border-color] duration-[160ms] hover:-translate-y-px hover:border-app-border-strong hover:shadow-[0_14px_30px_rgba(18,48,79,0.1)] max-app-tablet:min-w-[200px] max-app-mobile:min-w-[170px]";
+const workspaceTabActiveClassName =
+  "border-app-primary bg-app-builder-tab-active shadow-[0_0_0_4px_rgba(24,79,190,0.1)]";
+const workspaceTabMetaClassName = "flex items-center justify-between gap-2.5";
+const workspaceTabBadgeClassName =
+  "min-w-[34px] rounded-full border border-[rgba(24,79,190,0.14)] [border-style:solid] bg-app-primary-soft px-2.5 py-1 text-center text-[0.8rem] font-bold text-app-primary-strong";
+const builderFieldClassName = "grid gap-2";
+const builderFieldLabelClassName = "text-[0.95rem] font-semibold";
+const builderTextareaClassName =
+  "min-h-[120px] w-full resize-y appearance-none rounded-[14px] border border-app-border [border-style:solid] bg-white px-4 py-3.5 text-app-text outline-none transition-[border-color,box-shadow] duration-[140ms] focus:border-app-primary focus:shadow-[0_0_0_4px_rgba(24,79,190,0.12)]";
+const builderSelectClassName =
+  "min-h-[50px] w-full appearance-none rounded-[14px] border border-app-border [border-style:solid] bg-white px-4 py-0 text-app-text outline-none transition-[border-color,box-shadow] duration-[140ms] focus:border-app-primary focus:shadow-[0_0_0_4px_rgba(24,79,190,0.12)]";
+const builderSwitchClassName = "grid gap-1.5 rounded-[14px] bg-app-surface-muted px-3.5 py-3 [grid-auto-flow:column] items-center justify-start accent-app-primary";
+const builderDialogOverlayClassName = "fixed inset-0 z-[45] bg-[rgba(18,48,79,0.32)]";
+const builderDialogClassName = "fixed top-1/2 left-1/2 z-[46] grid max-h-[min(720px,calc(100vh-32px))] w-full max-w-[min(520px,calc(100vw-32px))] -translate-x-1/2 -translate-y-1/2 gap-4 overflow-y-auto rounded-app-md border border-app-border [border-style:solid] bg-white p-6 shadow-app max-app-tablet:top-1/2";
+const builderDialogActionsClassName = "flex items-center justify-between gap-3 max-app-mobile:flex-col max-app-mobile:items-stretch";
 const thresholdOperatorLabels: Record<CalculatedScoreThresholdOperator, string> = {
   equal: "=",
   greater_than: ">",
@@ -79,11 +98,11 @@ const DeleteDialog = ({
   <AlertDialog.Root>
     <AlertDialog.Trigger asChild>{children}</AlertDialog.Trigger>
     <AlertDialog.Portal>
-      <AlertDialog.Overlay className="dialog-overlay" />
-      <AlertDialog.Content className="survey-dialog">
+      <AlertDialog.Overlay className={builderDialogOverlayClassName} />
+      <AlertDialog.Content className={builderDialogClassName}>
         <AlertDialog.Title>{title}</AlertDialog.Title>
-        <AlertDialog.Description className="survey-dialog-copy">{description}</AlertDialog.Description>
-        <div className="survey-dialog-actions">
+        <AlertDialog.Description className="m-0 text-app-text-soft">{description}</AlertDialog.Description>
+        <div className={builderDialogActionsClassName}>
           <AlertDialog.Cancel asChild>
             <Button size="sm" variant="secondary">
               Cancel
@@ -121,12 +140,12 @@ const SettingsPanel = ({
   }
 
   return (
-    <aside className={mobile ? "builder-settings-panel builder-settings-panel-mobile" : "builder-settings-panel"}>
-      <div className="builder-settings-tabs" role="tablist" aria-label="Builder settings tabs">
+    <aside className={cn("grid min-w-0 gap-3.5 rounded-app-md border border-app-border [border-style:solid] bg-white/[0.94] p-[18px]", mobile && "w-full")}>
+      <div className="mt-[18px] flex flex-wrap gap-2.5" role="tablist" aria-label="Builder settings tabs">
         {(showSurveyOnly ? ["survey"] : question ? ["question", "validation"] : ["survey"]).map((item) => (
           <button
             aria-pressed={tab === item}
-            className={tab === item ? "builder-settings-tab builder-settings-tab-active" : "builder-settings-tab"}
+            className={cn("inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-full border border-app-border [border-style:solid] bg-app-surface-muted px-3.5 text-app-text-soft", tab === item && "border-app-border-strong bg-app-primary-soft text-app-primary-strong")}
             key={item}
             onClick={() => setTab(item as typeof tab)}
             type="button"
@@ -137,28 +156,28 @@ const SettingsPanel = ({
       </div>
 
       {(showSurveyOnly || !question) ? (
-        <div className="builder-settings-stack">
-            <label className="field">
-              <span className="field-label">Survey title</span>
+        <div className="grid gap-4">
+            <label className={builderFieldClassName}>
+              <span className={builderFieldLabelClassName}>Survey title</span>
               <Input
                 onChange={(event) => builder.updateDraftFields({ title: event.target.value })}
                 placeholder={DEFAULT_SURVEY_TITLE}
                 value={readBuilderFieldValue(definition.version.title, DEFAULT_SURVEY_TITLE)}
               />
             </label>
-            <label className="field">
-              <span className="field-label">Description</span>
+            <label className={builderFieldClassName}>
+              <span className={builderFieldLabelClassName}>Description</span>
               <textarea
-                className="textarea"
+                className={builderTextareaClassName}
                 onChange={(event) => builder.updateDraftFields({ description: event.target.value })}
                 rows={4}
                 value={definition.version.description ?? ""}
               />
             </label>
-            <label className="field">
-              <span className="field-label">Access mode</span>
+            <label className={builderFieldClassName}>
+              <span className={builderFieldLabelClassName}>Access mode</span>
               <select
-                className="input"
+                className={builderSelectClassName}
                 onChange={(event) => builder.updateSurveyFields({ accessMode: event.target.value as typeof survey.accessMode })}
                 value={survey.accessMode}
               >
@@ -169,9 +188,9 @@ const SettingsPanel = ({
                 ))}
               </select>
             </label>
-            <label className="field">
-              <span className="field-label">Primary color</span>
-              <div className="survey-color-field">
+            <label className={builderFieldClassName}>
+              <span className={builderFieldLabelClassName}>Primary color</span>
+              <div className="flex items-center justify-between gap-3">
                 <Input
                   onChange={(event) =>
                     builder.updateDraftFields({
@@ -203,10 +222,10 @@ const SettingsPanel = ({
                 />
               </div>
             </label>
-            <label className="field">
-              <span className="field-label">Confirmation message</span>
+            <label className={builderFieldClassName}>
+              <span className={builderFieldLabelClassName}>Confirmation message</span>
               <textarea
-                className="textarea"
+                className={builderTextareaClassName}
                 onChange={(event) =>
                   builder.updateDraftFields({
                     settings: {
@@ -219,7 +238,7 @@ const SettingsPanel = ({
                 value={definition.version.settings.confirmationMessage}
               />
             </label>
-            <label className="builder-switch">
+            <label className={builderSwitchClassName}>
               <input
                 checked={definition.version.settings.showProgressBar}
                 onChange={(event) =>
@@ -234,7 +253,7 @@ const SettingsPanel = ({
               />
               <span>Show progress bar</span>
             </label>
-            <label className="builder-switch">
+            <label className={builderSwitchClassName}>
               <input
                 checked={definition.version.settings.shuffleQuestions}
                 onChange={(event) =>
@@ -253,28 +272,28 @@ const SettingsPanel = ({
       ) : null}
 
       {!showSurveyOnly && question && tab === "question" ? (
-        <div className="builder-settings-stack">
-          <label className="field">
-            <span className="field-label">Question title</span>
+        <div className="grid gap-4">
+          <label className={builderFieldClassName}>
+            <span className={builderFieldLabelClassName}>Question title</span>
             <Input
               onChange={(event) => builder.updateQuestion(question.id, { title: event.target.value })}
               placeholder={DEFAULT_QUESTION_TITLE}
               value={readBuilderFieldValue(question.title, DEFAULT_QUESTION_TITLE)}
             />
           </label>
-          <label className="field">
-            <span className="field-label">Description</span>
+          <label className={builderFieldClassName}>
+            <span className={builderFieldLabelClassName}>Description</span>
             <textarea
-              className="textarea"
+              className={builderTextareaClassName}
               onChange={(event) => builder.updateQuestion(question.id, { description: event.target.value })}
               rows={4}
               value={question.description ?? ""}
             />
           </label>
-          <label className="field">
-            <span className="field-label">Question type</span>
+          <label className={builderFieldClassName}>
+            <span className={builderFieldLabelClassName}>Question type</span>
             <select
-              className="input"
+              className={builderSelectClassName}
               onChange={(event) => {
                 const nextType = event.target.value as QuestionType;
                 const needsConfirmation =
@@ -302,7 +321,7 @@ const SettingsPanel = ({
               ))}
             </select>
           </label>
-          <label className="builder-switch">
+          <label className={builderSwitchClassName}>
             <input
               checked={question.required}
               onChange={(event) => builder.updateQuestion(question.id, { required: event.target.checked })}
@@ -314,11 +333,11 @@ const SettingsPanel = ({
       ) : null}
 
       {!showSurveyOnly && question && tab === "validation" ? (
-        <div className="builder-settings-stack">
+        <div className="grid gap-4">
           {question.type === "short_text" || question.type === "long_text" ? (
             <>
-              <label className="field">
-                <span className="field-label">Minimum length</span>
+              <label className={builderFieldClassName}>
+                <span className={builderFieldLabelClassName}>Minimum length</span>
                 <Input
                   onChange={(event) =>
                     builder.updateQuestion(question.id, {
@@ -332,8 +351,8 @@ const SettingsPanel = ({
                   value={String((question.validation.minLength as number | undefined) ?? 0)}
                 />
               </label>
-              <label className="field">
-                <span className="field-label">Maximum length</span>
+              <label className={builderFieldClassName}>
+                <span className={builderFieldLabelClassName}>Maximum length</span>
                 <Input
                   onChange={(event) =>
                     builder.updateQuestion(question.id, {
@@ -352,8 +371,8 @@ const SettingsPanel = ({
 
           {question.type === "rating" ? (
             <>
-              <label className="field">
-                <span className="field-label">Minimum rating</span>
+              <label className={builderFieldClassName}>
+                <span className={builderFieldLabelClassName}>Minimum rating</span>
                 <Input
                   onChange={(event) =>
                     builder.updateQuestion(question.id, {
@@ -367,8 +386,8 @@ const SettingsPanel = ({
                   value={String((question.validation.minimum as number | undefined) ?? 1)}
                 />
               </label>
-              <label className="field">
-                <span className="field-label">Maximum rating</span>
+              <label className={builderFieldClassName}>
+                <span className={builderFieldLabelClassName}>Maximum rating</span>
                 <Input
                   onChange={(event) =>
                     builder.updateQuestion(question.id, {
@@ -419,8 +438,8 @@ const CalculatedScoresPanel = ({ builder }: { builder: ReturnType<typeof useSurv
   });
 
   return (
-    <div className="builder-settings-stack">
-      <div className="builder-panel-header">
+    <div className="grid gap-4">
+      <div className="flex items-center justify-between gap-3">
         <div>
           <h3>Calculated scores</h3>
           <p>Configure score groups, thresholds, and follow-up targets for this survey version.</p>
@@ -434,7 +453,7 @@ const CalculatedScoresPanel = ({ builder }: { builder: ReturnType<typeof useSurv
       </div>
 
       {definition.calculatedScores.length === 0 ? (
-        <Card className="dashboard-empty-state">
+        <Card className={pageTw.empty}>
           <div>
             <h4>No calculated scores yet</h4>
             <p>Create a calculated score to show follow-up questions or sections based on score thresholds.</p>
@@ -573,14 +592,14 @@ const CalculatedScoreCard = ({
   const selectedQuestionIds = draft.targets.filter((target) => target.targetType === "question").map((target) => target.targetId);
 
   return (
-    <Card className="builder-score-card">
-      <div className="builder-score-card-head">
+    <Card className="grid gap-4 px-5 py-[22px]">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3.5">
         <div>
-          <span className="builder-section-number">Calculated score</span>
+          <span className="mb-2 inline-block text-[0.82rem] font-bold text-app-primary uppercase">Calculated score</span>
           <h4>{score ? score.name : "New score configuration"}</h4>
           {score ? <p>{formatScoreCondition(score)}</p> : null}
         </div>
-        <div className="builder-score-head-actions">
+        <div className="flex items-center justify-end gap-2">
           <Button onClick={onToggle} size="sm" variant="ghost">
             {isExpanded ? "Collapse" : "Edit"}
           </Button>
@@ -600,20 +619,20 @@ const CalculatedScoreCard = ({
       </div>
 
       {isExpanded ? (
-        <div className="builder-score-card-body">
-      <div className="builder-score-grid">
-        <label className="field">
-          <span className="field-label">Name</span>
+        <div className="grid gap-4">
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-3.5">
+        <label className={builderFieldClassName}>
+          <span className={builderFieldLabelClassName}>Name</span>
           <Input onChange={(event) => updateDraft("name", event.target.value)} value={draft.name} />
         </label>
-        <label className="field">
-          <span className="field-label">Key</span>
+        <label className={builderFieldClassName}>
+          <span className={builderFieldLabelClassName}>Key</span>
           <Input onChange={(event) => updateDraft("key", event.target.value.toUpperCase())} value={draft.key} />
         </label>
-        <label className="field">
-          <span className="field-label">Threshold operator</span>
+        <label className={builderFieldClassName}>
+          <span className={builderFieldLabelClassName}>Threshold operator</span>
           <select
-            className="input"
+            className={builderSelectClassName}
             onChange={(event) => updateDraft("thresholdOperator", event.target.value as CalculatedScoreThresholdOperator)}
             value={draft.thresholdOperator}
           >
@@ -624,8 +643,8 @@ const CalculatedScoreCard = ({
             ))}
           </select>
         </label>
-        <label className="field">
-          <span className="field-label">Threshold value</span>
+        <label className={builderFieldClassName}>
+          <span className={builderFieldLabelClassName}>Threshold value</span>
           <Input
             onChange={(event) => updateDraft("thresholdValue", Number(event.target.value))}
             type="number"
@@ -634,7 +653,7 @@ const CalculatedScoreCard = ({
         </label>
       </div>
 
-        <label className="builder-switch">
+        <label className={builderSwitchClassName}>
           <input
             checked={draft.requireAllAnswers}
             onChange={(event) => updateDraft("requireAllAnswers", event.target.checked)}
@@ -643,8 +662,8 @@ const CalculatedScoreCard = ({
         <span>Require answers for every source question</span>
       </label>
 
-      <div className="builder-score-targets">
-        <div className="builder-score-target-group">
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-3.5">
+        <div className="grid gap-2.5 rounded-2xl border border-app-border [border-style:solid] bg-app-surface-muted p-3.5">
           <h5>Source questions</h5>
           {groupedQuestions.map(({ questions, section }) => (
             <div key={section.id}>
@@ -659,7 +678,7 @@ const CalculatedScoreCard = ({
                 return (
                   <label
                     aria-disabled={!isEligible || !scoringEnabled}
-                    className="builder-check-row"
+                    className="flex items-start gap-2.5 [&+&]:mt-1.5"
                     key={question.id}
                     title={usage.length > 0 ? usage.map((item) => item.name).join(", ") : undefined}
                   >
@@ -683,7 +702,7 @@ const CalculatedScoreCard = ({
           ))}
         </div>
 
-        <div className="builder-score-target-group">
+        <div className="grid gap-2.5 rounded-2xl border border-app-border [border-style:solid] bg-app-surface-muted p-3.5">
           <h5>Follow-up sections</h5>
           {sortSections(definition.sections).map((section) => (
             (() => {
@@ -692,7 +711,7 @@ const CalculatedScoreCard = ({
               );
 
               return (
-                <label aria-disabled={containsSourceQuestion} className="builder-check-row" key={section.id}>
+                <label aria-disabled={containsSourceQuestion} className="flex items-start gap-2.5 [&+&]:mt-1.5" key={section.id}>
                   <input
                     checked={selectedSectionIds.includes(section.id)}
                     disabled={containsSourceQuestion}
@@ -716,7 +735,7 @@ const CalculatedScoreCard = ({
           ))}
         </div>
 
-        <div className="builder-score-target-group">
+        <div className="grid gap-2.5 rounded-2xl border border-app-border [border-style:solid] bg-app-surface-muted p-3.5">
           <h5>Follow-up questions</h5>
           {sortQuestions(definition.questions).map((question) => {
             const isSourceQuestion = draft.sourceQuestionIds.includes(question.id);
@@ -724,7 +743,7 @@ const CalculatedScoreCard = ({
             return (
               <label
                 aria-disabled={isSourceQuestion}
-                className="builder-check-row"
+                className="flex items-start gap-2.5 [&+&]:mt-1.5"
                 key={question.id}
               >
                 <input
@@ -751,7 +770,7 @@ const CalculatedScoreCard = ({
       </div>
 
       {builder.isEditable ? (
-        <div className="builder-question-actions">
+        <div className="flex items-center justify-between gap-3 max-app-mobile:flex-col max-app-mobile:items-stretch">
           <Button onClick={() => void save()} size="sm">
             <Calculator size={16} />
             {saving ? "Saving..." : score ? "Save score config" : "Create calculated score"}
@@ -760,7 +779,7 @@ const CalculatedScoreCard = ({
       ) : null}
       {errors.length > 0 ? (
         <InlineNotice tone="danger">
-          <ul className="builder-publish-errors">
+          <ul className="m-0 pl-[18px]">
             {errors.map((error) => (
               <li key={error}>{error}</li>
             ))}
@@ -793,20 +812,20 @@ const QuestionCard = ({
   const scoringEligible = isScoringEligibleQuestion(question);
 
   return (
-    <Card className={selected ? "builder-question-card builder-question-card-active" : "builder-question-card"}>
+    <Card className={cn("grid gap-4 p-[18px]", selected && "border-app-primary shadow-[0_0_0_4px_rgba(24,79,190,0.1)]")}>
       <button
-        className="builder-question-select"
+        className="flex cursor-pointer items-center justify-between border-0 bg-transparent p-0 text-app-text-soft"
         onClick={() => builder.setSelectedQuestionId(question.id)}
         type="button"
       >
-        <span className="builder-question-index">
+        <span className="text-app-text-soft">
           Question {sectionIndex + 1}.{question.position + 1}
         </span>
         <GripVertical size={16} />
       </button>
 
-      <label className="field">
-        <span className="field-label">Question text</span>
+      <label className={builderFieldClassName}>
+        <span className={builderFieldLabelClassName}>Question text</span>
         <Input
           onChange={(event) => builder.updateQuestion(question.id, { title: event.target.value })}
           placeholder={DEFAULT_QUESTION_TITLE}
@@ -814,30 +833,30 @@ const QuestionCard = ({
         />
       </label>
 
-      <label className="field">
-        <span className="field-label">Description</span>
+      <label className={builderFieldClassName}>
+        <span className={builderFieldLabelClassName}>Description</span>
         <textarea
-          className="textarea"
+          className={builderTextareaClassName}
           onChange={(event) => builder.updateQuestion(question.id, { description: event.target.value })}
           rows={3}
           value={question.description ?? ""}
         />
       </label>
 
-      <div className="builder-badge-row">
-        {scoringEnabled ? <span className="builder-inline-badge">Scored</span> : null}
+      <div className="flex flex-wrap items-center gap-2">
+        {scoringEnabled ? <span className="rounded-full border border-app-border-strong [border-style:solid] bg-app-primary-soft px-2.5 py-1 text-[0.8rem] font-bold text-app-primary-strong">Scored</span> : null}
         {usage.length > 0 ? (
-          <span className="builder-inline-badge" title={usage.map((item) => item.name).join(", ")}>
+          <span className="rounded-full border border-app-border-strong [border-style:solid] bg-app-primary-soft px-2.5 py-1 text-[0.8rem] font-bold text-app-primary-strong" title={usage.map((item) => item.name).join(", ")}>
             {readQuestionUsageLabel(usage)}
           </span>
         ) : null}
       </div>
 
-      <div className="builder-question-row">
-        <label className="field">
-          <span className="field-label">Type</span>
+      <div className="flex items-center justify-between gap-3 max-app-mobile:flex-col max-app-mobile:items-stretch">
+        <label className={builderFieldClassName}>
+          <span className={builderFieldLabelClassName}>Type</span>
           <select
-            className="input"
+            className={builderSelectClassName}
             onChange={(event) => {
               const nextType = event.target.value as QuestionType;
               const needsConfirmation = !questionSupportsOptions(nextType) && questionOptions.length > 0;
@@ -862,7 +881,7 @@ const QuestionCard = ({
           </select>
         </label>
 
-        <label className="builder-switch builder-switch-inline">
+        <label className={cn(builderSwitchClassName, "mt-[26px]")}>
           <input
             checked={question.required}
             onChange={(event) => builder.updateQuestion(question.id, { required: event.target.checked })}
@@ -873,7 +892,7 @@ const QuestionCard = ({
       </div>
 
       {scoringEligible ? (
-        <label className="builder-switch">
+        <label className={builderSwitchClassName}>
           <input
             checked={scoringEnabled}
             onChange={(event) => {
@@ -909,8 +928,8 @@ const QuestionCard = ({
       ) : null}
 
       {questionSupportsOptions(question.type) ? (
-        <div className="builder-options-editor">
-          <div className="builder-options-header">
+        <div className="grid gap-3.5">
+          <div className="flex items-center justify-between gap-3">
             <h4>Options</h4>
             <Button onClick={() => void builder.addOption(question.id)} size="sm" variant="secondary">
               <Plus size={16} />
@@ -918,7 +937,7 @@ const QuestionCard = ({
             </Button>
           </div>
           {questionOptions.map((option) => (
-            <div className="builder-option-row" key={option.id}>
+            <div className="flex items-center gap-2" key={option.id}>
               <Input
                 aria-label={`Option for ${question.title}`}
                 onChange={(event) =>
@@ -932,7 +951,7 @@ const QuestionCard = ({
               {(question.type === "single_choice" || question.type === "vote") && scoringEnabled ? (
                 <Input
                   aria-label={`Score for ${option.label}`}
-                  className="builder-option-score"
+                  className="basis-[108px]"
                   onChange={(event) =>
                     void builder.updateOptionScores(question.id, [
                       {
@@ -966,7 +985,7 @@ const QuestionCard = ({
         </div>
       ) : null}
 
-      <div className="builder-question-actions">
+      <div className="flex items-center justify-between gap-3 max-app-mobile:flex-col max-app-mobile:items-stretch">
         <Button onClick={() => void builder.moveQuestion(question.id, -1)} size="sm" variant="ghost">
           <MoveUp size={16} />
           Move up
@@ -1042,17 +1061,17 @@ export const SurveyBuilderPage = () => {
 
   if (builder.surveyQuery.isLoading || builder.definitionQuery.isLoading || !builder.survey || !definition) {
     return (
-      <div className="dashboard-page">
-        <section className="dashboard-hero">
-          <h1>Loading survey builder...</h1>
-          <p>The draft definition is loading.</p>
+      <div className={pageTw.page}>
+        <section className={pageTw.hero}>
+          <h1 className={pageTw.heroTitle}>Loading survey builder...</h1>
+          <p className={pageTw.muted}>The draft definition is loading.</p>
         </section>
-        <section className="survey-grid">
+        <section className={pageTw.gridTwo}>
           {Array.from({ length: 3 }).map((_, index) => (
-            <Card className="survey-card survey-card-skeleton" key={index}>
-              <div className="survey-skeleton-line survey-skeleton-line-lg" />
-              <div className="survey-skeleton-line" />
-              <div className="survey-skeleton-line" />
+            <Card className="pointer-events-none grid gap-[18px] p-[22px]" key={index}>
+              <div className="h-[18px] w-[48%] rounded-full bg-[linear-gradient(90deg,#eff5ff_0%,#f8fbff_50%,#eff5ff_100%)]" />
+              <div className="h-3 w-[72%] rounded-full bg-[linear-gradient(90deg,#eff5ff_0%,#f8fbff_50%,#eff5ff_100%)]" />
+              <div className="h-3 w-[72%] rounded-full bg-[linear-gradient(90deg,#eff5ff_0%,#f8fbff_50%,#eff5ff_100%)]" />
             </Card>
           ))}
         </section>
@@ -1062,7 +1081,7 @@ export const SurveyBuilderPage = () => {
 
   if (builder.surveyQuery.isError || builder.definitionQuery.isError) {
     return (
-      <Card className="dashboard-empty-state">
+      <Card className={pageTw.empty}>
         <div>
           <h2>Survey not found or no longer available.</h2>
           <p>Try returning to the surveys page and reloading the builder.</p>
@@ -1076,12 +1095,12 @@ export const SurveyBuilderPage = () => {
 
   if (builder.survey.access.isCrossOrganizationPreview) {
     return (
-      <Card className="dashboard-empty-state">
+      <Card className={pageTw.empty}>
         <div>
           <h2>Preview only for this survey</h2>
           <p>{builder.survey.access.message ?? "This survey belongs to another organization."}</p>
         </div>
-        <div className="survey-dialog-actions">
+        <div className={builderDialogActionsClassName}>
           <Button asChild size="sm" variant="secondary">
             <Link to="/app/surveys">Back to Surveys</Link>
           </Button>
@@ -1112,15 +1131,15 @@ export const SurveyBuilderPage = () => {
   };
 
   return (
-    <div className="builder-page">
-      <header className="builder-toolbar">
-        <div className="builder-toolbar-main">
+    <div className="grid gap-5">
+      <header className="sticky top-4 z-10 flex items-center justify-between gap-3 rounded-app-lg border border-app-border [border-style:solid] bg-white/90 px-[22px] py-[18px] max-app-tablet:top-auto max-app-mobile:static max-app-mobile:flex-col max-app-mobile:items-stretch">
+        <div className="flex items-center justify-between gap-3 max-app-mobile:flex-col max-app-mobile:items-stretch">
           <Button asChild size="sm" variant="ghost">
             <Link to="/app/surveys">Surveys</Link>
           </Button>
           <div>
-            <h1>{readBuilderDisplayTitle(definition.version.title, DEFAULT_SURVEY_TITLE)}</h1>
-            <div className="builder-toolbar-meta">
+            <h1 className="mt-0 mb-2 text-[clamp(1.5rem,2vw,2rem)]">{readBuilderDisplayTitle(definition.version.title, DEFAULT_SURVEY_TITLE)}</h1>
+            <div className="flex flex-wrap items-center justify-start gap-3 text-app-text-soft">
               <SurveyStatusBadge status={builder.survey.status} />
               <span>Version {definition.version.versionNumber}</span>
               <span aria-live="polite">{builder.saveMessage}</span>
@@ -1128,7 +1147,7 @@ export const SurveyBuilderPage = () => {
           </div>
         </div>
 
-        <div className="builder-toolbar-actions">
+        <div className="flex items-center justify-between gap-3 max-app-mobile:flex-col max-app-mobile:items-stretch">
           <Button
             onClick={() => setShowMobileSettings(true)}
             size="sm"
@@ -1155,13 +1174,13 @@ export const SurveyBuilderPage = () => {
                 <Button size="sm">Publish</Button>
               </AlertDialog.Trigger>
               <AlertDialog.Portal>
-                <AlertDialog.Overlay className="dialog-overlay" />
-                <AlertDialog.Content className="survey-dialog">
+                <AlertDialog.Overlay className={builderDialogOverlayClassName} />
+                <AlertDialog.Content className={builderDialogClassName}>
                   <AlertDialog.Title>Publish survey</AlertDialog.Title>
-                  <AlertDialog.Description className="survey-dialog-copy">
+                  <AlertDialog.Description className="m-0 text-app-text-soft">
                     Your survey will become available to respondents after the current draft is published.
                   </AlertDialog.Description>
-                  <dl className="builder-publish-summary">
+                  <dl className="my-[18px] flex flex-wrap items-start justify-between gap-3 [&>div]:min-w-[140px] [&_dt]:mb-1 [&_dt]:text-[0.84rem] [&_dt]:text-app-text-faint [&_dd]:m-0">
                     <div>
                       <dt>Access</dt>
                       <dd>{accessModeLabels[builder.survey.accessMode]}</dd>
@@ -1185,14 +1204,14 @@ export const SurveyBuilderPage = () => {
                   </dl>
                   {publishErrors.length > 0 ? (
                     <InlineNotice tone="danger">
-                      <ul className="builder-publish-errors">
+                      <ul className="m-0 pl-[18px]">
                         {publishErrors.map((error) => (
                           <li key={error}>{error}</li>
                         ))}
                       </ul>
                     </InlineNotice>
                   ) : null}
-                  <div className="survey-dialog-actions">
+                  <div className={builderDialogActionsClassName}>
                     <AlertDialog.Cancel asChild>
                       <Button size="sm" variant="secondary">
                         Cancel
@@ -1229,9 +1248,9 @@ export const SurveyBuilderPage = () => {
         </InlineNotice>
       ) : null}
 
-      <div className="builder-layout">
-        <main className="builder-canvas builder-workspace">
-          <div className="builder-panel-header builder-workspace-header">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-[18px]">
+        <main className="grid min-w-0 gap-4 rounded-app-lg border border-[rgba(216,225,239,0.9)] [border-style:solid] bg-app-builder-workspace p-5 shadow-[0_24px_60px_rgba(18,48,79,0.08)] max-app-mobile:p-4">
+          <div className="mb-1 flex items-center justify-between gap-3">
             <h2>Builder tabs</h2>
             {builder.isEditable ? (
               <Button
@@ -1250,41 +1269,33 @@ export const SurveyBuilderPage = () => {
             ) : null}
           </div>
 
-          <div className="builder-section-tabs" role="tablist" aria-label="Survey builder tabs">
+          <div className="builder-section-tabs mb-2 flex gap-3 overflow-x-auto pb-2 [scrollbar-width:thin]" role="tablist" aria-label="Survey builder tabs">
             <button
               aria-selected={activeWorkspaceTab === SURVEY_TAB_ID}
-              className={
-                activeWorkspaceTab === SURVEY_TAB_ID
-                  ? "builder-section-tab builder-section-tab-active"
-                  : "builder-section-tab"
-              }
+              className={cn(workspaceTabClassName, activeWorkspaceTab === SURVEY_TAB_ID && workspaceTabActiveClassName)}
               onClick={() => setActiveWorkspaceTab(SURVEY_TAB_ID)}
               role="tab"
               title="Survey settings"
               type="button"
             >
-              <strong>Survey</strong>
-              <div className="builder-section-tab-meta">
-                <span>Title, description, access, theme</span>
-                <span className="builder-section-tab-badge">Settings</span>
+              <strong className="text-app-text">Survey</strong>
+              <div className={workspaceTabMetaClassName}>
+                <span className="text-[0.92rem] text-app-text-soft">Title, description, access, theme</span>
+                <span className={workspaceTabBadgeClassName}>Settings</span>
               </div>
             </button>
             <button
               aria-selected={activeWorkspaceTab === CALCULATED_SCORES_TAB_ID}
-              className={
-                activeWorkspaceTab === CALCULATED_SCORES_TAB_ID
-                  ? "builder-section-tab builder-section-tab-active"
-                  : "builder-section-tab"
-              }
+              className={cn(workspaceTabClassName, activeWorkspaceTab === CALCULATED_SCORES_TAB_ID && workspaceTabActiveClassName)}
               onClick={() => setActiveWorkspaceTab(CALCULATED_SCORES_TAB_ID)}
               role="tab"
               title="Manage calculated scores"
               type="button"
             >
-              <strong>Calculated Scores</strong>
-              <div className="builder-section-tab-meta">
-                <span>Thresholds, source questions, follow-up targets</span>
-                <span className="builder-section-tab-badge">{definition.calculatedScores.length}</span>
+              <strong className="text-app-text">Calculated Scores</strong>
+              <div className={workspaceTabMetaClassName}>
+                <span className="text-[0.92rem] text-app-text-soft">Thresholds, source questions, follow-up targets</span>
+                <span className={workspaceTabBadgeClassName}>{definition.calculatedScores.length}</span>
               </div>
             </button>
             {orderedSections.map((section, index) => (
@@ -1295,11 +1306,7 @@ export const SurveyBuilderPage = () => {
                 return (
                <button
                 aria-selected={activeWorkspaceTab === section.id}
-                className={
-                  activeWorkspaceTab === section.id
-                    ? "builder-section-tab builder-section-tab-active"
-                    : "builder-section-tab"
-                }
+                className={cn(workspaceTabClassName, activeWorkspaceTab === section.id && workspaceTabActiveClassName)}
                 key={section.id}
                 onClick={() => selectSectionTab(section.id)}
                 role="tab"
@@ -1307,16 +1314,16 @@ export const SurveyBuilderPage = () => {
                 type="button"
               >
                 <div>
-                  <strong>
+                  <strong className="text-app-text">
                     {index + 1}. {readBuilderDisplayTitle(section.title, DEFAULT_SECTION_TITLE)}
                   </strong>
-                  <div className="builder-section-tab-meta">
-                    <span>Section workspace</span>
-                    <span className="builder-section-tab-badge">{questionCount}</span>
+                  <div className={workspaceTabMetaClassName}>
+                    <span className="text-[0.92rem] text-app-text-soft">Section workspace</span>
+                    <span className={workspaceTabBadgeClassName}>{questionCount}</span>
                   </div>
                   {conditions.length > 0 ? (
-                    <div className="builder-badge-row">
-                      <span className="builder-inline-badge" title={conditions.map((item) => formatScoreCondition(item)).join(", ")}>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="rounded-full border border-app-border-strong [border-style:solid] bg-app-primary-soft px-2.5 py-1 text-[0.8rem] font-bold text-app-primary-strong" title={conditions.map((item) => formatScoreCondition(item)).join(", ")}>
                         {conditions.length === 1 ? `Conditional: ${formatScoreCondition(conditions[0])}` : `Conditional: ${conditions.length} rules`}
                       </span>
                     </div>
@@ -1333,7 +1340,7 @@ export const SurveyBuilderPage = () => {
           ) : activeWorkspaceTab === CALCULATED_SCORES_TAB_ID ? (
             <CalculatedScoresPanel builder={builder} />
           ) : activeSection ? (
-            <section className="builder-section-block" key={activeSection.id}>
+            <section key={activeSection.id}>
               {(() => {
                 const sectionQuestions = sortQuestions(
                   definition.questions.filter((question) => question.sectionId === activeSection.id)
@@ -1342,10 +1349,10 @@ export const SurveyBuilderPage = () => {
 
                 return (
                   <>
-                <Card className="builder-section-card">
-                  <div className="builder-section-card-head">
+                <Card className="p-[18px] max-app-mobile:p-[18px]">
+                  <div className="flex items-center justify-between gap-3 max-app-mobile:flex-col max-app-mobile:items-stretch">
                     <div>
-                      <span className="builder-section-number">Section {sectionIndex + 1}</span>
+                      <span className="mb-2 inline-block text-[0.82rem] font-bold text-app-primary uppercase">Section {sectionIndex + 1}</span>
                       <Input
                         onChange={(event) => builder.updateSection(activeSection.id, { title: event.target.value })}
                         placeholder={DEFAULT_SECTION_TITLE}
@@ -1353,7 +1360,7 @@ export const SurveyBuilderPage = () => {
                       />
                     </div>
                     {builder.isEditable ? (
-                      <div className="builder-section-actions">
+                      <div className="flex items-center justify-between gap-3">
                         <Button aria-label="Move section up" onClick={() => void builder.moveSection(activeSection.id, -1)} size="sm" variant="ghost">
                           <MoveUp size={16} />
                         </Button>
@@ -1373,7 +1380,7 @@ export const SurveyBuilderPage = () => {
                     ) : null}
                   </div>
                   <textarea
-                    className="textarea"
+                    className={builderTextareaClassName}
                     onChange={(event) => builder.updateSection(activeSection.id, { description: event.target.value })}
                     placeholder="Optional section description"
                     rows={3}
@@ -1381,7 +1388,7 @@ export const SurveyBuilderPage = () => {
                   />
                 </Card>
 
-                <div className="builder-question-stack">
+                <div className="grid gap-4">
                   {sectionQuestions.map((question) => (
                     <QuestionCard
                       builder={builder}
@@ -1394,7 +1401,7 @@ export const SurveyBuilderPage = () => {
                 </div>
 
                 {builder.isEditable ? (
-                  <div className="builder-add-row">
+                  <div className="flex justify-start">
                     <Button onClick={() => void builder.addQuestion(activeSection.id)} size="sm" variant="secondary">
                       <Plus size={16} />
                       Add question
@@ -1411,8 +1418,8 @@ export const SurveyBuilderPage = () => {
 
       <Dialog.Root onOpenChange={setShowMobileSettings} open={showMobileSettings}>
         <Dialog.Portal>
-          <Dialog.Overlay className="dialog-overlay" />
-          <Dialog.Content className="builder-mobile-settings">
+          <Dialog.Overlay className={builderDialogOverlayClassName} />
+          <Dialog.Content className="fixed inset-x-0 bottom-0 z-[46] grid max-h-[85vh] gap-3.5 overflow-auto rounded-t-app-md border border-app-border [border-style:solid] bg-white p-[18px] shadow-app">
             <Dialog.Title>Settings</Dialog.Title>
             <SettingsPanel builder={builder} mobile />
           </Dialog.Content>

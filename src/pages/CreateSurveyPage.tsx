@@ -15,6 +15,7 @@ import { useAuth } from "../features/auth/use-auth";
 import { createSurveyRequest } from "../features/surveys/surveys.api";
 import { surveyKeys } from "../features/surveys/surveys.keys";
 import { createSlug, defaultSurveyVersionSettings } from "../features/surveys/surveys.utils";
+import { pageTw, surveyTw } from "../lib/page-tailwind";
 
 const createSurveySchema = z
   .object({
@@ -126,8 +127,8 @@ export const CreateSurveyPage = () => {
   }
 
   return (
-    <div className="dashboard-page">
-      <section className="survey-create-header">
+    <div className={pageTw.page}>
+      <section className={surveyTw.previewHeader}>
         <Button asChild size="sm" variant="ghost">
           <Link to="/app/surveys">
             <ArrowLeft size={16} />
@@ -140,9 +141,9 @@ export const CreateSurveyPage = () => {
         </div>
       </section>
 
-      <Card className="survey-form-card">
+      <Card className={surveyTw.formCard}>
         <form
-          className="survey-form"
+          className={surveyTw.form}
           onSubmit={form.handleSubmit((values) => createMutation.mutate(values))}
         >
           {auth.accessState === "approved" && !auth.isPlatformAdmin && auth.organizations.length === 0 ? (
@@ -151,9 +152,9 @@ export const CreateSurveyPage = () => {
             </InlineNotice>
           ) : null}
 
-          <section className="survey-form-section">
+          <section className={surveyTw.formSection}>
             <div>
-              <p className="eyebrow">Basic information</p>
+              <p className={pageTw.eyebrow}>Basic information</p>
               <h2>Survey details</h2>
             </div>
             <Field error={form.formState.errors.title?.message} label="Survey title *">
@@ -161,7 +162,7 @@ export const CreateSurveyPage = () => {
             </Field>
             <Field error={form.formState.errors.description?.message} label="Description">
               <textarea
-                className="textarea"
+                className={surveyTw.textarea}
                 {...form.register("description")}
                 placeholder="Briefly describe the purpose of this survey..."
                 rows={4}
@@ -169,9 +170,9 @@ export const CreateSurveyPage = () => {
             </Field>
           </section>
 
-          <section className="survey-form-section">
+          <section className={surveyTw.formSection}>
             <div>
-              <p className="eyebrow">Access</p>
+              <p className={pageTw.eyebrow}>Access</p>
               <h2>Who can respond</h2>
             </div>
             <Field error={form.formState.errors.organizationId?.message} label="Organization ID">
@@ -180,14 +181,14 @@ export const CreateSurveyPage = () => {
                 placeholder="Enter organization ID"
               />
             </Field>
-            <div className="survey-radio-grid">
+            <div className={surveyTw.radioGrid}>
               {[
                 { hint: "Anyone with the share link can open the survey.", label: "Public link", value: "public" },
                 { hint: "Best for invited respondents.", label: "Invitation only", value: "invite_only" },
                 { hint: "Requires sign-in first.", label: "Authenticated users", value: "authenticated" },
                 { hint: "Only members of the organization can respond.", label: "Organization only", value: "organization_only" }
               ].map((option) => (
-                <label className="survey-radio-card" key={option.value}>
+                <label className={surveyTw.radioCard} key={option.value}>
                   <input type="radio" value={option.value} {...form.register("accessMode")} />
                   <div>
                     <strong>{option.label}</strong>
@@ -198,19 +199,19 @@ export const CreateSurveyPage = () => {
             </div>
           </section>
 
-          <section className="survey-form-section">
+          <section className={surveyTw.formSection}>
             <div>
-              <p className="eyebrow">Availability</p>
+              <p className={pageTw.eyebrow}>Availability</p>
               <h2>Opening and closing schedule</h2>
             </div>
 
-            <div className="survey-schedule-grid">
-              <Card className="survey-schedule-card">
-                <label className="survey-radio-inline">
+            <div className={surveyTw.scheduleGrid}>
+              <Card className={surveyTw.scheduleCard}>
+                <label className={surveyTw.radioInline}>
                   <input type="radio" value="immediate" {...form.register("openMode")} />
                   <span>Open immediately</span>
                 </label>
-                <label className="survey-radio-inline">
+                <label className={surveyTw.radioInline}>
                   <input type="radio" value="scheduled" {...form.register("openMode")} />
                   <span>Schedule opening</span>
                 </label>
@@ -221,12 +222,12 @@ export const CreateSurveyPage = () => {
                 ) : null}
               </Card>
 
-              <Card className="survey-schedule-card">
-                <label className="survey-radio-inline">
+              <Card className={surveyTw.scheduleCard}>
+                <label className={surveyTw.radioInline}>
                   <input type="radio" value="none" {...form.register("closeMode")} />
                   <span>No closing date</span>
                 </label>
-                <label className="survey-radio-inline">
+                <label className={surveyTw.radioInline}>
                   <input type="radio" value="scheduled" {...form.register("closeMode")} />
                   <span>Schedule closing</span>
                 </label>
@@ -243,27 +244,27 @@ export const CreateSurveyPage = () => {
             </InlineNotice>
           </section>
 
-          <section className="survey-form-section">
+          <section className={surveyTw.formSection}>
             <div>
-              <p className="eyebrow">Confirmation</p>
+              <p className={pageTw.eyebrow}>Confirmation</p>
               <h2>Completion message</h2>
             </div>
             <Field error={form.formState.errors.confirmationMessage?.message} label="Confirmation message">
-              <textarea className="textarea" {...form.register("confirmationMessage")} rows={4} />
+              <textarea className={surveyTw.textarea} {...form.register("confirmationMessage")} rows={4} />
             </Field>
             <Field error={form.formState.errors.primaryColor?.message} label="Theme color">
-              <div className="survey-color-field">
+              <div className="flex items-center justify-between gap-3">
                 <Input type="color" {...form.register("primaryColor")} />
                 <Input {...form.register("primaryColor")} />
               </div>
             </Field>
           </section>
 
-          <div className="survey-form-footer">
+          <div className={surveyTw.formFooter}>
             <InlineNotice icon={<CheckCircle2 size={16} />} tone="default">
               The builder will open next so you can add sections and questions.
             </InlineNotice>
-            <div className="survey-form-actions">
+            <div className={surveyTw.actions}>
               <Button asChild type="button" variant="secondary">
                 <Link to="/app/surveys">Cancel</Link>
               </Button>

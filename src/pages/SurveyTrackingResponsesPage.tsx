@@ -12,6 +12,7 @@ import { surveyTrackingKeys } from "../features/survey-tracking/survey-tracking.
 import { getSurveyRequest } from "../features/surveys/surveys.api";
 import { surveyKeys } from "../features/surveys/surveys.keys";
 import { formatDateTime, formatRelativeTime } from "../features/surveys/surveys.utils";
+import { adminTw, pageTw, surveyTw, trackingTw } from "../lib/page-tailwind";
 
 export const SurveyTrackingResponsesPage = () => {
   const { surveyId = "" } = useParams();
@@ -56,8 +57,8 @@ export const SurveyTrackingResponsesPage = () => {
 
   if (surveyQuery.isLoading || responsesQuery.isLoading || !surveyQuery.data || !responsesQuery.data) {
     return (
-      <div className="dashboard-page">
-        <section className="dashboard-hero">
+      <div className={pageTw.page}>
+        <section className={pageTw.hero}>
           <h1>Loading tracked responses...</h1>
           <p>The survey response detail is loading.</p>
         </section>
@@ -66,8 +67,8 @@ export const SurveyTrackingResponsesPage = () => {
   }
 
   return (
-    <div className="dashboard-page">
-      <section className="dashboard-hero survey-page-hero">
+    <div className={pageTw.page}>
+      <section className={`${pageTw.hero} ${pageTw.heroSplit}`}>
         <div>
           <h1>{surveyQuery.data.slug}</h1>
           <p>Review tracked responses in a spreadsheet layout or open one response at a time in a read-only survey form.</p>
@@ -77,12 +78,12 @@ export const SurveyTrackingResponsesPage = () => {
         </Button>
       </section>
 
-      <Card className="tracking-response-controls-card">
-        <div className="tracking-response-controls">
-          <div className="survey-preview-toggle" role="tablist" aria-label="Response view mode">
+      <Card className={trackingTw.controlsCard}>
+        <div className={trackingTw.controls}>
+          <div className="flex flex-wrap gap-2.5" role="tablist" aria-label="Response view mode">
             <button
               aria-pressed={viewMode === "all"}
-              className={viewMode === "all" ? "survey-tab survey-tab-active" : "survey-tab"}
+              className={`${surveyTw.tab} ${viewMode === "all" ? surveyTw.tabActive : ""}`}
               onClick={() => setViewMode("all")}
               type="button"
             >
@@ -90,7 +91,7 @@ export const SurveyTrackingResponsesPage = () => {
             </button>
             <button
               aria-pressed={viewMode === "individual"}
-              className={viewMode === "individual" ? "survey-tab survey-tab-active" : "survey-tab"}
+              className={`${surveyTw.tab} ${viewMode === "individual" ? surveyTw.tabActive : ""}`}
               onClick={() => setViewMode("individual")}
               type="button"
             >
@@ -98,19 +99,19 @@ export const SurveyTrackingResponsesPage = () => {
             </button>
           </div>
 
-          <div className="tracking-response-filters">
-            <label className="tracking-response-search">
+          <div className={trackingTw.filters}>
+            <label className={trackingTw.search}>
               <Search size={16} />
               <Input
-                className="tracking-response-search-input"
+                className={trackingTw.searchInput}
                 onChange={(event) => setEmailFilter(event.target.value)}
                 placeholder="Filter by email"
                 value={emailFilter}
               />
             </label>
 
-            <div className="survey-select-wrap tracking-response-sort-wrap">
-              <select className="input" onChange={(event) => setSortOrder(event.target.value as "latest" | "earliest")} value={sortOrder}>
+            <div className="min-w-[190px] max-app-mobile:w-full">
+              <select className={adminTw.select} onChange={(event) => setSortOrder(event.target.value as "latest" | "earliest")} value={sortOrder}>
                 <option value="latest">Latest response</option>
                 <option value="earliest">Early response</option>
               </select>
@@ -120,17 +121,17 @@ export const SurveyTrackingResponsesPage = () => {
         </div>
       </Card>
 
-      <Card className="admin-table-card">
-        <div className="admin-table-wrap">
+      <Card className={adminTw.tableCard}>
+        <div className={adminTw.tableWrap}>
           {viewMode === "all" ? (
-            <table className="admin-table tracking-responses-matrix-table">
+            <table className={`${adminTw.table} min-w-[1320px] max-app-mobile:table max-app-mobile:min-w-[980px]`}>
               <thead>
                 <tr>
                   <th>Response</th>
                   <th>Respondent</th>
                   {responseColumns.map((column, index) => (
                     <th key={column.questionStableKey}>
-                      <div className="tracking-question-heading">
+                      <div className="grid gap-1">
                         <strong>Q{index + 1}</strong>
                         <span>{column.title}</span>
                       </div>
@@ -151,19 +152,19 @@ export const SurveyTrackingResponsesPage = () => {
                     <tr key={response.responseId}>
                       <td data-label="Response">#{rowIndex + 1}</td>
                       <td data-label="Respondent">
-                        <div className="admin-table-meta">
+                        <div className={adminTw.tableMeta}>
                           <strong>{response.respondentEmail ?? "Anonymous"}</strong>
                           <span>{response.respondentEmail ? "Specific email" : "Anonymous public respondent"}</span>
                         </div>
                       </td>
                       {responseColumns.map((column) => (
                         <td data-label={column.title} key={column.questionStableKey}>
-                          <span className="tracking-response-answer-cell">{answerMap.get(column.questionStableKey) ?? "No answer"}</span>
+                          <span className="inline-block max-w-[240px] whitespace-pre-wrap [overflow-wrap:anywhere]">{answerMap.get(column.questionStableKey) ?? "No answer"}</span>
                         </td>
                       ))}
                       <td data-label="Source">{response.accessSource === "invitation" ? "Invitation link" : "Public link"}</td>
                       <td data-label="Status">
-                        <span className={`survey-badge ${response.responseStatus === "submitted" ? "survey-badge-published" : "survey-badge-draft"}`}>
+                        <span className={`${trackingTw.badge} ${response.responseStatus === "submitted" ? "bg-app-success-soft text-app-success" : "bg-app-warning-soft text-app-warning"}`}>
                           {response.responseStatus}
                         </span>
                       </td>
@@ -176,7 +177,7 @@ export const SurveyTrackingResponsesPage = () => {
               </tbody>
             </table>
           ) : (
-            <table className="admin-table">
+            <table className={adminTw.table}>
               <thead>
                 <tr>
                   <th>Respondent</th>
@@ -192,21 +193,21 @@ export const SurveyTrackingResponsesPage = () => {
                 {responseItems.map((response) => (
                   <tr key={response.responseId}>
                     <td data-label="Respondent">
-                      <div className="admin-table-meta">
+                      <div className={adminTw.tableMeta}>
                         <strong>{response.respondentEmail ?? "Anonymous public respondent"}</strong>
                         <span>{response.accessSource === "invitation" ? "Invitation link" : "Public link"}</span>
                       </div>
                     </td>
                     <td data-label="Source">{response.accessSource}</td>
                     <td data-label="Response">
-                      <span className={`survey-badge ${response.responseStatus === "submitted" ? "survey-badge-published" : "survey-badge-draft"}`}>
+                      <span className={`${trackingTw.badge} ${response.responseStatus === "submitted" ? "bg-app-success-soft text-app-success" : "bg-app-warning-soft text-app-warning"}`}>
                         {response.responseStatus}
                       </span>
                     </td>
                     <td data-label="Session">{response.sessionStatus}</td>
                     <td data-label="Submitted">
                       {response.submittedAt ? (
-                        <div className="admin-table-meta">
+                        <div className={adminTw.tableMeta}>
                           <strong>{formatRelativeTime(response.submittedAt)}</strong>
                           <span>{formatDateTime(response.submittedAt) ?? response.submittedAt}</span>
                         </div>
@@ -215,7 +216,7 @@ export const SurveyTrackingResponsesPage = () => {
                       )}
                     </td>
                     <td data-label="Last saved">
-                      <div className="admin-table-meta">
+                      <div className={adminTw.tableMeta}>
                         <strong>{formatRelativeTime(response.lastSavedAt)}</strong>
                         <span>{formatDateTime(response.lastSavedAt) ?? response.lastSavedAt}</span>
                       </div>

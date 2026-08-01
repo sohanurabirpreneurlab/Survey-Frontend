@@ -33,6 +33,7 @@ import { Card } from "../components/ui/card";
 import { Input } from "../components/ui/input";
 import { ApiError } from "../lib/api";
 import { cn } from "../lib/cn";
+import { adminTw, pageTw, surveyTw, surveysPageTw } from "../lib/page-tailwind";
 import { toast } from "../state/toast-store";
 import { useAuth } from "../features/auth/use-auth";
 import {
@@ -89,10 +90,10 @@ const compareBySort = (left: SurveySummary, right: SurveySummary, sort: string) 
 };
 
 const SearchSkeleton = () => (
-  <div className="survey-card survey-card-skeleton">
-    <div className="survey-skeleton-line survey-skeleton-line-lg" />
-    <div className="survey-skeleton-line" />
-    <div className="survey-skeleton-line" />
+      <div className={`${surveysPageTw.card} pointer-events-none`}>
+        <div className={`${surveysPageTw.skeleton} h-[18px] w-[48%]`} />
+        <div className={surveysPageTw.skeleton} />
+        <div className={surveysPageTw.skeleton} />
   </div>
 );
 
@@ -231,19 +232,19 @@ const SurveyActions = ({
           </Button>
         </DropdownMenu.Trigger>
         <DropdownMenu.Portal>
-          <DropdownMenu.Content align="end" className="survey-menu-content" sideOffset={6}>
-            <DropdownMenu.Item asChild className="survey-menu-item">
+      <DropdownMenu.Content align="end" className={surveysPageTw.menu} sideOffset={6}>
+        <DropdownMenu.Item asChild className={surveysPageTw.menuItem}>
               <Link to={`/app/surveys/${survey.id}/preview`}>
                 <Eye size={15} />
                 Preview
               </Link>
             </DropdownMenu.Item>
-            <DropdownMenu.Item className="survey-menu-item" onSelect={() => setShareOpen(true)}>
+        <DropdownMenu.Item className={surveysPageTw.menuItem} onSelect={() => setShareOpen(true)}>
               <MailPlus size={15} />
               Share
             </DropdownMenu.Item>
             {survey.currentDraftVersionId ? (
-              <DropdownMenu.Item asChild className="survey-menu-item">
+        <DropdownMenu.Item asChild className={surveysPageTw.menuItem}>
                 <Link to={`/app/surveys/${survey.id}/builder`}>
                   <FileClock size={15} />
                   Continue editing
@@ -252,7 +253,7 @@ const SurveyActions = ({
             ) : null}
             {survey.status === "published" && !survey.currentDraftVersionId ? (
               <DropdownMenu.Item
-                className="survey-menu-item"
+          className={surveysPageTw.menuItem}
                 onSelect={() => setDraftDialogOpen(true)}
               >
                 <FilePlus2 size={15} />
@@ -261,7 +262,7 @@ const SurveyActions = ({
             ) : null}
             {survey.status === "published" ? (
               <DropdownMenu.Item
-                className="survey-menu-item survey-menu-item-danger"
+          className={`${surveysPageTw.menuItem} text-app-danger`}
                 onSelect={() => {
                   resetScheduleState();
                   setScheduleDialogOpen(true);
@@ -273,7 +274,7 @@ const SurveyActions = ({
             ) : null}
             {survey.status === "closed" ? (
               <DropdownMenu.Item
-                className="survey-menu-item"
+          className={surveysPageTw.menuItem}
                 onSelect={() => {
                   resetScheduleState();
                   setScheduleDialogOpen(true);
@@ -289,13 +290,13 @@ const SurveyActions = ({
 
       <AlertDialog.Root open={draftDialogOpen} onOpenChange={setDraftDialogOpen}>
         <AlertDialog.Portal>
-          <AlertDialog.Overlay className="dialog-overlay" />
-          <AlertDialog.Content className="survey-dialog">
+          <AlertDialog.Overlay className={surveysPageTw.dialogOverlay} />
+          <AlertDialog.Content className={surveysPageTw.dialog}>
             <AlertDialog.Title>Create draft version</AlertDialog.Title>
-            <AlertDialog.Description className="survey-dialog-copy">
+            <AlertDialog.Description className={surveysPageTw.dialogCopy}>
               Published surveys are immutable. This creates a new editable draft version from the published version.
             </AlertDialog.Description>
-            <div className="survey-dialog-actions">
+            <div className={surveysPageTw.dialogActions}>
               <AlertDialog.Cancel asChild>
                 <Button size="sm" variant="secondary">
                   Cancel
@@ -320,67 +321,67 @@ const SurveyActions = ({
         open={scheduleDialogOpen}
       >
         <Dialog.Portal>
-          <Dialog.Overlay className="dialog-overlay" />
-          <Dialog.Content className="survey-dialog">
-            <div className="mobile-nav-header">
+          <Dialog.Overlay className={surveysPageTw.dialogOverlay} />
+          <Dialog.Content className={surveysPageTw.dialog}>
+            <div className={surveysPageTw.dialogActions}>
               <Dialog.Title>{survey.status === "closed" ? "Reopen survey" : "Close survey"}</Dialog.Title>
               <Dialog.Close asChild>
-                <button aria-label="Close scheduling dialog" className="mobile-nav-close" type="button">
+                <button aria-label="Close scheduling dialog" className={surveysPageTw.close} type="button">
                   <X size={18} />
                 </button>
               </Dialog.Close>
             </div>
-            <div className="share-dialog-stack">
-              <p className="survey-dialog-copy">
+            <div className={surveysPageTw.dialogStack}>
+              <p className={surveysPageTw.dialogCopy}>
                 {survey.status === "closed"
                   ? "Update the opening and closing schedule before reopening the survey."
                   : "Choose whether the survey should keep running on a schedule or close right away."}
               </p>
-              <div className="share-unpublished-state">
+              <div className="flex items-start gap-3 rounded-app-md border border-[rgba(154,92,0,0.18)] [border-style:solid] bg-app-warning-soft p-4">
                 <div>
                   <strong>Current schedule</strong>
-                  <p className="survey-dialog-copy">Opens: {formatDateTime(survey.opensAt) ?? "Immediately"}</p>
-                  <p className="survey-dialog-copy">Closes: {formatDateTime(survey.closesAt) ?? "No closing date"}</p>
+                  <p className={surveysPageTw.dialogCopy}>Opens: {formatDateTime(survey.opensAt) ?? "Immediately"}</p>
+                  <p className={surveysPageTw.dialogCopy}>Closes: {formatDateTime(survey.closesAt) ?? "No closing date"}</p>
                 </div>
               </div>
-              <div className="survey-schedule-grid">
-                <Card className="survey-schedule-card">
-                  <span className="field-label">Opening</span>
-                  <label className="survey-radio-inline">
+              <div className={surveyTw.scheduleGrid}>
+                <Card className={surveyTw.scheduleCard}>
+                  <span className={adminTw.fieldLabel}>Opening</span>
+                  <label className={surveyTw.radioInline}>
                     <input checked={openMode === "immediate"} onChange={() => setOpenMode("immediate")} type="radio" />
                     <span>Open immediately</span>
                   </label>
-                  <label className="survey-radio-inline">
+                  <label className={surveyTw.radioInline}>
                     <input checked={openMode === "scheduled"} onChange={() => setOpenMode("scheduled")} type="radio" />
                     <span>Open later</span>
                   </label>
                   {openMode === "scheduled" ? (
-                    <label className="field">
-                      <span className="field-label">Opens at</span>
+                    <label className="grid gap-2">
+                      <span className={adminTw.fieldLabel}>Opens at</span>
                       <Input onChange={(event) => setOpensAtValue(event.target.value)} type="datetime-local" value={opensAtValue} />
                     </label>
                   ) : null}
                 </Card>
-                <Card className="survey-schedule-card">
-                  <span className="field-label">Closing</span>
-                  <label className="survey-radio-inline">
+                <Card className={surveyTw.scheduleCard}>
+                  <span className={adminTw.fieldLabel}>Closing</span>
+                  <label className={surveyTw.radioInline}>
                     <input checked={closeMode === "none"} onChange={() => setCloseMode("none")} type="radio" />
                     <span>No closing date</span>
                   </label>
-                  <label className="survey-radio-inline">
+                  <label className={surveyTw.radioInline}>
                     <input checked={closeMode === "scheduled"} onChange={() => setCloseMode("scheduled")} type="radio" />
                     <span>Close later</span>
                   </label>
                   {closeMode === "scheduled" ? (
-                    <label className="field">
-                      <span className="field-label">Closes at</span>
+                    <label className="grid gap-2">
+                      <span className={adminTw.fieldLabel}>Closes at</span>
                       <Input onChange={(event) => setClosesAtValue(event.target.value)} type="datetime-local" value={closesAtValue} />
                     </label>
                   ) : null}
                 </Card>
               </div>
-              {scheduleError ? <p className="field-error">{scheduleError}</p> : null}
-              <div className="survey-dialog-actions">
+              {scheduleError ? <p className="text-[0.9rem] text-app-danger">{scheduleError}</p> : null}
+              <div className={surveysPageTw.dialogActions}>
                 <Button onClick={() => setScheduleDialogOpen(false)} size="sm" variant="secondary">
                   Cancel
                 </Button>
@@ -595,28 +596,28 @@ const ShareSurveyDialog = ({
   return (
     <Dialog.Root onOpenChange={onOpenChange} open={open}>
       <Dialog.Portal>
-        <Dialog.Overlay className="dialog-overlay" />
-        <Dialog.Content className="survey-dialog">
-          <div className="mobile-nav-header">
+        <Dialog.Overlay className={surveysPageTw.dialogOverlay} />
+        <Dialog.Content className={surveysPageTw.dialog}>
+          <div className={surveysPageTw.dialogActions}>
             <Dialog.Title>Share survey</Dialog.Title>
             <Dialog.Close asChild>
-              <button aria-label="Close share dialog" className="mobile-nav-close" type="button">
+              <button aria-label="Close share dialog" className={surveysPageTw.close} type="button">
                 <X size={18} />
               </button>
             </Dialog.Close>
           </div>
 
           {shareQuery.isLoading ? (
-            <div className="share-dialog-stack">
-              <div className="survey-skeleton-line survey-skeleton-line-lg" />
-              <div className="survey-skeleton-line" />
-              <div className="survey-skeleton-line" />
+          <div className={surveysPageTw.dialogStack}>
+              <div className={`${surveysPageTw.skeleton} h-[18px] w-[48%]`} />
+              <div className={surveysPageTw.skeleton} />
+              <div className={surveysPageTw.skeleton} />
             </div>
           ) : null}
 
           {shareQuery.isError ? (
-            <div className="share-dialog-stack">
-              <p className="survey-dialog-copy">We could not load sharing information.</p>
+          <div className={surveysPageTw.dialogStack}>
+            <p className={surveysPageTw.dialogCopy}>We could not load sharing information.</p>
               <Button onClick={() => void shareQuery.refetch()} size="sm" variant="secondary">
                 Try again
               </Button>
@@ -624,29 +625,29 @@ const ShareSurveyDialog = ({
           ) : null}
 
           {shareQuery.data ? (
-            <div className="share-dialog-stack">
+          <div className={surveysPageTw.dialogStack}>
               <div>
-                <h3 className="share-dialog-title">{shareQuery.data.title ?? "Untitled survey"}</h3>
-                <p className="survey-dialog-copy">Sharing mode: {accessModeLabels[shareQuery.data.accessMode]}</p>
+              <h3 className="mt-0 mb-1.5">{shareQuery.data.title ?? "Untitled survey"}</h3>
+              <p className={surveysPageTw.dialogCopy}>Sharing mode: {accessModeLabels[shareQuery.data.accessMode]}</p>
               </div>
 
               {!isPublished ? (
-                <div className="share-unpublished-state">
-                  <div className="share-unpublished-icon">
+              <div className="flex items-start gap-3 rounded-app-md border border-[rgba(154,92,0,0.18)] [border-style:solid] bg-app-warning-soft p-4">
+                <div className="inline-flex size-[34px] shrink-0 items-center justify-center rounded-xl bg-white/70 text-app-warning">
                     <ShieldAlert size={18} />
                   </div>
                   <div>
                     <strong>Publish this survey before sharing</strong>
-                    <p className="survey-dialog-copy">
+                  <p className={surveysPageTw.dialogCopy}>
                       The dialog is open so you can see the sharing rules, but links and invitations stay disabled until a published version exists.
                     </p>
                   </div>
                 </div>
               ) : null}
 
-              <div className="share-dialog-stack">
-                <span className="field-label">Sharing method</span>
-                <div className="share-mode-grid" role="radiogroup" aria-label="Survey sharing method">
+              <div className={surveysPageTw.dialogStack}>
+                <span className={adminTw.fieldLabel}>Sharing method</span>
+                <div className={surveysPageTw.shareModeGrid} role="radiogroup" aria-label="Survey sharing method">
                   {([
                     {
                       hint: "Send secure invitation links to specific recipients.",
@@ -662,9 +663,9 @@ const ShareSurveyDialog = ({
                     <button
                       aria-checked={selectedAccessMode === option.value}
                       className={cn(
-                        "share-mode-card",
-                        !isPublished && "share-mode-card-disabled",
-                        selectedAccessMode === option.value && "share-mode-card-active"
+                        surveysPageTw.shareModeCard,
+                        !isPublished && "cursor-not-allowed opacity-55",
+                        selectedAccessMode === option.value && surveysPageTw.shareModeActive
                       )}
                       disabled={!isPublished}
                       key={option.value}
@@ -677,11 +678,11 @@ const ShareSurveyDialog = ({
                     </button>
                   ))}
                 </div>
-                <p className="survey-dialog-copy">
+                  <p className={surveysPageTw.dialogCopy}>
                   You can switch between public link and invitation-only access. A combined both mode is not available in the current backend.
                 </p>
                 {hasPendingShareModeChange ? (
-                  <div className="survey-dialog-actions">
+                  <div className={surveysPageTw.dialogActions}>
                     <Button
                       disabled={!isPublished || updateShareModeMutation.isPending}
                       onClick={() => void handleUpdateSharingMethod()}
@@ -694,12 +695,12 @@ const ShareSurveyDialog = ({
               </div>
 
               {isPublished && selectedAccessMode === "public" ? (
-                <div className="share-dialog-stack">
-                  <div className="share-link-box">
-                    <span className="field-label">Public link</span>
+                <div className={surveysPageTw.dialogStack}>
+                  <div className={surveysPageTw.linkBox}>
+                    <span className={adminTw.fieldLabel}>Public link</span>
                     <p>{shareQuery.data.publicUrl}</p>
                   </div>
-                  <div className="survey-dialog-actions">
+                  <div className={surveysPageTw.dialogActions}>
                     <Button onClick={() => void handleCopyLink()} size="sm" variant="secondary">
                       <Copy size={15} />
                       Copy link
@@ -713,15 +714,15 @@ const ShareSurveyDialog = ({
               ) : null}
 
               {isPublished && selectedAccessMode === "invite_only" ? (
-                <div className="share-dialog-stack">
+                <div className={surveysPageTw.dialogStack}>
                   <div>
-                    <span className="field-label">Invite respondents</span>
-                    <p className="survey-dialog-copy">Add one or more email addresses and send invitations in one request.</p>
+                    <span className={adminTw.fieldLabel}>Invite respondents</span>
+                    <p className={surveysPageTw.dialogCopy}>Add one or more email addresses and send invitations in one request.</p>
                   </div>
 
-                  <div className="share-chip-box">
+                  <div className={surveysPageTw.chipBox}>
                     {recipients.map((recipient) => (
-                      <span className="share-chip" key={recipient}>
+                      <span className={surveysPageTw.chip} key={recipient}>
                         {recipient}
                         <button
                           aria-label={`Remove ${recipient}`}
@@ -733,7 +734,7 @@ const ShareSurveyDialog = ({
                       </span>
                     ))}
                     <input
-                      className="share-chip-input"
+                      className="min-w-[180px] flex-1 border-0 bg-transparent p-0 text-app-text outline-none"
                       disabled={sendMutation.isPending}
                       onChange={(event) => setRecipientInput(event.target.value)}
                       onKeyDown={(event) => {
@@ -754,9 +755,9 @@ const ShareSurveyDialog = ({
                       value={recipientInput}
                     />
                   </div>
-                  {recipientError ? <p className="field-error">{recipientError}</p> : null}
+                  {recipientError ? <p className="text-[0.9rem] text-app-danger">{recipientError}</p> : null}
 
-                  <div className="survey-dialog-actions">
+                  <div className={surveysPageTw.dialogActions}>
                     <Button
                       disabled={sendMutation.isPending || (recipients.length === 0 && recipientInput.trim().length === 0)}
                       onClick={() => void handleSendInvitations()}
@@ -766,16 +767,16 @@ const ShareSurveyDialog = ({
                     </Button>
                   </div>
 
-                  <div className="share-invitation-list">
-                    <span className="field-label">Existing invitations</span>
+                  <div className="grid gap-2.5">
+                    <span className={adminTw.fieldLabel}>Existing invitations</span>
                     {invitationsQuery.isLoading ? (
-                      <div className="share-dialog-stack">
-                        <div className="survey-skeleton-line" />
-                        <div className="survey-skeleton-line" />
+                      <div className={surveysPageTw.dialogStack}>
+                        <div className={surveysPageTw.skeleton} />
+                        <div className={surveysPageTw.skeleton} />
                       </div>
                     ) : null}
                     {!invitationsQuery.isLoading && sortedInvitations.length === 0 ? (
-                      <p className="survey-dialog-copy">No invitations have been sent yet.</p>
+                      <p className={surveysPageTw.dialogCopy}>No invitations have been sent yet.</p>
                     ) : null}
                     {sortedInvitations.map((invitation) => (
                       <InvitationRow invitation={invitation} key={invitation.id} />
@@ -792,12 +793,12 @@ const ShareSurveyDialog = ({
 };
 
 const InvitationRow = ({ invitation }: { invitation: InvitationListItem }) => (
-  <div className="share-invitation-row">
+  <div className={surveysPageTw.invitationRow}>
     <div>
       <strong>{invitation.recipientEmail ?? "Unknown recipient"}</strong>
       <p>{formatRelativeTime(invitation.createdAt)}</p>
     </div>
-    <span className="survey-badge survey-badge-closed">{invitation.status}</span>
+    <span className="rounded-full bg-app-surface-muted px-2.5 py-1.5 text-[0.82rem] font-bold text-app-text-soft capitalize">{invitation.status}</span>
   </div>
 );
 
@@ -836,14 +837,14 @@ const SurveyPrimaryAction = ({ survey }: { survey: SurveySummary }) => {
 
 const SurveyAccessPill = ({ survey }: { survey: SurveySummary }) => {
   if (survey.access.isCrossOrganizationPreview) {
-    return <span className="survey-access-pill survey-access-pill-warning">Cross-org preview</span>;
+    return <span className={`${surveysPageTw.accessPill} bg-app-warning-soft text-app-warning`}>Cross-org preview</span>;
   }
 
   if (!survey.access.canEdit) {
-    return <span className="survey-access-pill survey-access-pill-muted">Read only</span>;
+    return <span className={`${surveysPageTw.accessPill} bg-app-surface-muted text-app-text-soft`}>Read only</span>;
   }
 
-  return <span className="survey-access-pill survey-access-pill-success">Editable</span>;
+  return <span className={`${surveysPageTw.accessPill} bg-app-success-soft text-app-success`}>Editable</span>;
 };
 
 export const SurveysPage = () => {
@@ -891,8 +892,8 @@ export const SurveysPage = () => {
   const pagination = surveysQuery.data?.pagination;
 
   return (
-    <div className="dashboard-page">
-      <section className="dashboard-hero survey-page-hero">
+    <div className={pageTw.page}>
+      <section className={`${pageTw.hero} ${pageTw.heroSplit}`}>
         <div>
           <h1>Surveys</h1>
           <p>Create, manage, publish, and review your surveys.</p>
@@ -906,11 +907,11 @@ export const SurveysPage = () => {
       </section>
 
       {organizations.length > 1 ? (
-        <Card className="survey-filter-card">
-          <label className="survey-select-field">
-            <span className="field-label">Organization</span>
+      <Card className={adminTw.filterCard}>
+        <label className={adminTw.selectField}>
+          <span className={adminTw.fieldLabel}>Organization</span>
             <select
-              className="input"
+            className={adminTw.select}
               onChange={(event) => onFilterChange("organizationId", event.target.value)}
               value={selectedOrganizationId}
             >
@@ -924,50 +925,50 @@ export const SurveysPage = () => {
         </Card>
       ) : null}
 
-      <Card className="survey-filter-card">
-        <div className="survey-filter-grid">
-          <label className="survey-search-field">
+      <Card className={adminTw.filterCard}>
+        <div className={adminTw.filterGrid}>
+          <label className={adminTw.searchField}>
             <span className="sr-only">Search surveys</span>
             <Search size={16} />
             <input
-              className="survey-search-input"
+              className={adminTw.searchInput}
               onChange={(event) => onFilterChange("search", event.target.value)}
               placeholder="Search surveys..."
               value={search}
             />
           </label>
-          <label className="survey-select-field">
-            <span className="field-label">Status</span>
-            <div className="survey-select-wrap">
-              <select className="input" onChange={(event) => onFilterChange("status", event.target.value)} value={status}>
+          <label className={adminTw.selectField}>
+            <span className={adminTw.fieldLabel}>Status</span>
+            <div className="relative">
+              <select className={adminTw.select} onChange={(event) => onFilterChange("status", event.target.value)} value={status}>
                 {statusTabs.map((tab) => (
                   <option key={tab.value} value={tab.value}>
                     {tab.label}
                   </option>
                 ))}
               </select>
-              <ChevronDown size={16} />
+              <ChevronDown className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2" size={16} />
             </div>
           </label>
-          <label className="survey-select-field">
-            <span className="field-label">Sort</span>
-            <div className="survey-select-wrap">
-              <select className="input" onChange={(event) => onFilterChange("sort", event.target.value)} value={sort}>
+          <label className={adminTw.selectField}>
+            <span className={adminTw.fieldLabel}>Sort</span>
+            <div className="relative">
+              <select className={adminTw.select} onChange={(event) => onFilterChange("sort", event.target.value)} value={sort}>
                 {sortOptions.map((option) => (
                   <option key={option.value} value={option.value}>
                     {option.label}
                   </option>
                 ))}
               </select>
-              <ChevronDown size={16} />
+              <ChevronDown className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2" size={16} />
             </div>
           </label>
         </div>
-        <div className="survey-tab-row" role="tablist" aria-label="Survey status filters">
+        <div className="mt-[18px] flex flex-wrap gap-2.5" role="tablist" aria-label="Survey status filters">
           {statusTabs.map((tab) => (
             <button
               aria-pressed={status === tab.value}
-              className={cn("survey-tab", status === tab.value ? "survey-tab-active" : "")}
+              className={cn(surveyTw.tab, status === tab.value && surveyTw.tabActive)}
               key={tab.value}
               onClick={() => onFilterChange("status", tab.value)}
               type="button"
@@ -979,7 +980,7 @@ export const SurveysPage = () => {
       </Card>
 
       {surveysQuery.isLoading ? (
-        <section className="survey-grid">
+      <section className={pageTw.gridTwo}>
           {Array.from({ length: 6 }).map((_, index) => (
             <SearchSkeleton key={index} />
           ))}
@@ -987,7 +988,7 @@ export const SurveysPage = () => {
       ) : null}
 
       {surveysQuery.isError ? (
-        <Card className="dashboard-empty-state">
+          <Card className={pageTw.empty}>
           <div>
             <h2>We could not load your surveys.</h2>
             <p>Try again without leaving the dashboard.</p>
@@ -999,7 +1000,7 @@ export const SurveysPage = () => {
       ) : null}
 
       {!surveysQuery.isLoading && !surveysQuery.isError && surveys.length === 0 ? (
-        <Card className="dashboard-empty-state">
+          <Card className={pageTw.empty}>
           <div>
             <p className="eyebrow">Survey workspace</p>
             <h2>No surveys yet</h2>
@@ -1012,7 +1013,7 @@ export const SurveysPage = () => {
       ) : null}
 
       {!surveysQuery.isLoading && !surveysQuery.isError && surveys.length > 0 && filteredSurveys.length === 0 ? (
-        <Card className="dashboard-empty-state">
+          <Card className={pageTw.empty}>
           <div>
             <h2>No surveys match your search.</h2>
             <p>Clear the search or change the selected filters.</p>
@@ -1024,32 +1025,32 @@ export const SurveysPage = () => {
       ) : null}
 
       {!surveysQuery.isLoading && !surveysQuery.isError && filteredSurveys.length > 0 ? (
-        <section className="survey-grid">
+      <section className={pageTw.gridTwo}>
           {filteredSurveys.map((survey) => (
-            <Card className="survey-card" key={survey.id}>
-              <div className="survey-card-head">
+          <Card className={surveysPageTw.card} key={survey.id}>
+            <div className={surveysPageTw.cardHead}>
                 <div>
-                  <div className="survey-card-kicker">
+              <div className="mb-2.5 flex flex-wrap items-center gap-2">
                     <SurveyAccessPill survey={survey} />
                     <span>{accessModeLabels[survey.accessMode]}</span>
                   </div>
                   <h2>{survey.title ?? "Untitled survey"}</h2>
                   <p>{survey.description || "No description yet. Add a clear outcome-focused summary to make this card more useful."}</p>
                 </div>
-                <div className="survey-card-head-meta">
+                <div className="flex items-center justify-between gap-3 max-app-mobile:flex-col max-app-mobile:items-stretch">
                   <SurveyStatusBadge status={survey.status} />
                   <SurveyActions survey={survey} token={token} />
                 </div>
               </div>
 
-              <div className="survey-card-meta">
+            <div className="flex flex-wrap gap-x-4 gap-y-2.5 text-app-text-soft">
                 <span>Draft v{survey.currentDraftVersionNumber ?? "—"}</span>
                 <span>Published v{survey.publishedVersionNumber ?? "—"}</span>
                 <span>{survey.submittedResponseCount} responses</span>
                 <span>{accessModeLabels[survey.accessMode]}</span>
               </div>
 
-              <dl className="survey-card-stats">
+            <dl className="grid grid-cols-3 gap-3.5 max-app-mobile:grid-cols-1 [&_dt]:mb-1 [&_dt]:text-[0.84rem] [&_dt]:text-app-text-faint [&_dd]:m-0">
                 <div>
                   <dt>Updated</dt>
                   <dd>{formatRelativeTime(survey.updatedAt)}</dd>
@@ -1064,9 +1065,9 @@ export const SurveysPage = () => {
                 </div>
               </dl>
 
-              {survey.access.message ? <div className="survey-card-note">{survey.access.message}</div> : null}
+            {survey.access.message ? <div className="rounded-[14px] border border-[rgba(154,92,0,0.18)] [border-style:solid] bg-app-warning-soft px-3.5 py-3 text-app-warning">{survey.access.message}</div> : null}
 
-              <div className="survey-card-actions">
+            <div className={surveysPageTw.cardActions}>
                 <SurveyPrimaryAction survey={survey} />
                 <Button asChild size="sm" variant="ghost">
                   <Link to={`/app/surveys/${survey.id}/preview`}>Preview</Link>
@@ -1078,7 +1079,7 @@ export const SurveysPage = () => {
       ) : null}
 
       {pagination && pagination.totalPages > 1 ? (
-        <Card className="survey-pagination">
+      <Card className={`${adminTw.pagination} p-4`}>
           <Button
             disabled={pagination.page <= 1}
             onClick={() => onFilterChange("page", String(pagination.page - 1))}
@@ -1102,13 +1103,6 @@ export const SurveysPage = () => {
           </Button>
         </Card>
       ) : null}
-
-      {/* <Card className="survey-route-note">
-        <FolderKanban size={18} />
-        <p>
-          The survey list only loads summary data. Builder details, responses, and analytics stay on their own routes.
-        </p>
-      </Card> */}
     </div>
   );
 };

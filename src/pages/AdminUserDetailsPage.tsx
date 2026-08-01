@@ -23,6 +23,7 @@ import {
   updateAdminUserProfileRequest
 } from "../features/admin/admin.api";
 import { adminKeys } from "../features/admin/admin.keys";
+import { adminTw, pageTw } from "../lib/page-tailwind";
 import { formatDateTime, formatRelativeTime } from "../features/surveys/surveys.utils";
 
 const approveSchema = z.object({
@@ -136,8 +137,8 @@ export const AdminUserDetailsPage = () => {
 
   if (userQuery.isLoading || !detail) {
     return (
-      <div className="dashboard-page">
-        <section className="dashboard-hero">
+      <div className={pageTw.page}>
+        <section className={pageTw.hero}>
           <h1>Loading user review...</h1>
         </section>
       </div>
@@ -147,8 +148,8 @@ export const AdminUserDetailsPage = () => {
   const user = detail.user;
 
   return (
-    <div className="dashboard-page">
-      <section className="dashboard-hero survey-page-hero">
+    <div className={pageTw.page}>
+      <section className={`${pageTw.hero} ${pageTw.heroSplit}`}>
         <div>
           <h1>{user.fullName}</h1>
           <p>{user.email}</p>
@@ -158,11 +159,11 @@ export const AdminUserDetailsPage = () => {
         </Button>
       </section>
 
-      <section className="survey-grid">
-        <Card className="survey-card">
+      <section className={pageTw.gridTwo}>
+        <Card className={pageTw.surfaceCard}>
           <h2>Account</h2>
           <form
-            className="builder-settings-stack"
+            className={adminTw.formStack}
             onSubmit={profileForm.handleSubmit(async (values) => {
               await updateProfileMutation.mutateAsync(values);
             })}
@@ -172,7 +173,7 @@ export const AdminUserDetailsPage = () => {
             </Field>
             <Field error={profileForm.formState.errors.organizationId?.message} label="Organization">
               <select
-                className="input"
+                className={adminTw.select}
                 {...profileForm.register("organizationId", {
                   setValueAs: (value) => (value ? value : null)
                 })}
@@ -185,35 +186,35 @@ export const AdminUserDetailsPage = () => {
                 ))}
               </select>
             </Field>
-            <div className="survey-dialog-actions">
+            <div className={adminTw.dialogActions}>
               <Button disabled={updateProfileMutation.isPending} size="sm" type="submit">
                 {updateProfileMutation.isPending ? "Saving..." : "Save profile"}
               </Button>
             </div>
           </form>
-          <div className="settings-details">
-            <div className="settings-item">
-              <span className="settings-label">Status</span>
+          <div className={adminTw.details}>
+            <div className={adminTw.detailItem}>
+              <span className={adminTw.detailLabel}>Status</span>
               <strong>{user.accountStatus}</strong>
             </div>
-            <div className="settings-item">
-              <span className="settings-label">Platform role</span>
+            <div className={adminTw.detailItem}>
+              <span className={adminTw.detailLabel}>Platform role</span>
               <strong>{user.platformRole}</strong>
             </div>
-            <div className="settings-item">
-              <span className="settings-label">Organization</span>
+            <div className={adminTw.detailItem}>
+              <span className={adminTw.detailLabel}>Organization</span>
               <strong>{user.organizationName ?? "Not provided"}</strong>
             </div>
-            <div className="settings-item">
-              <span className="settings-label">Registered</span>
+            <div className={adminTw.detailItem}>
+              <span className={adminTw.detailLabel}>Registered</span>
               <strong>{formatDateTime(user.createdAt) ?? user.createdAt}</strong>
             </div>
           </div>
         </Card>
 
-        <Card className="survey-card">
+        <Card className={pageTw.surfaceCard}>
           <h2>Actions</h2>
-          <div className="survey-dialog-actions">
+          <div className={adminTw.dialogActions}>
             {user.accountStatus === "pending" ? (
               <>
                 <AlertDialog.Root>
@@ -221,14 +222,14 @@ export const AdminUserDetailsPage = () => {
                     <Button size="sm">Approve account</Button>
                   </AlertDialog.Trigger>
                   <AlertDialog.Portal>
-                    <AlertDialog.Overlay className="dialog-overlay" />
-                    <AlertDialog.Content className="survey-dialog">
+                    <AlertDialog.Overlay className={adminTw.dialogOverlay} />
+                    <AlertDialog.Content className={adminTw.dialog}>
                       <AlertDialog.Title>Approve account</AlertDialog.Title>
-                      <AlertDialog.Description className="survey-dialog-copy">
+                      <AlertDialog.Description className={adminTw.dialogCopy}>
                         This action creates the organization, creates the membership, approves dashboard access, and records audit events in one transaction.
                       </AlertDialog.Description>
                       <form
-                        className="builder-settings-stack"
+                        className={adminTw.formStack}
                         onSubmit={approveForm.handleSubmit(async (values) => {
                           await approveMutation.mutateAsync(values.organizationName);
                         })}
@@ -236,7 +237,7 @@ export const AdminUserDetailsPage = () => {
                         <Field error={approveForm.formState.errors.organizationName?.message} label="Organization name">
                           <Input {...approveForm.register("organizationName")} />
                         </Field>
-                        <div className="survey-dialog-actions">
+                        <div className={adminTw.dialogActions}>
                           <AlertDialog.Cancel asChild>
                             <Button size="sm" type="button" variant="secondary">
                               Cancel
@@ -256,14 +257,14 @@ export const AdminUserDetailsPage = () => {
                     <Button size="sm" variant="danger">Reject registration</Button>
                   </AlertDialog.Trigger>
                   <AlertDialog.Portal>
-                    <AlertDialog.Overlay className="dialog-overlay" />
-                    <AlertDialog.Content className="survey-dialog">
+                    <AlertDialog.Overlay className={adminTw.dialogOverlay} />
+                    <AlertDialog.Content className={adminTw.dialog}>
                       <AlertDialog.Title>Reject registration</AlertDialog.Title>
-                      <AlertDialog.Description className="survey-dialog-copy">
+                      <AlertDialog.Description className={adminTw.dialogCopy}>
                         This preserves the user record but blocks application access.
                       </AlertDialog.Description>
                       <form
-                        className="builder-settings-stack"
+                        className={adminTw.formStack}
                         onSubmit={reasonForm.handleSubmit(async (values) => {
                           await rejectMutation.mutateAsync(values.reason?.trim() || null);
                         })}
@@ -271,7 +272,7 @@ export const AdminUserDetailsPage = () => {
                         <Field error={reasonForm.formState.errors.reason?.message} label="Reason">
                           <Input {...reasonForm.register("reason")} placeholder="Optional reason" />
                         </Field>
-                        <div className="survey-dialog-actions">
+                        <div className={adminTw.dialogActions}>
                           <AlertDialog.Cancel asChild>
                             <Button size="sm" type="button" variant="secondary">
                               Cancel
@@ -294,13 +295,13 @@ export const AdminUserDetailsPage = () => {
                   <Button size="sm" variant="danger">Suspend account</Button>
                 </AlertDialog.Trigger>
                 <AlertDialog.Portal>
-                  <AlertDialog.Overlay className="dialog-overlay" />
-                  <AlertDialog.Content className="survey-dialog">
+                  <AlertDialog.Overlay className={adminTw.dialogOverlay} />
+                  <AlertDialog.Content className={adminTw.dialog}>
                     <AlertDialog.Title>Suspend account</AlertDialog.Title>
-                    <AlertDialog.Description className="survey-dialog-copy">
+                    <AlertDialog.Description className={adminTw.dialogCopy}>
                       Are you sure you want to suspend this account? The user will lose application access until reactivated.
                     </AlertDialog.Description>
-                    <div className="survey-dialog-actions">
+                    <div className={adminTw.dialogActions}>
                       <AlertDialog.Cancel asChild>
                         <Button size="sm" type="button" variant="secondary">
                           Cancel
@@ -327,13 +328,13 @@ export const AdminUserDetailsPage = () => {
                   <Button size="sm">Reactivate account</Button>
                 </AlertDialog.Trigger>
                 <AlertDialog.Portal>
-                  <AlertDialog.Overlay className="dialog-overlay" />
-                  <AlertDialog.Content className="survey-dialog">
+                  <AlertDialog.Overlay className={adminTw.dialogOverlay} />
+                  <AlertDialog.Content className={adminTw.dialog}>
                     <AlertDialog.Title>Reactivate account</AlertDialog.Title>
-                    <AlertDialog.Description className="survey-dialog-copy">
+                    <AlertDialog.Description className={adminTw.dialogCopy}>
                       Are you sure you want to reactivate this account? The user will regain access immediately.
                     </AlertDialog.Description>
-                    <div className="survey-dialog-actions">
+                    <div className={adminTw.dialogActions}>
                       <AlertDialog.Cancel asChild>
                         <Button size="sm" type="button" variant="secondary">
                           Cancel
@@ -363,11 +364,11 @@ export const AdminUserDetailsPage = () => {
         </InlineNotice>
       ) : null}
 
-      <Card className="survey-card">
+      <Card className={pageTw.surfaceCard}>
         <h2>Organization memberships</h2>
         {user.memberships.length === 0 ? <p>No organization memberships.</p> : null}
         {user.memberships.map((membership) => (
-          <div className="admin-list-row" key={membership.organizationId}>
+          <div className={adminTw.listRow} key={membership.organizationId}>
             <div>
               <strong>{membership.organizationName}</strong>
               <p>{membership.membershipRole}</p>
@@ -379,11 +380,11 @@ export const AdminUserDetailsPage = () => {
         ))}
       </Card>
 
-      <Card className="survey-card">
+      <Card className={pageTw.surfaceCard}>
         <h2>Recent audit activity</h2>
         {detail.recentAudit.length === 0 ? <p>No recent audit events.</p> : null}
         {detail.recentAudit.map((log) => (
-          <div className="admin-list-row" key={log.id}>
+          <div className={adminTw.listRow} key={log.id}>
             <div>
               <strong>{log.action}</strong>
               <p>{log.targetLabel ?? log.targetId ?? "n/a"}</p>

@@ -1,12 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRight, Building2, ChartNoAxesColumn, ListChecks, ShieldCheck, Sparkles } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Building2, ChartNoAxesColumn, ListChecks, ShieldCheck, Sparkles } from "lucide-react";
 
-import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
 import { useAuth } from "../features/auth/use-auth";
 import { listSurveysRequest } from "../features/surveys/surveys.api";
 import { surveyKeys } from "../features/surveys/surveys.keys";
+import { pageTw } from "../lib/page-tailwind";
 
 export const DashboardPage = () => {
   const auth = useAuth();
@@ -24,30 +23,18 @@ export const DashboardPage = () => {
   const previewOnlyCount = surveys.filter((survey) => survey.access.isCrossOrganizationPreview).length;
 
   return (
-    <div className="dashboard-page">
-      <section className="dashboard-hero dashboard-hero-split">
+    <div className={pageTw.page}>
+      <section className={`${pageTw.hero} ${pageTw.heroSplit}`}>
         <div>
-          <p className="eyebrow">{auth.isPlatformAdmin ? "Platform-ready workspace" : "Approved workspace"}</p>
-          <h1>Hello, {auth.user?.fullName?.split(" ")[0] ?? "there"}.</h1>
-          <p>
+          <p className={pageTw.eyebrow}>{auth.isPlatformAdmin ? "Platform-ready workspace" : "Approved workspace"}</p>
+          <h1 className={pageTw.heroTitle}>Hello, {auth.user?.fullName?.split(" ")[0] ?? "there"}.</h1>
+          <p className={pageTw.muted}>
             Keep an eye on what is still in draft, what is already live, and where your next survey action should happen.
           </p>
         </div>
-        {/* <div className="dashboard-hero-aside">
-          <div className="dashboard-hero-chip">
-            {auth.organizations.length === 1 ? auth.organizations[0]?.organizationName : `${auth.organizations.length} organizations`}
-          </div>
-          <div className="dashboard-hero-chip">{auth.platformRole === "admin" ? "Platform Admin" : "Business Owner"}</div>
-          <Button asChild>
-            <Link to="/app/surveys/new">
-              Create survey
-              <ArrowRight size={16} />
-            </Link>
-          </Button>
-        </div> */}
       </section>
 
-      <section className="dashboard-grid">
+      <section className={pageTw.gridThree}>
         {[
           {
             description: "Surveys that still have an active draft and need builder work.",
@@ -68,37 +55,37 @@ export const DashboardPage = () => {
             value: responseCount
           }
         ].map((item) => (
-          <Card key={item.title} className="dashboard-card">
-            <div className="dashboard-card-icon">
+          <Card key={item.title} className={pageTw.metricCard}>
+            <div className={pageTw.metricIcon}>
               <item.icon size={18} />
             </div>
             <div>
-              <h2>{item.value}</h2>
-              <p className="dashboard-card-kicker">{item.title}</p>
-              <p>{item.description}</p>
+              <h2 className={pageTw.metricTitle}>{item.value}</h2>
+              <p className="mb-2 text-[0.94rem] font-bold text-app-text">{item.title}</p>
+              <p className={pageTw.muted}>{item.description}</p>
             </div>
           </Card>
         ))}
       </section>
 
-      <section className="survey-grid">
-        <Card className="survey-card">
-          <div className="survey-card-head">
+      <section className={pageTw.gridTwo}>
+        <Card className={pageTw.surfaceCard}>
+          <div className={pageTw.cardHead}>
             <div>
-              <h2>Workspace signals</h2>
-              <p>Useful counts for the organization context you are working in right now.</p>
+              <h2 className={pageTw.cardTitle}>Workspace signals</h2>
+              <p className={pageTw.muted}>Useful counts for the organization context you are working in right now.</p>
             </div>
           </div>
-          <div className="survey-card-meta-grid">
-            <div className="survey-card-meta-box">
-              <span className="survey-card-meta-label">
+          <div className="grid grid-cols-2 gap-3 max-app-mobile:grid-cols-1">
+            <div className="grid gap-1 rounded-app-md border border-app-border [border-style:solid] bg-app-surface-muted p-4">
+              <span className="inline-flex items-center gap-2 text-[0.84rem] font-bold text-app-text-faint uppercase">
                 <Building2 size={14} />
                 Organizations
               </span>
               <strong>{auth.organizations.length}</strong>
             </div>
-            <div className="survey-card-meta-box">
-              <span className="survey-card-meta-label">
+            <div className="grid gap-1 rounded-app-md border border-app-border [border-style:solid] bg-app-surface-muted p-4">
+              <span className="inline-flex items-center gap-2 text-[0.84rem] font-bold text-app-text-faint uppercase">
                 <ShieldCheck size={14} />
                 Preview-only surveys
               </span>
@@ -106,17 +93,17 @@ export const DashboardPage = () => {
             </div>
           </div>
         </Card>
-        <Card className="survey-card">
-          <div className="survey-card-head">
+        <Card className={pageTw.surfaceCard}>
+          <div className={pageTw.cardHead}>
             <div>
-              <h2>Suggested next steps</h2>
-              <p>Use a simple operating rhythm so surveys move cleanly from draft to live.</p>
+              <h2 className={pageTw.cardTitle}>Suggested next steps</h2>
+              <p className={pageTw.muted}>Use a simple operating rhythm so surveys move cleanly from draft to live.</p>
             </div>
           </div>
-          <div className="dashboard-task-list">
-            <div className="dashboard-task-item">1. Finish the survey structure in the builder.</div>
-            <div className="dashboard-task-item">2. Publish the survey to unlock sharing.</div>
-            <div className="dashboard-task-item">3. Revisit the surveys workspace to monitor responses.</div>
+          <div className="grid gap-2.5">
+            <div className="rounded-[14px] border border-app-border [border-style:solid] bg-app-surface-muted px-3.5 py-3">1. Finish the survey structure in the builder.</div>
+            <div className="rounded-[14px] border border-app-border [border-style:solid] bg-app-surface-muted px-3.5 py-3">2. Publish the survey to unlock sharing.</div>
+            <div className="rounded-[14px] border border-app-border [border-style:solid] bg-app-surface-muted px-3.5 py-3">3. Revisit the surveys workspace to monitor responses.</div>
           </div>
         </Card>
       </section>
