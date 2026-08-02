@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { ArrowLeft, ArrowRight, Check, CheckCircle2 } from "lucide-react";
 
@@ -93,6 +93,14 @@ type SurveyResponse = {
 };
 
 type AccessMode = "public" | "invitation";
+
+type PersistedSurveyState = {
+  answers: Record<string, unknown>;
+  currentPage: number;
+};
+
+const respondentStateStorageKey = (accessMode: AccessMode, identifier: string) =>
+  `survey-respondent-state:${accessMode}:${identifier}`;
 
 const sortByPosition = <T extends { position: number }>(items: T[]) =>
   [...items].sort((left, right) => left.position - right.position);
@@ -252,6 +260,9 @@ const RespondentSurveyRuntime = ({ accessMode }: { accessMode: AccessMode }) => 
   const [submittedAt, setSubmittedAt] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
   const [navigationError, setNavigationError] = useState<string | null>(null);
+  const [hydratedStorageKey, setHydratedStorageKey] = useState<string | null>(null);
+  const storageIdentifier = accessMode === "public" ? publicSlug ?? "" : token ?? "";
+  const storageKey = storageIdentifier ? respondentStateStorageKey(accessMode, storageIdentifier) : null;
 
   const surveyQuery = useQuery({
     enabled: accessMode === "public" ? Boolean(publicSlug) : Boolean(token),
@@ -267,41 +278,37 @@ const RespondentSurveyRuntime = ({ accessMode }: { accessMode: AccessMode }) => 
     queryKey: ["respondent", "survey", accessMode, publicSlug ?? token ?? "", requestNonce]
   });
 
-  const responseQuery = useQuery({
-    enabled: surveyQuery.isSuccess,
-    queryFn: async () => {
-      try {
-        return await apiRequest<SurveyResponse | null>("/respondent/responses/current", {
-          credentials: "include",
-          headers: respondentHeaders
-        });
-      } catch (error) {
-        if (error instanceof ApiError && error.status === 404) {
-          return null;
-        }
-
-        throw error;
-      }
-    },
-    queryKey: ["respondent", "response", accessMode, publicSlug ?? token ?? ""]
-  });
-
-  const prepareResponseMutation = useMutation({
-    mutationFn: () =>
-      apiRequest<SurveyResponse>("/respondent/responses", {
-        credentials: "include",
-        headers: respondentHeaders,
-        method: "POST"
-      })
-  });
-
   const survey = surveyQuery.data as PublicSurvey | undefined;
   const respondentHeaders =
     accessMode === "invitation" && survey?.respondentSessionToken
       ? { "X-Respondent-Session": survey.respondentSessionToken }
       : undefined;
   const sortedSections = useMemo(() => sortByPosition(survey?.sections ?? []), [survey?.sections]);
-  const sortedQuestions = useMemo(() => sortByPosition(survey?.questions ?? []), [survey?.questions]);
+  const sectionPositionById = useMemo(
+    () => new Map(sortedSections.map((section, index) => [section.id, { index, position: section.position }])),
+    [sortedSections]
+  );
+  const sortedQuestions = useMemo(
+    () =>
+      [...(survey?.questions ?? [])].sort((left, right) => {
+        const leftSection = sectionPositionById.get(left.sectionId);
+        const rightSection = sectionPositionById.get(right.sectionId);
+        const sectionPositionDelta = (leftSection?.position ?? 0) - (rightSection?.position ?? 0);
+
+        if (sectionPositionDelta !== 0) {
+          return sectionPositionDelta;
+        }
+
+        const sectionIndexDelta = (leftSection?.index ?? 0) - (rightSection?.index ?? 0);
+
+        if (sectionIndexDelta !== 0) {
+          return sectionIndexDelta;
+        }
+
+        return left.position - right.position;
+      }),
+    [sectionPositionById, survey?.questions]
+  );
   const questionByStableKey = useMemo(
     () => new Map(sortedQuestions.map((question) => [question.stableKey, question])),
     [sortedQuestions]
@@ -397,10 +404,79 @@ const RespondentSurveyRuntime = ({ accessMode }: { accessMode: AccessMode }) => 
     ? sortedSections.find((section) => section.id === activeQuestion.sectionId) ?? null
     : null;
   const isLastPage = currentPage === totalPages - 1;
+  const activeQuestionIdBeforeVisibilityChangeRef = useRef<string | null>(null);
+  const hasLoadedVisibleQuestions = Boolean(survey) && visibleQuestions.length > 0;
 
   useEffect(() => {
+    if (!hasLoadedVisibleQuestions) {
+      return;
+    }
+
+    const previousActiveQuestionId = activeQuestionIdBeforeVisibilityChangeRef.current;
+
+    if (!previousActiveQuestionId) {
+      setCurrentPage((page) => Math.min(page, Math.max(0, totalPages - 1)));
+      return;
+    }
+
+    const nextIndex = visibleQuestions.findIndex((question) => question.id === previousActiveQuestionId);
+
+    if (nextIndex >= 0) {
+      setCurrentPage(nextIndex);
+      return;
+    }
+
     setCurrentPage((page) => Math.min(page, Math.max(0, totalPages - 1)));
-  }, [totalPages]);
+  }, [hasLoadedVisibleQuestions, totalPages, visibleQuestions]);
+
+  useEffect(() => {
+    activeQuestionIdBeforeVisibilityChangeRef.current = activeQuestion?.id ?? null;
+  }, [activeQuestion?.id]);
+
+  useEffect(() => {
+    if (!storageKey || typeof window === "undefined") {
+      setHydratedStorageKey(storageKey);
+      return;
+    }
+
+    const rawValue = window.localStorage.getItem(storageKey);
+
+    if (!rawValue) {
+      setHydratedStorageKey(storageKey);
+      return;
+    }
+
+    try {
+      const persistedState = JSON.parse(rawValue) as PersistedSurveyState;
+      setAnswers(
+        persistedState.answers && typeof persistedState.answers === "object" && !Array.isArray(persistedState.answers)
+          ? persistedState.answers
+          : {}
+      );
+      setCurrentPage(
+        Number.isInteger(persistedState.currentPage) && persistedState.currentPage >= 0
+          ? persistedState.currentPage
+          : 0
+      );
+    } catch {
+      window.localStorage.removeItem(storageKey);
+    } finally {
+      setHydratedStorageKey(storageKey);
+    }
+  }, [storageKey]);
+
+  useEffect(() => {
+    if (!storageKey || typeof window === "undefined" || submittedAt || hydratedStorageKey !== storageKey) {
+      return;
+    }
+
+    const persistedState: PersistedSurveyState = {
+      answers,
+      currentPage
+    };
+
+    window.localStorage.setItem(storageKey, JSON.stringify(persistedState));
+  }, [answers, currentPage, hydratedStorageKey, storageKey, submittedAt]);
 
   const submitMutation = useMutation({
     mutationFn: async () => {
@@ -408,39 +484,27 @@ const RespondentSurveyRuntime = ({ accessMode }: { accessMode: AccessMode }) => 
         throw new Error("Survey is not loaded.");
       }
 
-      let response = responseQuery.data as SurveyResponse | null | undefined;
+      return apiRequest<SurveyResponse>("/respondent/responses/submit", {
+        body: {
+          answers: visibleQuestions.flatMap((question) => {
+            const normalizedValue = normalizeAnswerForSubmit(question, answers[question.id]);
 
-      if (!response) {
-        response = await prepareResponseMutation.mutateAsync();
-      }
+            if (!hasAnswer(question, normalizedValue)) {
+              if (question.required) {
+                throw new Error(`Answer required: ${question.title}`);
+              }
 
-      let revision = response.revision;
+              return [];
+            }
 
-      for (const question of visibleQuestions) {
-        const normalizedValue = normalizeAnswerForSubmit(question, answers[question.id]);
-
-        if (!hasAnswer(question, normalizedValue)) {
-          if (question.required) {
-            throw new Error(`Answer required: ${question.title}`);
-          }
-
-          continue;
-        }
-
-        const updatedResponse = await apiRequest<SurveyResponse>(`/respondent/responses/${response.id}/answers/${question.id}`, {
-          body: {
-            expectedRevision: revision,
-            value: normalizedValue
-          },
-          credentials: "include",
-          headers: respondentHeaders,
-          method: "PUT"
-        });
-
-        revision = updatedResponse.revision;
-      }
-
-      return apiRequest<SurveyResponse>(`/respondent/responses/${response.id}/submit`, {
+            return [
+              {
+                questionId: question.id,
+                value: normalizedValue
+              }
+            ];
+          })
+        },
         credentials: "include",
         headers: {
           ...(respondentHeaders ?? {}),
@@ -460,6 +524,9 @@ const RespondentSurveyRuntime = ({ accessMode }: { accessMode: AccessMode }) => 
       toast.danger("Submission failed", message);
     },
     onSuccess: (response) => {
+      if (storageKey && typeof window !== "undefined") {
+        window.localStorage.removeItem(storageKey);
+      }
       setSubmittedAt(response.submittedAt ?? new Date().toISOString());
       toast.success("Response submitted", "Thank you for completing the survey.");
     }
@@ -491,6 +558,11 @@ const RespondentSurveyRuntime = ({ accessMode }: { accessMode: AccessMode }) => 
     }
 
     setCurrentPage((page) => Math.min(totalPages - 1, page + 1));
+  };
+
+  const handlePrevious = () => {
+    setNavigationError(null);
+    setCurrentPage((page) => Math.max(0, page - 1));
   };
 
   if (surveyQuery.isLoading) {
@@ -541,12 +613,12 @@ const RespondentSurveyRuntime = ({ accessMode }: { accessMode: AccessMode }) => 
         </div>
       ) : null}
 
-      <header className="relative grid min-h-[76px] grid-cols-[44px_minmax(0,1fr)_auto] items-center gap-4 px-7 py-4 max-app-mobile:block max-app-mobile:min-h-[104px] max-app-mobile:px-5 max-app-mobile:py-4">
-        {!submittedAt && currentPage > 0 ? (
-          <button aria-label="Previous question" className="inline-flex size-10 cursor-pointer items-center justify-center rounded-full border border-app-border [border-style:solid] bg-white text-app-text-soft shadow-sm transition-colors hover:bg-app-surface-muted" onClick={() => { setNavigationError(null); setCurrentPage((page) => Math.max(0, page - 1)); }} type="button">
-            <ArrowLeft size={18} />
-          </button>
-        ) : <span aria-hidden="true" />}
+        <header className="relative grid min-h-[76px] grid-cols-[44px_minmax(0,1fr)_auto] items-center gap-4 px-7 py-4 max-app-mobile:block max-app-mobile:min-h-[104px] max-app-mobile:px-5 max-app-mobile:py-4">
+          {!submittedAt && currentPage > 0 ? (
+            <button aria-label="Previous question" className="inline-flex size-10 cursor-pointer items-center justify-center rounded-full border border-app-border [border-style:solid] bg-white text-app-text-soft shadow-sm transition-colors hover:bg-app-surface-muted" onClick={handlePrevious} type="button">
+              <ArrowLeft size={18} />
+            </button>
+          ) : <span aria-hidden="true" />}
         <strong className="min-w-0 truncate text-[0.95rem] max-app-mobile:absolute max-app-mobile:top-[25px] max-app-mobile:left-1/2 max-app-mobile:max-w-[45%] max-app-mobile:-translate-x-1/2 max-app-mobile:text-center">{survey.title}</strong>
         {!submittedAt && visibleQuestions.length > 0 ? (
           <span className="text-right text-sm font-medium text-app-text-soft max-app-mobile:absolute max-app-mobile:top-[68px] max-app-mobile:left-1/2 max-app-mobile:w-full max-app-mobile:-translate-x-1/2 max-app-mobile:text-center max-app-mobile:text-xs">Answered {answeredCount} of {visibleQuestions.length} · Question {currentPage + 1}</span>
@@ -650,7 +722,13 @@ const RespondentSurveyRuntime = ({ accessMode }: { accessMode: AccessMode }) => 
             {navigationError ? <p className="m-0 text-sm font-semibold text-app-danger" role="alert">{navigationError}</p> : null}
 
             <div className="flex flex-wrap items-center gap-3">
-              <Button className="hover:brightness-90" disabled={submitMutation.isPending || responseQuery.isLoading} style={{ backgroundColor: primaryColor }} type="submit">
+              {currentPage > 0 ? (
+                <Button onClick={handlePrevious} type="button" variant="secondary">
+                  <ArrowLeft size={18} />
+                  Previous
+                </Button>
+              ) : null}
+              <Button className="hover:brightness-90" disabled={submitMutation.isPending} style={{ backgroundColor: primaryColor }} type="submit">
                 {isLastPage ? (submitMutation.isPending ? "Submitting..." : "Submit") : "Next"}
                 {isLastPage ? <Check size={18} /> : <ArrowRight size={18} />}
               </Button>
