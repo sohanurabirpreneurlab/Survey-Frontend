@@ -190,7 +190,7 @@ export const CreateSurveyPage = () => {
               ].map((option) => (
                 <label className={surveyTw.radioCard} key={option.value}>
                   <input type="radio" value={option.value} {...form.register("accessMode")} />
-                  <div>
+                  <div className={surveyTw.radioCopy}>
                     <strong>{option.label}</strong>
                     <span>{option.hint}</span>
                   </div>
@@ -209,11 +209,15 @@ export const CreateSurveyPage = () => {
               <Card className={surveyTw.scheduleCard}>
                 <label className={surveyTw.radioInline}>
                   <input type="radio" value="immediate" {...form.register("openMode")} />
-                  <span>Open immediately</span>
+                  <div className={surveyTw.radioInlineCopy}>
+                    <strong>Open immediately</strong>
+                  </div>
                 </label>
                 <label className={surveyTw.radioInline}>
                   <input type="radio" value="scheduled" {...form.register("openMode")} />
-                  <span>Schedule opening</span>
+                  <div className={surveyTw.radioInlineCopy}>
+                    <strong>Schedule opening</strong>
+                  </div>
                 </label>
                 {openMode === "scheduled" ? (
                   <Field error={form.formState.errors.opensAt?.message} label="Opens at">
@@ -225,11 +229,15 @@ export const CreateSurveyPage = () => {
               <Card className={surveyTw.scheduleCard}>
                 <label className={surveyTw.radioInline}>
                   <input type="radio" value="none" {...form.register("closeMode")} />
-                  <span>No closing date</span>
+                  <div className={surveyTw.radioInlineCopy}>
+                    <strong>No closing date</strong>
+                  </div>
                 </label>
                 <label className={surveyTw.radioInline}>
                   <input type="radio" value="scheduled" {...form.register("closeMode")} />
-                  <span>Schedule closing</span>
+                  <div className={surveyTw.radioInlineCopy}>
+                    <strong>Schedule closing</strong>
+                  </div>
                 </label>
                 {closeMode === "scheduled" ? (
                   <Field error={form.formState.errors.closesAt?.message} label="Closes at">

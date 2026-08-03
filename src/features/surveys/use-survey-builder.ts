@@ -32,7 +32,6 @@ import {
 } from "./surveys.api";
 import { surveyKeys } from "./surveys.keys";
 import {
-  buildEmptyDraftDefinition,
   defaultQuestionValidation,
   getQuestionOptions,
   mergeSurvey,
@@ -196,21 +195,8 @@ export const useSurveyBuilder = (surveyId: string) => {
   useEffect(() => {
     if (definitionQuery.data) {
       setDefinition(definitionQuery.data);
-      return;
     }
-
-    if (!surveyQuery.data || !activeVersionId) {
-      return;
-    }
-
-    const emptyDefinition = buildEmptyDraftDefinition(
-      surveyQuery.data.id,
-      activeVersionId,
-      "Untitled survey",
-      null
-    );
-    setDefinition(emptyDefinition);
-  }, [activeVersionId, definitionQuery.data, surveyQuery.data]);
+  }, [definitionQuery.data]);
 
   useEffect(() => {
     if (!definition) {
@@ -968,45 +954,56 @@ export const useSurveyBuilder = (surveyId: string) => {
       return;
     }
 
-    setDefinition({
-      ...definition,
-      options: definition.options.map((option) => {
-        const match = items.find((item) => item.optionId === option.id);
-        return match ? { ...option, scoreValue: match.scoreValue } : option;
-      })
+    const nextOptions = definition.options.map((option) => {
+      const match = items.find((item) => item.optionId === option.id);
+      return match ? { ...option, scoreValue: match.scoreValue } : option;
     });
 
+    setDefinition((current) =>
+      current
+        ? {
+            ...current,
+            options: current.options.map((option) => {
+              const match = items.find((item) => item.optionId === option.id);
+              return match ? { ...option, scoreValue: match.scoreValue } : option;
+            })
+          }
+        : current
+    );
+
     schedule(`option-scores:${questionId}`, async () => {
-      const currentQuestionOptions = getQuestionOptions(
-        {
-          ...definition,
-          options: definition.options.map((option) => {
-            const match = items.find((item) => item.optionId === option.id);
-            return match ? { ...option, scoreValue: match.scoreValue } : option;
-          })
-        },
-        questionId
-      );
+      try {
+        const currentQuestionOptions = getQuestionOptions(
+          {
+            ...definition,
+            options: nextOptions
+          },
+          questionId
+        );
 
-      const saved = await bulkUpdateOptionScoresRequest(token, surveyId, questionId, {
-        options: currentQuestionOptions.map((option) => ({
-          optionId: option.id,
-          scoreValue: option.scoreValue
-        }))
-      });
+        const saved = await bulkUpdateOptionScoresRequest(token, surveyId, questionId, {
+          options: currentQuestionOptions.map((option) => ({
+            optionId: option.id,
+            scoreValue: option.scoreValue
+          }))
+        });
 
-      if (!shouldApplyServerEcho(`option-scores:${questionId}`)) {
-        return;
+        if (!shouldApplyServerEcho(`option-scores:${questionId}`)) {
+          return;
+        }
+
+        setDefinition((current) =>
+          current
+            ? {
+                ...current,
+                options: current.options.map((option) => saved.find((item) => item.id === option.id) ?? option)
+              }
+            : current
+        );
+      } catch (error) {
+        toast.danger("Save numeric scoring failed", mutationErrorMessage(error));
+        throw error;
       }
-
-      setDefinition((current) =>
-        current
-          ? {
-              ...current,
-              options: current.options.map((option) => saved.find((item) => item.id === option.id) ?? option)
-            }
-          : current
-      );
     });
   };
 
@@ -1168,7 +1165,13 @@ export const useSurveyBuilder = (surveyId: string) => {
   };
 
   useEffect(() => {
-    if (!definition || !survey || !isEditable || bootstrappedEmptyStateRef.current) {
+    if (
+      !definition ||
+      !survey ||
+      !isEditable ||
+      !definitionQuery.data ||
+      bootstrappedEmptyStateRef.current
+    ) {
       return;
     }
 
@@ -1179,7 +1182,7 @@ export const useSurveyBuilder = (surveyId: string) => {
 
     bootstrappedEmptyStateRef.current = true;
     void addSection();
-  }, [definition, isEditable, survey]);
+  }, [definition, definitionQuery.data, isEditable, survey]);
 
   const selectedQuestion = useMemo(
     () => definition?.questions.find((question) => question.id === selectedQuestionId) ?? null,

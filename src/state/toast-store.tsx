@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useSyncExternalStore, type ReactNode } from "react";
 
 type ToastTone = "info" | "success" | "danger";
 
@@ -15,68 +15,86 @@ type ToastStoreValue = {
   toasts: Toast[];
 };
 
-const ToastStoreContext = createContext<ToastStoreValue | null>(null);
+let toasts: Toast[] = [];
+const listeners = new Set<() => void>();
+const dismissalTimers = new Map<string, number>();
 
-let externalPushToast: ToastStoreValue["pushToast"] | null = null;
+const emitChange = () => {
+  for (const listener of listeners) {
+    listener();
+  }
+};
 
-export const ToastStoreProvider = ({ children }: { children: ReactNode }) => {
-  const [toasts, setToasts] = useState<Toast[]>([]);
+const scheduleDismissal = (toastId: string) => {
+  const existingTimer = dismissalTimers.get(toastId);
 
-  const dismissToast = useCallback((id: string) => {
-    setToasts((current) => current.filter((toast) => toast.id !== id));
-  }, []);
+  if (existingTimer) {
+    window.clearTimeout(existingTimer);
+  }
 
-  const pushToast = useCallback((toast: Omit<Toast, "id">) => {
-    const id = crypto.randomUUID();
-    setToasts((current) => [...current, { ...toast, id }]);
-  }, []);
+  const timerId = window.setTimeout(() => {
+    dismissalTimers.delete(toastId);
+    toastStore.dismissToast(toastId);
+  }, 4500);
 
-  useEffect(() => {
-    externalPushToast = pushToast;
-    return () => {
-      externalPushToast = null;
-    };
-  }, [pushToast]);
+  dismissalTimers.set(toastId, timerId);
+};
 
-  useEffect(() => {
-    if (toasts.length === 0) {
+const toastStore: ToastStoreValue = {
+  dismissToast: (id: string) => {
+    const timerId = dismissalTimers.get(id);
+
+    if (timerId) {
+      window.clearTimeout(timerId);
+      dismissalTimers.delete(id);
+    }
+
+    const nextToasts = toasts.filter((toast) => toast.id !== id);
+
+    if (nextToasts.length === toasts.length) {
       return;
     }
 
-    const timer = window.setTimeout(() => {
-      setToasts((current) => current.slice(1));
-    }, 4500);
-
-    return () => window.clearTimeout(timer);
-  }, [toasts]);
-
-  const value = useMemo(
-    () => ({
-      dismissToast,
-      pushToast,
-      toasts
-    }),
-    [dismissToast, pushToast, toasts]
-  );
-
-  return <ToastStoreContext.Provider value={value}>{children}</ToastStoreContext.Provider>;
+    toasts = nextToasts;
+    emitChange();
+  },
+  pushToast: (toast) => {
+    const id = crypto.randomUUID();
+    toasts = [...toasts, { ...toast, id }];
+    scheduleDismissal(id);
+    emitChange();
+  },
+  get toasts() {
+    return toasts;
+  }
 };
 
+const subscribe = (listener: () => void) => {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+};
+
+const getSnapshot = () => toastStore.toasts;
+
+export const ToastStoreProvider = ({ children }: { children: ReactNode }) => <>{children}</>;
+
 export const useToastStore = () => {
-  const value = useContext(ToastStoreContext);
+  const snapshot = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 
-  if (!value) {
-    throw new Error("useToastStore must be used within ToastStoreProvider.");
-  }
-
-  return value;
+  return {
+    dismissToast: toastStore.dismissToast,
+    pushToast: toastStore.pushToast,
+    toasts: snapshot
+  };
 };
 
 export const toast = {
   danger: (title: string, description?: string) =>
-    externalPushToast?.({ description, title, tone: "danger" }),
+    toastStore.pushToast({ description, title, tone: "danger" }),
   info: (title: string, description?: string) =>
-    externalPushToast?.({ description, title, tone: "info" }),
+    toastStore.pushToast({ description, title, tone: "info" }),
   success: (title: string, description?: string) =>
-    externalPushToast?.({ description, title, tone: "success" })
+    toastStore.pushToast({ description, title, tone: "success" })
 };
