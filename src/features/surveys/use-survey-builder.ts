@@ -70,7 +70,11 @@ const changeMessage = (error: unknown) => {
 };
 
 const mutationErrorMessage = (error: unknown) =>
-  error instanceof ApiError ? error.message : "Please try again.";
+  error instanceof ApiError
+    ? Array.isArray(error.details) && error.details.length > 0
+      ? error.details.map((detail) => detail.message).join(" ")
+      : error.message
+    : "Please try again.";
 
 const pruneCalculatedScoresAfterQuestionRemoval = (
   calculatedScores: SurveyVersionDefinition["calculatedScores"],
@@ -104,6 +108,12 @@ const reindexItems = <T extends { position: number }>(items: T[]) =>
 const createTempId = (prefix: string) =>
   `temp-${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 
+const buildOptionValue = (label: string) =>
+  label
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "_");
+
 export const useSurveyBuilder = (surveyId: string) => {
   const auth = useAuth();
   const queryClient = useQueryClient();
@@ -116,6 +126,7 @@ export const useSurveyBuilder = (surveyId: string) => {
   const queueRef = useRef(Promise.resolve());
   const pendingTimersRef = useRef<Map<string, number>>(new Map());
   const pendingQuestionCreatesRef = useRef<Map<string, Promise<Question>>>(new Map());
+  const pendingOptionCreatesRef = useRef<Map<string, Promise<QuestionOption>>>(new Map());
   const pendingQuestionEditsRef = useRef<Map<string, Question>>(new Map());
   const pendingOptionEditsRef = useRef<Map<string, QuestionOption>>(new Map());
   const bootstrappedEmptyStateRef = useRef(false);
@@ -393,6 +404,8 @@ export const useSurveyBuilder = (surveyId: string) => {
       toast.success("Section created", "A new section was added to the draft.");
       return section;
     } catch (error) {
+      console.log('error:',error);
+      
       setDefinition((current) =>
         current
           ? {
@@ -790,36 +803,45 @@ export const useSurveyBuilder = (surveyId: string) => {
     }
 
     const currentOptions = getQuestionOptions(definition, questionId);
-    const index = currentOptions.length + 1;
     const tempId = createTempId("option");
     const optimisticOption: QuestionOption = {
       createdAt: new Date().toISOString(),
       id: tempId,
-      label: `Option ${index}`,
+      label: "",
       position: currentOptions.length,
       questionId,
       scoreValue: null,
       settings: {},
       stableKey: tempId,
       updatedAt: new Date().toISOString(),
-      value: `option_${index}`
+      value: ""
     };
 
     setDefinition((current) =>
       current ? { ...current, options: [...current.options, optimisticOption] } : current
     );
     pendingOptionEditsRef.current.set(tempId, optimisticOption);
+    toast.success("Option added", "Enter a label to save this option.");
+  };
 
-    try {
+  const persistTempOption = async (questionId: string, optionDraft: QuestionOption) => {
+    const optionId = optionDraft.id;
+    const trimmedLabel = optionDraft.label.trim();
+
+    if (!optionId.startsWith("temp-option-") || !trimmedLabel || pendingOptionCreatesRef.current.has(optionId)) {
+      return;
+    }
+
+    const createRequest = (async () => {
       const pendingQuestion = pendingQuestionCreatesRef.current.get(questionId);
       const persistedQuestionId = pendingQuestion ? (await pendingQuestion).id : questionId;
       const option = await createOptionRequest(token, surveyId, persistedQuestionId, {
-        label: `Option ${index}`,
-        position: currentOptions.length,
-        settings: {},
-        value: `option_${index}`
+        label: trimmedLabel,
+        position: optionDraft.position,
+        settings: optionDraft.settings,
+        value: optionDraft.value.trim() || buildOptionValue(trimmedLabel)
       });
-      const localOption = pendingOptionEditsRef.current.get(tempId);
+      const localOption = pendingOptionEditsRef.current.get(optionId);
       const reconciledOption: QuestionOption = localOption
         ? {
             ...option,
@@ -828,31 +850,30 @@ export const useSurveyBuilder = (surveyId: string) => {
             id: option.id,
             questionId: persistedQuestionId,
             stableKey: option.stableKey,
-            updatedAt: option.updatedAt
+            updatedAt: option.updatedAt,
+            value: localOption.value.trim() || buildOptionValue(localOption.label)
           }
         : option;
 
-      cancelPendingSave(`option:${tempId}`);
+      cancelPendingSave(`option:${optionId}`);
 
       setDefinition((current) =>
         current
           ? {
               ...current,
-              options: current.options.map((item) =>
-                item.id === tempId ? reconciledOption : item
-              )
+              options: current.options.map((item) => (item.id === optionId ? reconciledOption : item))
             }
           : current
       );
-      pendingOptionEditsRef.current.delete(tempId);
+      pendingOptionEditsRef.current.delete(optionId);
 
       void enqueue(async () => {
         const saved = await updateOptionRequest(token, surveyId, persistedQuestionId, option.id, {
-          label: reconciledOption.label,
+          label: reconciledOption.label.trim(),
           position: reconciledOption.position,
           scoreValue: reconciledOption.scoreValue,
           settings: reconciledOption.settings,
-          value: reconciledOption.value
+          value: reconciledOption.value.trim() || buildOptionValue(reconciledOption.label)
         });
 
         if (shouldApplyServerEcho(`option:${option.id}`)) {
@@ -865,16 +886,25 @@ export const useSurveyBuilder = (surveyId: string) => {
       });
 
       toast.success("Option created", "A new answer option was added.");
+      return option;
+    })();
+
+    pendingOptionCreatesRef.current.set(optionId, createRequest);
+
+    try {
+      await createRequest;
     } catch (error) {
-      cancelPendingSave(`option:${tempId}`);
+      cancelPendingSave(`option:${optionId}`);
       setDefinition((current) =>
         current
-          ? { ...current, options: current.options.filter((option) => option.id !== tempId) }
+          ? { ...current, options: current.options.filter((option) => option.id !== optionId) }
           : current
       );
-      pendingOptionEditsRef.current.delete(tempId);
+      pendingOptionEditsRef.current.delete(optionId);
       toast.danger("Create option failed", mutationErrorMessage(error));
       throw error;
+    } finally {
+      pendingOptionCreatesRef.current.delete(optionId);
     }
   };
 
@@ -897,16 +927,19 @@ export const useSurveyBuilder = (surveyId: string) => {
 
     if (optionId.startsWith("temp-option-")) {
       pendingOptionEditsRef.current.set(optionId, nextOption);
+      if (nextOption.label.trim()) {
+        void persistTempOption(questionId, nextOption);
+      }
       return;
     }
 
     schedule(`option:${optionId}`, async () => {
       const saved = await updateOptionRequest(token, surveyId, questionId, optionId, {
-        label: nextOption.label,
+        label: nextOption.label.trim(),
         position: nextOption.position,
         scoreValue: nextOption.scoreValue,
         settings: nextOption.settings,
-        value: nextOption.value
+        value: nextOption.value.trim() || buildOptionValue(nextOption.label)
       });
 
       if (!shouldApplyServerEcho(`option:${optionId}`)) {
@@ -979,6 +1012,18 @@ export const useSurveyBuilder = (surveyId: string) => {
 
   const deleteOption = async (questionId: string, optionId: string) => {
     if (!definition || !survey?.access.canEdit) {
+      return;
+    }
+
+    if (optionId.startsWith("temp-option-")) {
+      pendingOptionEditsRef.current.delete(optionId);
+      pendingOptionCreatesRef.current.delete(optionId);
+      cancelPendingSave(`option:${optionId}`);
+      setDefinition({
+        ...definition,
+        options: definition.options.filter((option) => option.id !== optionId)
+      });
+      toast.success("Option deleted", "The answer option was removed.");
       return;
     }
 

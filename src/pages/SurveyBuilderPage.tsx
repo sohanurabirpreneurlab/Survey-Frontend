@@ -84,6 +84,10 @@ const readBuilderFieldValue = (value: string, placeholderSeed: string) =>
 
 const readBuilderDisplayTitle = (value: string, placeholderSeed: string) => value.trim() || placeholderSeed;
 
+const isHiddenOptionPlaceholder = (value: string) => value.startsWith("__new_option__");
+
+const readOptionFieldValue = (value: string) => (isHiddenOptionPlaceholder(value) ? "" : value);
+
 const DeleteDialog = ({
   children,
   description,
@@ -946,7 +950,7 @@ const QuestionCard = ({
                     value: event.target.value.trim().toLowerCase().replace(/\s+/g, "_")
                   })
                 }
-                value={option.label}
+                value={readOptionFieldValue(option.label)}
               />
               {(question.type === "single_choice" || question.type === "vote") && scoringEnabled ? (
                 <Input
@@ -1129,7 +1133,7 @@ export const SurveyBuilderPage = () => {
       }
     }
   };
-
+  
   return (
     <div className="grid gap-5">
       <header className="sticky top-4 z-10 flex items-center justify-between gap-3 rounded-app-lg border border-app-border [border-style:solid] bg-white/90 px-[22px] py-[18px] max-app-tablet:top-auto max-app-mobile:static max-app-mobile:flex-col max-app-mobile:items-stretch">
