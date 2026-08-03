@@ -3,9 +3,9 @@ import { Link, useParams } from "react-router-dom";
 
 import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
-import { useAuth } from "../features/auth/use-auth";
-import { getAdminOrganizationRequest } from "../features/admin/admin.api";
 import { adminKeys } from "../features/admin/admin.keys";
+import { getAdminOrganizationRequest } from "../features/admin/admin.api";
+import { useAuth } from "../features/auth/use-auth";
 import { formatDateTime, formatRelativeTime } from "../features/surveys/surveys.utils";
 import { adminTw, pageTw } from "../lib/page-tailwind";
 
@@ -24,7 +24,7 @@ export const OrganizationDetailsPage = () => {
     return (
       <div className={pageTw.page}>
         <section className={pageTw.hero}>
-          <h1>Loading organization...</h1>
+          <h1 className={pageTw.heroTitle}>Loading organization...</h1>
         </section>
       </div>
     );
@@ -36,8 +36,8 @@ export const OrganizationDetailsPage = () => {
     <div className={pageTw.page}>
       <section className={`${pageTw.hero} ${pageTw.heroSplit}`}>
         <div>
-          <h1>{organization.name}</h1>
-          <p>{organization.slug}</p>
+          <h1 className={pageTw.heroTitle}>{organization.name}</h1>
+          <p className={pageTw.muted}>{organization.slug}</p>
         </div>
         <Button asChild variant="secondary">
           <Link to="/admin/organizations">Back to organizations</Link>
@@ -46,7 +46,7 @@ export const OrganizationDetailsPage = () => {
 
       <section className={pageTw.gridTwo}>
         <Card className={pageTw.surfaceCard}>
-          <h2>Organization information</h2>
+          <h2 className={pageTw.cardTitle}>Organization information</h2>
           <div className={adminTw.details}>
             <div className={adminTw.detailItem}>
               <span className={adminTw.detailLabel}>ID</span>
@@ -63,7 +63,7 @@ export const OrganizationDetailsPage = () => {
           </div>
         </Card>
         <Card className={pageTw.surfaceCard}>
-          <h2>Owner</h2>
+          <h2 className={pageTw.cardTitle}>Owner</h2>
           <div className={adminTw.details}>
             <div className={adminTw.detailItem}>
               <span className={adminTw.detailLabel}>Name</span>
@@ -83,7 +83,7 @@ export const OrganizationDetailsPage = () => {
       </section>
 
       <Card className={pageTw.surfaceCard}>
-        <h2>Survey summary</h2>
+        <h2 className={pageTw.cardTitle}>Survey summary</h2>
         <div className="flex flex-wrap gap-x-4 gap-y-2.5 text-app-text-soft">
           <span>Total {organization.surveySummary.total}</span>
           <span>Draft {organization.surveySummary.draft}</span>
@@ -93,13 +93,13 @@ export const OrganizationDetailsPage = () => {
       </Card>
 
       <Card className={pageTw.surfaceCard}>
-        <h2>Members</h2>
+        <h2 className={pageTw.cardTitle}>Members</h2>
         {organization.members.map((member) => (
           <div className={adminTw.listRow} key={member.userId}>
             <div>
               <strong>{member.fullName}</strong>
               <p>
-                {member.email} • {member.membershipRole} • {member.accountStatus}
+                {member.email} / {member.membershipRole} / {member.accountStatus}
               </p>
             </div>
             <Button asChild size="sm" variant="secondary">
@@ -110,7 +110,7 @@ export const OrganizationDetailsPage = () => {
       </Card>
 
       <Card className={pageTw.surfaceCard}>
-        <h2>Operational activity</h2>
+        <h2 className={pageTw.cardTitle}>Operational activity</h2>
         {recentAudit.length === 0 ? <p>No recent organization activity.</p> : null}
         {recentAudit.map((log) => (
           <div className={adminTw.listRow} key={log.id}>

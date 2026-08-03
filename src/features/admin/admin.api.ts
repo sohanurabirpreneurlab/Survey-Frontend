@@ -11,6 +11,7 @@ import type {
   AuditLogRecord,
   PaginationMeta,
   UpdateAdminUserProfileResult,
+  UpdateAdminOrganizationResult,
   UpdateUserRoleResult
 } from "./admin.types";
 
@@ -120,6 +121,23 @@ export const createAdminOrganizationRequest = (token: string, name: string) =>
   apiRequest<CreateAdminOrganizationResult>("/admin/organizations", {
     body: { name },
     method: "POST",
+    token
+  });
+
+export const updateAdminOrganizationRequest = (
+  token: string,
+  organizationId: string,
+  name: string
+) =>
+  apiRequest<UpdateAdminOrganizationResult>(`/admin/organizations/${organizationId}`, {
+    body: { name },
+    method: "PATCH",
+    token
+  });
+
+export const deleteAdminOrganizationRequest = (token: string, organizationId: string) =>
+  apiRequest<null>(`/admin/organizations/${organizationId}`, {
+    method: "DELETE",
     token
   });
 

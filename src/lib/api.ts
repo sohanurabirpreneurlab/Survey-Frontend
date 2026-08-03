@@ -89,7 +89,8 @@ export const apiRequestWithMeta = async <T>(
   options: RequestOptions = {}
 ): Promise<ApiSuccessResponse<T>> => {
   const method = options.method ?? "GET";
-  const shouldTrackWriteRequest = method === "POST" || method === "PUT";
+  const shouldTrackWriteRequest =
+    method === "POST" || method === "PUT" || method === "PATCH" || method === "DELETE";
 
   if (shouldTrackWriteRequest) {
     beginWriteRequest();

@@ -94,8 +94,8 @@ export const PendingApprovalsPage = () => {
     <div className={pageTw.page}>
       <section className={pageTw.hero}>
         <div>
-          <h1>Pending Approvals</h1>
-          <p>Review pending registrations from `user_profiles` and `app_users` in one table.</p>
+          <h1 className={pageTw.heroTitle}>Pending Approvals</h1>
+          <p className={pageTw.muted}>Review pending registrations from `user_profiles` and `app_users` in one table.</p>
         </div>
       </section>
 
@@ -142,13 +142,13 @@ export const PendingApprovalsPage = () => {
             <div className={adminTw.tableWrap}>
               <table className={adminTw.table}>
                 <thead>
-                  <tr>
-                    <th>Name</th>
-                    <th>Email</th>
-                    <th>Requested organization</th>
-                    <th>Registered</th>
-                    <th>Status</th>
-                    <th>Actions</th>
+                  <tr className={adminTw.tableRow}>
+                    <th className={adminTw.tableHeadCell}>Name</th>
+                    <th className={adminTw.tableHeadCell}>Email</th>
+                    <th className={adminTw.tableHeadCell}>Requested organization</th>
+                    <th className={adminTw.tableHeadCell}>Registered</th>
+                    <th className={adminTw.tableHeadCell}>Status</th>
+                    <th className={adminTw.tableHeadCell}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -221,17 +221,17 @@ const PendingApprovalRow = ({
   });
 
   return (
-    <tr>
-      <td data-label="Name">
+    <tr className={adminTw.tableRow}>
+      <td className={adminTw.tableCell} data-label="Name">
         <strong>{user.fullName}</strong>
       </td>
-      <td data-label="Email">{user.email}</td>
-      <td data-label="Requested organization">{user.organizationName ?? "Not provided"}</td>
-      <td data-label="Registered">{formatDateTime(user.createdAt) ?? user.createdAt}</td>
-      <td data-label="Status">
+      <td className={adminTw.tableCell} data-label="Email">{user.email}</td>
+      <td className={adminTw.tableCell} data-label="Requested organization">{user.organizationName ?? "Not provided"}</td>
+      <td className={adminTw.tableCell} data-label="Registered">{formatDateTime(user.createdAt) ?? user.createdAt}</td>
+      <td className={adminTw.tableCell} data-label="Status">
         <span className="rounded-full bg-app-warning-soft px-2.5 py-1.5 text-[0.82rem] font-bold text-app-warning capitalize">{user.accountStatus}</span>
       </td>
-      <td data-label="Actions">
+      <td className={adminTw.tableCell} data-label="Actions">
         <div className={adminTw.tableActions}>
           <Button asChild size="sm" variant="secondary">
             <Link to={`/admin/users/${user.userId}`}>Review</Link>

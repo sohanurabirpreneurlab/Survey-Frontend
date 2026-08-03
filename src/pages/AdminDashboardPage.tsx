@@ -2,11 +2,11 @@ import { useQuery } from "@tanstack/react-query";
 import { BarChart3, Building2, Clock3, ShieldCheck, Users } from "lucide-react";
 import { Link } from "react-router-dom";
 
-import { Card } from "../components/ui/card";
 import { Button } from "../components/ui/button";
-import { useAuth } from "../features/auth/use-auth";
-import { getAdminSummaryRequest } from "../features/admin/admin.api";
+import { Card } from "../components/ui/card";
 import { adminKeys } from "../features/admin/admin.keys";
+import { getAdminSummaryRequest } from "../features/admin/admin.api";
+import { useAuth } from "../features/auth/use-auth";
 import { formatRelativeTime } from "../features/surveys/surveys.utils";
 import { pageTw } from "../lib/page-tailwind";
 
@@ -50,7 +50,9 @@ export const AdminDashboardPage = () => {
         <div>
           <p className={pageTw.eyebrow}>Platform Admin</p>
           <h1 className={pageTw.heroTitle}>Admin Dashboard</h1>
-          <p className={pageTw.muted}>Operational overview for approvals, users, organizations, and recent admin activity.</p>
+          <p className={pageTw.muted}>
+            Operational overview for approvals, users, organizations, and recent admin activity.
+          </p>
         </div>
       </section>
 
@@ -136,7 +138,7 @@ export const AdminDashboardPage = () => {
             <div>
               <strong>{log.action}</strong>
               <p>
-                {log.actorName ?? "System"} • {log.targetType} • {log.targetLabel ?? log.targetId ?? "n/a"}
+                {log.actorName ?? "System"} / {log.targetType} / {log.targetLabel ?? log.targetId ?? "n/a"}
               </p>
             </div>
             <span>{formatRelativeTime(log.createdAt)}</span>

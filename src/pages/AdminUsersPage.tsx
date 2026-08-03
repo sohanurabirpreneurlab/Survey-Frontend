@@ -62,8 +62,8 @@ export const AdminUsersPage = () => {
     <div className={pageTw.page}>
       <section className={pageTw.hero}>
         <div>
-          <h1>Users</h1>
-          <p>Show all users in a table and let admins update platform roles safely.</p>
+          <h1 className={pageTw.heroTitle}>Users</h1>
+          <p className={pageTw.muted}>Show all users in a table and let admins update platform roles safely.</p>
         </div>
       </section>
 
@@ -117,14 +117,14 @@ export const AdminUsersPage = () => {
             <div className={adminTw.tableWrap}>
               <table className={adminTw.table}>
                 <thead>
-                  <tr>
-                    <th>Name</th>
-                    <th>Email</th>
-                    <th>Status</th>
-                    <th>Organization</th>
-                    <th>Role</th>
-                    <th>Updated</th>
-                    <th>Actions</th>
+                  <tr className={adminTw.tableRow}>
+                    <th className={adminTw.tableHeadCell}>Name</th>
+                    <th className={adminTw.tableHeadCell}>Email</th>
+                    <th className={adminTw.tableHeadCell}>Status</th>
+                    <th className={adminTw.tableHeadCell}>Organization</th>
+                    <th className={adminTw.tableHeadCell}>Role</th>
+                    <th className={adminTw.tableHeadCell}>Updated</th>
+                    <th className={adminTw.tableHeadCell}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -187,16 +187,16 @@ const AdminUserRow = ({
   const disableRoleChange = currentUserId === user.userId;
 
   return (
-    <tr>
-      <td data-label="Name">
+    <tr className={adminTw.tableRow}>
+      <td className={adminTw.tableCell} data-label="Name">
         <strong>{user.fullName}</strong>
       </td>
-      <td data-label="Email">{user.email}</td>
-      <td data-label="Status">
+      <td className={adminTw.tableCell} data-label="Email">{user.email}</td>
+      <td className={adminTw.tableCell} data-label="Status">
         <span className={`rounded-full px-2.5 py-1.5 text-[0.82rem] font-bold capitalize ${statusBadgeClassName(user.accountStatus)}`}>{user.accountStatus}</span>
       </td>
-      <td data-label="Organization">{user.organizationName ?? "No organization"}</td>
-      <td data-label="Role">
+      <td className={adminTw.tableCell} data-label="Organization">{user.organizationName ?? "No organization"}</td>
+      <td className={adminTw.tableCell} data-label="Role">
         <div className="grid min-w-[180px] gap-1.5 max-app-mobile:min-w-0">
           <select
             className={adminTw.select}
@@ -210,13 +210,13 @@ const AdminUserRow = ({
           {disableRoleChange ? <span className="text-[0.9rem] text-app-text-faint">Current account</span> : null}
         </div>
       </td>
-      <td data-label="Updated">
+      <td className={adminTw.tableCell} data-label="Updated">
         <div className={adminTw.tableMeta}>
           <strong>{formatRelativeTime(user.updatedAt)}</strong>
           <span>{formatDateTime(user.updatedAt) ?? user.updatedAt}</span>
         </div>
       </td>
-      <td data-label="Actions">
+      <td className={adminTw.tableCell} data-label="Actions">
         <Button asChild size="sm" variant="secondary">
           <Link to={`/admin/users/${user.userId}`}>View user</Link>
         </Button>
