@@ -121,6 +121,7 @@ export type Question = {
   surveyVersionId: string;
   title: string;
   type: QuestionType;
+  uiKey?: string;
   updatedAt: string;
   validation: QuestionValidation;
 };
@@ -134,6 +135,7 @@ export type QuestionOption = {
   scoreValue: number | null;
   settings: Record<string, unknown>;
   stableKey: string;
+  uiKey?: string;
   updatedAt: string;
   value: string;
 };

@@ -137,10 +137,10 @@ export const totalResponses = (summary: SurveyResponseSummary | null) =>
   (summary?.submittedCount ?? 0) + (summary?.inProgressCount ?? 0);
 
 export const syncQuestion = (questions: Question[], nextQuestion: Question) =>
-  questions.map((question) => (question.id === nextQuestion.id ? nextQuestion : question));
+  questions.map((question) => (question.id === nextQuestion.id ? { ...question, ...nextQuestion } : question));
 
 export const syncOption = (options: QuestionOption[], nextOption: QuestionOption) =>
-  options.map((option) => (option.id === nextOption.id ? nextOption : option));
+  options.map((option) => (option.id === nextOption.id ? { ...option, ...nextOption } : option));
 
 export const syncSection = (sections: SurveySection[], nextSection: SurveySection) =>
   sections.map((section) => (section.id === nextSection.id ? nextSection : section));

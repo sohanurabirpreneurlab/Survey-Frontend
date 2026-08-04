@@ -67,6 +67,64 @@ const thresholdOperatorLabels: Record<CalculatedScoreThresholdOperator, string> 
   less_than_or_equal: "<="
 };
 
+type CalculatedScoreDraft = {
+  calculationType: "average";
+  decimalPlaces: number;
+  key: string;
+  name: string;
+  requireAllAnswers: boolean;
+  sourceQuestionIds: string[];
+  targets: Array<{
+    targetId: string;
+    targetType: "question" | "section";
+  }>;
+  thresholdOperator: CalculatedScoreThresholdOperator;
+  thresholdValue: number;
+};
+
+type CalculatedScoreDraftStorage = {
+  activeDraftId: string | null;
+  draftsById: Record<string, CalculatedScoreDraft>;
+};
+
+const buildCalculatedScoreStorageKey = (versionId: string) => `survey-builder:calculated-scores:${versionId}`;
+
+const readCalculatedScoreDraftStorage = (storageKey: string): CalculatedScoreDraftStorage | null => {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const rawValue = window.localStorage.getItem(storageKey);
+
+  if (!rawValue) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(rawValue) as Partial<CalculatedScoreDraftStorage>;
+    return {
+      activeDraftId: typeof parsed.activeDraftId === "string" ? parsed.activeDraftId : null,
+      draftsById: parsed.draftsById && typeof parsed.draftsById === "object" ? parsed.draftsById as Record<string, CalculatedScoreDraft> : {}
+    };
+  } catch {
+    window.localStorage.removeItem(storageKey);
+    return null;
+  }
+};
+
+const writeCalculatedScoreDraftStorage = (storageKey: string, value: CalculatedScoreDraftStorage) => {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  if (!value.activeDraftId && Object.keys(value.draftsById).length === 0) {
+    window.localStorage.removeItem(storageKey);
+    return;
+  }
+
+  window.localStorage.setItem(storageKey, JSON.stringify(value));
+};
+
 const readQuestionUsageLabel = (
   usage: Array<{
     name: string;
@@ -416,6 +474,7 @@ const SettingsPanel = ({
 const CalculatedScoresPanel = ({ builder }: { builder: ReturnType<typeof useSurveyBuilder> }) => {
   const definition = builder.definition;
   const [activeDraftId, setActiveDraftId] = useState<string | null>(null);
+  const [draftsById, setDraftsById] = useState<Record<string, CalculatedScoreDraft>>({});
 
   if (!definition) {
     return null;
@@ -425,7 +484,7 @@ const CalculatedScoresPanel = ({ builder }: { builder: ReturnType<typeof useSurv
   const questionUsageById = buildQuestionUsageById(definition.calculatedScores);
   const groupedQuestions = buildQuestionGroupsBySection(sortSections(definition.sections), sortQuestions(definition.questions));
 
-  const buildDraft = (score?: SurveyCalculatedScore) => ({
+  const buildDraft = (score?: SurveyCalculatedScore): CalculatedScoreDraft => ({
     calculationType: score?.calculationType ?? "average",
     decimalPlaces: score?.decimalPlaces ?? 2,
     key: score?.key ?? "",
@@ -441,6 +500,60 @@ const CalculatedScoresPanel = ({ builder }: { builder: ReturnType<typeof useSurv
     thresholdValue: score?.thresholdValue ?? 0
   });
 
+  const storageKey = buildCalculatedScoreStorageKey(definition.version.id);
+
+  useEffect(() => {
+    const storedState = readCalculatedScoreDraftStorage(storageKey);
+
+    if (!storedState) {
+      setActiveDraftId(null);
+      setDraftsById({});
+      return;
+    }
+
+    setActiveDraftId(storedState.activeDraftId);
+    setDraftsById(storedState.draftsById);
+  }, [storageKey]);
+
+  const persistDraftStorage = (nextActiveDraftId: string | null, nextDraftsById: Record<string, CalculatedScoreDraft>) => {
+    writeCalculatedScoreDraftStorage(storageKey, {
+      activeDraftId: nextActiveDraftId,
+      draftsById: nextDraftsById
+    });
+  };
+
+  const updateDraftForId = (draftId: string, draft: CalculatedScoreDraft) => {
+    setDraftsById((current) => {
+      const next = {
+        ...current,
+        [draftId]: draft
+      };
+      persistDraftStorage(activeDraftId, next);
+      return next;
+    });
+  };
+
+  const clearDraftForId = (draftId: string) => {
+    setDraftsById((current) => {
+      if (!(draftId in current)) {
+        return current;
+      }
+
+      const next = { ...current };
+      delete next[draftId];
+      persistDraftStorage(activeDraftId, next);
+      return next;
+    });
+  };
+
+  const setPersistedActiveDraftId = (nextValue: string | null | ((current: string | null) => string | null)) => {
+    setActiveDraftId((current) => {
+      const resolved = typeof nextValue === "function" ? nextValue(current) : nextValue;
+      persistDraftStorage(resolved, draftsById);
+      return resolved;
+    });
+  };
+
   return (
     <div className="grid gap-4">
       <div className="flex items-center justify-between gap-3">
@@ -449,7 +562,7 @@ const CalculatedScoresPanel = ({ builder }: { builder: ReturnType<typeof useSurv
           <p>Configure score groups, thresholds, and follow-up targets for this survey version.</p>
         </div>
         {builder.isEditable ? (
-          <Button onClick={() => setActiveDraftId("new")} size="sm" variant="secondary">
+          <Button onClick={() => setPersistedActiveDraftId("new")} size="sm" variant="secondary">
             <Plus size={16} />
             Add calculated score
           </Button>
@@ -469,11 +582,13 @@ const CalculatedScoresPanel = ({ builder }: { builder: ReturnType<typeof useSurv
         <CalculatedScoreCard
           builder={builder}
           definition={definition}
+          draft={draftsById[score.id] ?? buildDraft(score)}
           groupedQuestions={groupedQuestions}
-          initialValue={buildDraft(score)}
           isExpanded={activeDraftId === score.id}
           key={score.id}
-          onToggle={() => setActiveDraftId((current) => (current === score.id ? null : score.id))}
+          onDraftChange={(draft) => updateDraftForId(score.id, draft)}
+          onSaved={() => clearDraftForId(score.id)}
+          onToggle={() => setPersistedActiveDraftId((current) => (current === score.id ? null : score.id))}
           questionUsageById={questionUsageById}
           score={score}
           scoreQuestions={scoreQuestions}
@@ -484,10 +599,12 @@ const CalculatedScoresPanel = ({ builder }: { builder: ReturnType<typeof useSurv
         <CalculatedScoreCard
           builder={builder}
           definition={definition}
+          draft={draftsById.new ?? buildDraft()}
           groupedQuestions={groupedQuestions}
-          initialValue={buildDraft()}
           isExpanded
-          onToggle={() => setActiveDraftId(null)}
+          onDraftChange={(draft) => updateDraftForId("new", draft)}
+          onSaved={() => clearDraftForId("new")}
+          onToggle={() => setPersistedActiveDraftId(null)}
           questionUsageById={questionUsageById}
           score={null}
           scoreQuestions={scoreQuestions}
@@ -500,9 +617,11 @@ const CalculatedScoresPanel = ({ builder }: { builder: ReturnType<typeof useSurv
 const CalculatedScoreCard = ({
   builder,
   definition,
+  draft,
   groupedQuestions,
-  initialValue,
   isExpanded,
+  onDraftChange,
+  onSaved,
   onToggle,
   questionUsageById,
   score,
@@ -510,37 +629,21 @@ const CalculatedScoreCard = ({
 }: {
   builder: ReturnType<typeof useSurveyBuilder>;
   definition: NonNullable<ReturnType<typeof useSurveyBuilder>["definition"]>;
+  draft: CalculatedScoreDraft;
   groupedQuestions: ReturnType<typeof buildQuestionGroupsBySection>;
-  initialValue: {
-    calculationType: "average";
-    decimalPlaces: number;
-    key: string;
-    name: string;
-    requireAllAnswers: boolean;
-    sourceQuestionIds: string[];
-    targets: Array<{
-      targetId: string;
-      targetType: "question" | "section";
-    }>;
-    thresholdOperator: CalculatedScoreThresholdOperator;
-    thresholdValue: number;
-  };
   isExpanded: boolean;
+  onDraftChange: (draft: CalculatedScoreDraft) => void;
+  onSaved: () => void;
   onToggle: () => void;
   questionUsageById: ReturnType<typeof buildQuestionUsageById>;
   score: SurveyCalculatedScore | null;
   scoreQuestions: Question[];
 }) => {
-  const [draft, setDraft] = useState(initialValue);
   const [errors, setErrors] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    setDraft(initialValue);
-  }, [initialValue]);
-
-  const updateDraft = <K extends keyof typeof draft>(key: K, value: (typeof draft)[K]) =>
-    setDraft((current) => ({ ...current, [key]: value }));
+  const updateDraft = <K extends keyof CalculatedScoreDraft>(key: K, value: CalculatedScoreDraft[K]) =>
+    onDraftChange({ ...draft, [key]: value });
 
   const toggleSourceQuestion = (questionId: string) => {
     const isSelected = draft.sourceQuestionIds.includes(questionId);
@@ -583,6 +686,7 @@ const CalculatedScoreCard = ({
 
     try {
       await builder.upsertCalculatedScore(score?.id ?? null, draft);
+      onSaved();
       setErrors([]);
       if (!score) {
         onToggle();
@@ -941,7 +1045,7 @@ const QuestionCard = ({
             </Button>
           </div>
           {questionOptions.map((option) => (
-            <div className="flex items-center gap-2" key={option.id}>
+            <div className="flex items-center gap-2" key={option.uiKey ?? option.id}>
               <Input
                 aria-label={`Option for ${question.title}`}
                 onChange={(event) =>
@@ -1396,7 +1500,7 @@ export const SurveyBuilderPage = () => {
                   {sectionQuestions.map((question) => (
                     <QuestionCard
                       builder={builder}
-                      key={question.id}
+                      key={question.uiKey ?? question.id}
                       question={question}
                       sectionIndex={sectionIndex}
                       usage={questionUsageById.get(question.id) ?? []}

@@ -387,7 +387,6 @@ export const useSurveyBuilder = (surveyId: string) => {
           : current
       );
       setSelectedSectionId((current) => (current === tempId ? section.id : current));
-      toast.success("Section created", "A new section was added to the draft.");
       return section;
     } catch (error) {
       console.log('error:',error);
@@ -538,6 +537,7 @@ export const useSurveyBuilder = (surveyId: string) => {
       surveyVersionId: definition.version.id,
       title: "Untitled question",
       type,
+      uiKey: tempId,
       updatedAt: new Date().toISOString(),
       validation: defaultQuestionValidation(type)
     };
@@ -575,6 +575,7 @@ export const useSurveyBuilder = (surveyId: string) => {
             id: question.id,
             stableKey: question.stableKey,
             surveyVersionId: question.surveyVersionId,
+            uiKey: localQuestion.uiKey ?? question.id,
             updatedAt: question.updatedAt
           }
         : question;
@@ -618,7 +619,6 @@ export const useSurveyBuilder = (surveyId: string) => {
         toast.danger("Save question failed", mutationErrorMessage(error));
       });
 
-      toast.success("Question created", "A new question was added to the section.");
       return question;
     } catch (error) {
       setDefinition((current) =>
@@ -799,6 +799,7 @@ export const useSurveyBuilder = (surveyId: string) => {
       scoreValue: null,
       settings: {},
       stableKey: tempId,
+      uiKey: tempId,
       updatedAt: new Date().toISOString(),
       value: ""
     };
@@ -807,7 +808,6 @@ export const useSurveyBuilder = (surveyId: string) => {
       current ? { ...current, options: [...current.options, optimisticOption] } : current
     );
     pendingOptionEditsRef.current.set(tempId, optimisticOption);
-    toast.success("Option added", "Enter a label to save this option.");
   };
 
   const persistTempOption = async (questionId: string, optionDraft: QuestionOption) => {
@@ -836,6 +836,7 @@ export const useSurveyBuilder = (surveyId: string) => {
             id: option.id,
             questionId: persistedQuestionId,
             stableKey: option.stableKey,
+            uiKey: localOption.uiKey ?? option.id,
             updatedAt: option.updatedAt,
             value: localOption.value.trim() || buildOptionValue(localOption.label)
           }
@@ -871,7 +872,6 @@ export const useSurveyBuilder = (surveyId: string) => {
         toast.danger("Save option failed", mutationErrorMessage(error));
       });
 
-      toast.success("Option created", "A new answer option was added.");
       return option;
     })();
 
