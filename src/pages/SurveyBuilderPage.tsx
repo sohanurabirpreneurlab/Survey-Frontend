@@ -1061,12 +1061,9 @@ const QuestionCard = ({
                   aria-label={`Score for ${option.label}`}
                   className="basis-[108px]"
                   onChange={(event) =>
-                    void builder.updateOptionScores(question.id, [
-                      {
-                        optionId: option.id,
-                        scoreValue: event.target.value === "" ? null : Number(event.target.value)
-                      }
-                    ])
+                    builder.updateOption(question.id, option.id, {
+                      scoreValue: event.target.value === "" ? null : Number(event.target.value)
+                    })
                   }
                   placeholder="Score"
                   type="number"
