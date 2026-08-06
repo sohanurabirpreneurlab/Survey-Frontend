@@ -317,7 +317,7 @@ const RespondentSurveyRuntime = ({ accessMode }: { accessMode: AccessMode }) => 
 
   const survey = surveyQuery.data as PublicSurvey | undefined;
   const respondentHeaders =
-    accessMode === "invitation" && survey?.respondentSessionToken
+    survey?.respondentSessionToken
       ? { "X-Respondent-Session": survey.respondentSessionToken }
       : undefined;
   const sortedSections = useMemo(() => sortByPosition(survey?.sections ?? []), [survey?.sections]);
