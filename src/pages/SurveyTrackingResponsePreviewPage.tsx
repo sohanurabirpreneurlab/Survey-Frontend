@@ -27,13 +27,28 @@ const readAnswerValue = (
   }
 
   if (questionType === "single_choice" || questionType === "vote") {
-    return options.find((option) => option.id === answer.valueText)?.label ?? answer.valueText ?? "No answer";
+    const optionId = answer.optionIds[0];
+    if (!optionId) {
+      return "No answer";
+    }
+
+    const label = options.find((option) => option.id === optionId)?.label ?? optionId;
+    const otherText = answer.valueJson && typeof answer.valueJson === "object" && typeof (answer.valueJson as { otherText?: unknown }).otherText === "string"
+      ? (answer.valueJson as { otherText: string }).otherText
+      : "";
+    return otherText ? `${label} — ${otherText}` : label;
   }
 
   if (questionType === "multiple_choice") {
-    return answer.optionIds.length > 0
-      ? answer.optionIds.map((optionId) => options.find((option) => option.id === optionId)?.label ?? optionId).join(", ")
-      : "No answer";
+    if (answer.optionIds.length === 0) {
+      return "No answer";
+    }
+
+    const labels = answer.optionIds.map((optionId) => options.find((option) => option.id === optionId)?.label ?? optionId);
+    const otherText = answer.valueJson && typeof answer.valueJson === "object" && typeof (answer.valueJson as { otherText?: unknown }).otherText === "string"
+      ? (answer.valueJson as { otherText: string }).otherText
+      : "";
+    return otherText ? `${labels.join(", ")} — ${otherText}` : labels.join(", ");
   }
 
   if (questionType === "yes_no") {

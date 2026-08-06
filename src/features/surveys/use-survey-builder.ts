@@ -358,6 +358,7 @@ export const useSurveyBuilder = (surveyId: string) => {
       description: null,
       id: tempId,
       position: definition.sections.length,
+      settings: { showTitle: true },
       stableKey: tempId,
       surveyVersionId: definition.version.id,
       title: "Untitled section",
@@ -375,6 +376,7 @@ export const useSurveyBuilder = (surveyId: string) => {
       const section = await createSectionRequest(token, surveyId, {
         description: null,
         position: definition.sections.length,
+        settings: { showTitle: true },
         title: "Untitled section"
       });
 
@@ -432,6 +434,7 @@ export const useSurveyBuilder = (surveyId: string) => {
       const saved = await updateSectionRequest(token, surveyId, sectionId, {
         description: nextSection.description,
         position: nextSection.position,
+        settings: nextSection.settings,
         title: nextSection.title
       });
 

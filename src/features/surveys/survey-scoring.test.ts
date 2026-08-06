@@ -16,6 +16,7 @@ const sectionA: SurveySection = {
   description: null,
   id: "section-a",
   position: 0,
+  settings: {},
   stableKey: "section_a",
   surveyVersionId: "version-1",
   title: "Section A",

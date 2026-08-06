@@ -92,6 +92,7 @@ export type SurveySection = {
   description: string | null;
   id: string;
   position: number;
+  settings: Record<string, unknown>;
   stableKey: string;
   surveyVersionId: string;
   title: string;

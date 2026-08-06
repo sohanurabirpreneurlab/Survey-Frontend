@@ -134,7 +134,7 @@ export const reopenSurveyRequest = (token: string, surveyId: string) =>
 export const createSectionRequest = (
   token: string,
   surveyId: string,
-  payload: { description: string | null; position: number; title: string }
+  payload: { description: string | null; position: number; settings: Record<string, unknown>; title: string }
 ) =>
   apiRequest<SurveySection>(`/surveys/${surveyId}/draft/sections`, {
     body: payload,
@@ -146,7 +146,7 @@ export const updateSectionRequest = (
   token: string,
   surveyId: string,
   sectionId: string,
-  payload: { description: string | null; position: number; title: string }
+  payload: { description: string | null; position: number; settings: Record<string, unknown>; title: string }
 ) =>
   apiRequest<SurveySection>(`/surveys/${surveyId}/draft/sections/${sectionId}`, {
     body: payload,

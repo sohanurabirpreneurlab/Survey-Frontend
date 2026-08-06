@@ -61,6 +61,7 @@ type PublicSurvey = {
     position: number;
     questionId: string;
     scoreValue: number | null;
+    settings: Record<string, unknown>;
     stableKey: string;
     value: string;
   }>;
@@ -70,6 +71,7 @@ type PublicSurvey = {
     description: string | null;
     id: string;
     position: number;
+    settings: Record<string, unknown>;
     stableKey: string;
     title: string;
   }>;
@@ -118,7 +120,31 @@ const readPlaceholder = (questionType: PublicSurveyQuestion["type"]) => {
 
 const normalizeAnswerForSubmit = (question: PublicSurveyQuestion, rawValue: unknown) => {
   if (question.type === "multiple_choice") {
-    return Array.isArray(rawValue) ? rawValue : [];
+    if (Array.isArray(rawValue)) {
+      return rawValue;
+    }
+
+    if (rawValue && typeof rawValue === "object" && Array.isArray((rawValue as { optionIds?: unknown }).optionIds)) {
+      return {
+        optionIds: (rawValue as { optionIds: unknown[] }).optionIds.map(String),
+        otherText: typeof (rawValue as { otherText?: unknown }).otherText === "string"
+          ? (rawValue as { otherText: string }).otherText.trim()
+          : ""
+      };
+    }
+
+    return [];
+  }
+
+  if (question.type === "single_choice" && rawValue && typeof rawValue === "object") {
+    return {
+      optionId: typeof (rawValue as { optionId?: unknown }).optionId === "string"
+        ? (rawValue as { optionId: string }).optionId
+        : "",
+      otherText: typeof (rawValue as { otherText?: unknown }).otherText === "string"
+        ? (rawValue as { otherText: string }).otherText.trim()
+        : ""
+    };
   }
 
   if (question.type === "yes_no") {
@@ -143,11 +169,17 @@ const normalizeAnswerForSubmit = (question: PublicSurveyQuestion, rawValue: unkn
 
 const hasAnswer = (question: PublicSurveyQuestion, value: unknown) => {
   if (question.type === "multiple_choice") {
-    return Array.isArray(value) && value.length > 0;
+    return Array.isArray(value)
+      ? value.length > 0
+      : Boolean(value && typeof value === "object" && Array.isArray((value as { optionIds?: unknown }).optionIds) && (value as { optionIds: unknown[] }).optionIds.length > 0);
   }
 
   if (question.type === "yes_no") {
     return typeof value === "boolean";
+  }
+
+  if (question.type === "single_choice" && value && typeof value === "object") {
+    return typeof (value as { optionId?: unknown }).optionId === "string" && (value as { optionId: string }).optionId.length > 0;
   }
 
   if (question.type === "rating") {
@@ -167,8 +199,13 @@ const readAnswerScore = (
     return typeof normalized === "number" && Number.isFinite(normalized) ? normalized : null;
   }
 
-  if ((question.type === "single_choice" || question.type === "vote") && typeof value === "string") {
-    return options.find((option) => option.id === value)?.scoreValue ?? null;
+  if (question.type === "single_choice" || question.type === "vote") {
+    const optionId = typeof value === "string"
+      ? value
+      : value && typeof value === "object" && typeof (value as { optionId?: unknown }).optionId === "string"
+        ? (value as { optionId: string }).optionId
+        : null;
+    return optionId ? options.find((option) => option.id === optionId)?.scoreValue ?? null : null;
   }
 
   return null;
@@ -647,7 +684,7 @@ const RespondentSurveyRuntime = ({ accessMode }: { accessMode: AccessMode }) => 
             }}
           >
             <div className="grid gap-3">
-              {activeSection ? (
+              {activeSection && activeSection.settings.showTitle !== false ? (
                 <span className="text-xs font-semibold" style={{ color: primaryColor }}>{activeSection.title}</span>
               ) : null}
               <div className="flex items-start gap-3">
@@ -686,27 +723,87 @@ const RespondentSurveyRuntime = ({ accessMode }: { accessMode: AccessMode }) => 
                 />
               ) : null}
 
-              {(activeQuestion.type === "single_choice" || activeQuestion.type === "vote") ? options.map((option, index) => (
-                <label className={choiceClassName} key={option.id}>
-                  <input className="sr-only" checked={answers[activeQuestion.id] === option.id} name={activeQuestion.id} onChange={() => setAnswers((current) => ({ ...current, [activeQuestion.id]: option.id }))} type="radio" />
-                  <span className="inline-flex size-7 shrink-0 items-center justify-center rounded-md border border-app-border-strong text-xs font-bold group-has-[:checked]:border-app-primary group-has-[:checked]:text-white" style={answers[activeQuestion.id] === option.id ? { backgroundColor: primaryColor } : undefined}>{String.fromCharCode(65 + index)}</span>
-                  <span className="flex-1 font-medium">{option.label}</span>
-                  {answers[activeQuestion.id] === option.id ? <Check size={17} style={{ color: primaryColor }} /> : null}
-                </label>
-              )) : null}
+              {(activeQuestion.type === "single_choice" || activeQuestion.type === "vote") ? options.map((option, index) => {
+                const rawAnswer = answers[activeQuestion.id];
+                const selectedOptionId = typeof rawAnswer === "string"
+                  ? rawAnswer
+                  : rawAnswer && typeof rawAnswer === "object" && typeof (rawAnswer as { optionId?: unknown }).optionId === "string"
+                    ? (rawAnswer as { optionId: string }).optionId
+                    : "";
+                const otherText = rawAnswer && typeof rawAnswer === "object" && typeof (rawAnswer as { otherText?: unknown }).otherText === "string"
+                  ? (rawAnswer as { otherText: string }).otherText
+                  : "";
+                const isOther = activeQuestion.type === "single_choice" && option.settings.isOther === true;
+                const selected = selectedOptionId === option.id;
+
+                return (
+                  <div className="grid gap-2" key={option.id}>
+                    <label className={choiceClassName}>
+                      <input className="sr-only" checked={selected} name={activeQuestion.id} onChange={() => setAnswers((current) => ({
+                        ...current,
+                        [activeQuestion.id]: isOther ? { optionId: option.id, otherText: "" } : option.id
+                      }))} type="radio" />
+                      <span className="inline-flex size-7 shrink-0 items-center justify-center rounded-md border border-app-border-strong text-xs font-bold group-has-[:checked]:border-app-primary group-has-[:checked]:text-white" style={selected ? { backgroundColor: primaryColor } : undefined}>{String.fromCharCode(65 + index)}</span>
+                      <span className="flex-1 font-medium">{option.label}</span>
+                      {selected ? <Check size={17} style={{ color: primaryColor }} /> : null}
+                    </label>
+                    {isOther && selected ? (
+                      <Input
+                        aria-label={`${option.label} details`}
+                        onChange={(event) => setAnswers((current) => ({
+                          ...current,
+                          [activeQuestion.id]: { optionId: option.id, otherText: event.target.value }
+                        }))}
+                        placeholder="Please describe"
+                        required
+                        value={otherText}
+                      />
+                    ) : null}
+                  </div>
+                );
+              }) : null}
 
               {activeQuestion.type === "multiple_choice" ? options.map((option, index) => {
-                const selected = Array.isArray(answers[activeQuestion.id]) && (answers[activeQuestion.id] as string[]).includes(option.id);
+                const rawAnswer = answers[activeQuestion.id];
+                const selectedIds = Array.isArray(rawAnswer)
+                  ? rawAnswer as string[]
+                  : rawAnswer && typeof rawAnswer === "object" && Array.isArray((rawAnswer as { optionIds?: unknown }).optionIds)
+                    ? (rawAnswer as { optionIds: string[] }).optionIds
+                    : [];
+                const otherText = rawAnswer && typeof rawAnswer === "object" && typeof (rawAnswer as { otherText?: unknown }).otherText === "string"
+                  ? (rawAnswer as { otherText: string }).otherText
+                  : "";
+                const isOther = option.settings.isOther === true;
+                const selected = selectedIds.includes(option.id);
                 return (
-                  <label className={choiceClassName} key={option.id}>
-                    <input className="sr-only" checked={selected} onChange={(event) => setAnswers((current) => {
-                      const values = Array.isArray(current[activeQuestion.id]) ? current[activeQuestion.id] as string[] : [];
-                      return { ...current, [activeQuestion.id]: event.target.checked ? [...values, option.id] : values.filter((value) => value !== option.id) };
-                    })} type="checkbox" />
-                    <span className="inline-flex size-7 shrink-0 items-center justify-center rounded-md border border-app-border-strong text-xs font-bold" style={selected ? { backgroundColor: primaryColor, borderColor: primaryColor, color: "white" } : undefined}>{String.fromCharCode(65 + index)}</span>
-                    <span className="flex-1 font-medium">{option.label}</span>
-                    {selected ? <Check size={17} style={{ color: primaryColor }} /> : null}
-                  </label>
+                  <div className="grid gap-2" key={option.id}>
+                    <label className={choiceClassName}>
+                      <input className="sr-only" checked={selected} onChange={(event) => setAnswers((current) => {
+                        const nextIds = event.target.checked ? [...selectedIds, option.id] : selectedIds.filter((value) => value !== option.id);
+                        return {
+                          ...current,
+                          [activeQuestion.id]: isOther || (rawAnswer && typeof rawAnswer === "object")
+                            ? { optionIds: nextIds, otherText: isOther && !event.target.checked ? "" : otherText }
+                            : nextIds
+                        };
+                      })} type="checkbox" />
+                      <span className="inline-flex size-7 shrink-0 items-center justify-center rounded-md border border-app-border-strong text-xs font-bold" style={selected ? { backgroundColor: primaryColor, borderColor: primaryColor, color: "white" } : undefined}>{String.fromCharCode(65 + index)}</span>
+                      <span className="flex-1 font-medium">{option.label}</span>
+                      {selected ? <Check size={17} style={{ color: primaryColor }} /> : null}
+                    </label>
+                    {isOther && selected ? (
+                      <Input
+                        aria-label={`${option.label} details`}
+                        onChange={(event) => setAnswers((current) => ({
+                          ...current,
+                          [activeQuestion.id]: { optionIds: selectedIds, otherText: event.target.value }
+                        }))}
+                        placeholder="Please describe"
+                        required
+                        value={otherText}
+                      />
+                    ) : null}
+                  </div>
                 );
               }) : null}
 

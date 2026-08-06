@@ -111,8 +111,13 @@ const readAnswerScore = (
     return typeof normalized === "number" && Number.isFinite(normalized) ? normalized : null;
   }
 
-  if ((question.type === "single_choice" || question.type === "vote") && typeof value === "string") {
-    return definition.options.find((option) => option.id === value)?.scoreValue ?? null;
+  if (question.type === "single_choice" || question.type === "vote") {
+    const optionId = typeof value === "string"
+      ? value
+      : value && typeof value === "object" && typeof (value as { optionId?: unknown }).optionId === "string"
+        ? (value as { optionId: string }).optionId
+        : null;
+    return optionId ? definition.options.find((option) => option.id === optionId)?.scoreValue ?? null : null;
   }
 
   return null;
@@ -271,13 +276,18 @@ export const SurveyPreviewPage = () => {
   const answeredCount = questions.filter((question) => {
     const value = answers[question.id];
     if (question.type === "multiple_choice") {
-      return Array.isArray(value) && value.length > 0;
+      return Array.isArray(value)
+        ? value.length > 0
+        : Boolean(value && typeof value === "object" && Array.isArray((value as { optionIds?: unknown }).optionIds) && (value as { optionIds: unknown[] }).optionIds.length > 0);
     }
     if (question.type === "yes_no") {
       return typeof value === "boolean";
     }
     if (question.type === "rating") {
       return typeof value === "number" || (typeof value === "string" && value.trim().length > 0);
+    }
+    if (question.type === "single_choice" && value && typeof value === "object") {
+      return typeof (value as { optionId?: unknown }).optionId === "string";
     }
     return typeof value === "string" && value.trim().length > 0;
   }).length;
@@ -315,7 +325,21 @@ export const SurveyPreviewPage = () => {
       const firstMissingRequiredIndex = questions.findIndex((question) => {
         if (!question.required) return false;
         const value = answers[question.id];
-        if (question.type === "multiple_choice") return !Array.isArray(value) || value.length === 0;
+        if (question.type === "multiple_choice") {
+          const optionIds = Array.isArray(value)
+            ? value
+            : value && typeof value === "object" && Array.isArray((value as { optionIds?: unknown }).optionIds)
+              ? (value as { optionIds: string[] }).optionIds
+              : [];
+          const selectedOther = definition?.options.some((option) => optionIds.includes(option.id) && option.settings.isOther === true) ?? false;
+          const otherText = value && typeof value === "object" && typeof (value as { otherText?: unknown }).otherText === "string"
+            ? (value as { otherText: string }).otherText.trim()
+            : "";
+          return optionIds.length === 0 || (selectedOther && otherText.length === 0);
+        }
+        if (question.type === "single_choice" && value && typeof value === "object") {
+          return typeof (value as { optionId?: unknown }).optionId !== "string" || String((value as { otherText?: unknown }).otherText ?? "").trim().length === 0;
+        }
         if (question.type === "yes_no") return typeof value !== "boolean";
         if (question.type === "rating") return value === "" || value === null || value === undefined;
         return typeof value !== "string" || value.trim().length === 0;
@@ -464,7 +488,7 @@ export const SurveyPreviewPage = () => {
                 }}
               >
                 <div className="grid gap-3">
-                  {activeSection ? (
+                  {activeSection && activeSection.settings.showTitle !== false ? (
                     <span className="text-xs font-semibold" style={{ color: primaryColor }}>
                       {activeSection.title}
                     </span>
@@ -522,25 +546,26 @@ export const SurveyPreviewPage = () => {
                     activeQuestion.type === "multiple_choice") &&
                     options.map((option, index) => {
                       const multiple = activeQuestion.type === "multiple_choice";
-                      const selected = multiple
-                        ? Array.isArray(answers[activeQuestion.id]) &&
-                          (answers[activeQuestion.id] as string[]).includes(option.id)
-                        : answers[activeQuestion.id] === option.id;
+                      const rawAnswer = answers[activeQuestion.id];
+                      const optionIds = Array.isArray(rawAnswer)
+                        ? rawAnswer as string[]
+                        : rawAnswer && typeof rawAnswer === "object" && Array.isArray((rawAnswer as { optionIds?: unknown }).optionIds)
+                          ? (rawAnswer as { optionIds: string[] }).optionIds
+                          : [];
+                      const selectedOptionId = typeof rawAnswer === "string"
+                        ? rawAnswer
+                        : rawAnswer && typeof rawAnswer === "object" && typeof (rawAnswer as { optionId?: unknown }).optionId === "string"
+                          ? (rawAnswer as { optionId: string }).optionId
+                          : "";
+                      const otherText = rawAnswer && typeof rawAnswer === "object" && typeof (rawAnswer as { otherText?: unknown }).otherText === "string"
+                        ? (rawAnswer as { otherText: string }).otherText
+                        : "";
+                      const isOther = activeQuestion.type !== "vote" && option.settings.isOther === true;
+                      const selected = multiple ? optionIds.includes(option.id) : selectedOptionId === option.id;
 
                       return (
-                        <label
-                          className="flex min-h-[52px] cursor-pointer items-center gap-3 rounded-xl border border-app-border-strong [border-style:solid] bg-white px-3.5 py-2.5 transition-all hover:border-app-primary hover:bg-app-primary-soft"
-                          key={option.id}
-                          style={
-                            selected
-                              ? {
-                                  backgroundColor: `${primaryColor}12`,
-                                  borderColor: primaryColor,
-                                  boxShadow: `0 0 0 2px ${primaryColor}20`
-                                }
-                              : undefined
-                          }
-                        >
+                        <div className="grid gap-2" key={option.id}>
+                        <label className="flex min-h-[52px] cursor-pointer items-center gap-3 rounded-xl border border-app-border-strong [border-style:solid] bg-white px-3.5 py-2.5 transition-all hover:border-app-primary hover:bg-app-primary-soft" style={selected ? { backgroundColor: `${primaryColor}12`, borderColor: primaryColor, boxShadow: `0 0 0 2px ${primaryColor}20` } : undefined}>
                           <input
                             checked={selected}
                             className="sr-only"
@@ -548,18 +573,17 @@ export const SurveyPreviewPage = () => {
                             onChange={(event) =>
                               setAnswers((current) => {
                                 if (!multiple) {
-                                  return { ...current, [activeQuestion.id]: option.id };
+                                  return { ...current, [activeQuestion.id]: isOther ? { optionId: option.id, otherText: "" } : option.id };
                                 }
 
-                                const values = Array.isArray(current[activeQuestion.id])
-                                  ? (current[activeQuestion.id] as string[])
-                                  : [];
+                                const values = optionIds;
+                                const nextIds = event.target.checked ? [...values, option.id] : values.filter((value) => value !== option.id);
 
                                 return {
                                   ...current,
-                                  [activeQuestion.id]: event.target.checked
-                                    ? [...values, option.id]
-                                    : values.filter((value) => value !== option.id)
+                                  [activeQuestion.id]: isOther || (rawAnswer && typeof rawAnswer === "object")
+                                    ? { optionIds: nextIds, otherText: isOther && !event.target.checked ? "" : otherText }
+                                    : nextIds
                                 };
                               })
                             }
@@ -578,6 +602,20 @@ export const SurveyPreviewPage = () => {
                           <span className="flex-1 text-sm font-medium">{option.label}</span>
                           {selected ? <Check size={17} style={{ color: primaryColor }} /> : null}
                         </label>
+                        {isOther && selected ? (
+                          <Input
+                            aria-label={`${option.label} details`}
+                            onChange={(event) => setAnswers((current) => ({
+                              ...current,
+                              [activeQuestion.id]: multiple
+                                ? { optionIds, otherText: event.target.value }
+                                : { optionId: option.id, otherText: event.target.value }
+                            }))}
+                            placeholder="Please describe"
+                            value={otherText}
+                          />
+                        ) : null}
+                        </div>
                       );
                     })}
 

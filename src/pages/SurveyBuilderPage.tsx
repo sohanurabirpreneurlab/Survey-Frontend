@@ -1062,13 +1062,36 @@ const QuestionCard = ({
                   className="basis-[108px]"
                   onChange={(event) =>
                     builder.updateOption(question.id, option.id, {
-                      scoreValue: event.target.value === "" ? null : Number(event.target.value)
+                      scoreValue: event.target.value === "" ? null : Math.max(0, Number(event.target.value))
                     })
                   }
+                  onKeyDown={(event) => {
+                    if (event.key === "-" || event.key === "Subtract") {
+                      event.preventDefault();
+                    }
+                  }}
+                  min={0}
                   placeholder="Score"
                   type="number"
                   value={option.scoreValue === null ? "" : String(option.scoreValue)}
                 />
+              ) : null}
+              {(question.type === "single_choice" || question.type === "multiple_choice") ? (
+                <label className="flex items-center gap-2 whitespace-nowrap text-sm font-medium text-app-text-soft">
+                  <input
+                    checked={option.settings.isOther === true}
+                    onChange={(event) =>
+                      builder.updateOption(question.id, option.id, {
+                        settings: {
+                          ...option.settings,
+                          isOther: event.target.checked
+                        }
+                      })
+                    }
+                    type="checkbox"
+                  />
+                  Other text
+                </label>
               ) : null}
               <Button aria-label="Move option up" onClick={() => void builder.moveOption(question.id, option.id, -1)} size="sm" variant="ghost">
                 <MoveUp size={16} />
@@ -1463,6 +1486,17 @@ export const SurveyBuilderPage = () => {
                         placeholder={DEFAULT_SECTION_TITLE}
                         value={readBuilderFieldValue(activeSection.title, DEFAULT_SECTION_TITLE)}
                       />
+                      <label className="mt-3 flex items-center gap-2 text-sm font-semibold text-app-text-soft">
+                        <input
+                          checked={activeSection.settings.showTitle !== false}
+                          disabled={!builder.isEditable}
+                          onChange={(event) => builder.updateSection(activeSection.id, {
+                            settings: { ...activeSection.settings, showTitle: event.target.checked }
+                          })}
+                          type="checkbox"
+                        />
+                        Show section name
+                      </label>
                     </div>
                     {builder.isEditable ? (
                       <div className="flex items-center justify-between gap-3">
