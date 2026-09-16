@@ -449,7 +449,10 @@ const ShareSurveyDialog = ({
   });
 
   const invitationsQuery = useQuery({
-    enabled: open && Boolean(token) && shareQuery.data?.accessMode === "invite_only",
+    enabled:
+      open &&
+      Boolean(token) &&
+      (shareQuery.data?.accessMode === "invite_only" || shareQuery.data?.accessMode === "hybrid"),
     queryFn: () => listSurveyInvitationsRequest(token, surveyId),
     queryKey: surveyKeys.invitations(surveyId)
   });
@@ -658,6 +661,11 @@ const ShareSurveyDialog = ({
                       hint: "Anyone with the public survey link can open it.",
                       label: "Public link",
                       value: "public"
+                    },
+                    {
+                      hint: "Share publicly and track responses from emailed invitation links.",
+                      label: "Public + invitations",
+                      value: "hybrid"
                     }
                   ] as Array<{ hint: string; label: string; value: SurveyAccessMode }>).map((option) => (
                     <button
@@ -679,7 +687,7 @@ const ShareSurveyDialog = ({
                   ))}
                 </div>
                   <p className={surveysPageTw.dialogCopy}>
-                  You can switch between public link and invitation-only access. A combined both mode is not available in the current backend.
+                  Hybrid mode keeps the public link open while invitation links identify the invited respondent in response tracking.
                 </p>
                 {hasPendingShareModeChange ? (
                   <div className={surveysPageTw.dialogActions}>
@@ -694,7 +702,7 @@ const ShareSurveyDialog = ({
                 ) : null}
               </div>
 
-              {isPublished && selectedAccessMode === "public" ? (
+              {isPublished && (shareQuery.data.accessMode === "public" || shareQuery.data.accessMode === "hybrid") ? (
                 <div className={surveysPageTw.dialogStack}>
                   <div className={surveysPageTw.linkBox}>
                     <span className={adminTw.fieldLabel}>Public link</span>
@@ -713,7 +721,7 @@ const ShareSurveyDialog = ({
                 </div>
               ) : null}
 
-              {isPublished && selectedAccessMode === "invite_only" ? (
+              {isPublished && (shareQuery.data.accessMode === "invite_only" || shareQuery.data.accessMode === "hybrid") ? (
                 <div className={surveysPageTw.dialogStack}>
                   <div>
                     <span className={adminTw.fieldLabel}>Invite respondents</span>

@@ -1,6 +1,7 @@
 export const surveyStatuses = ["draft", "published", "closed", "archived"] as const;
 export const surveyAccessModes = [
   "public",
+  "hybrid",
   "invite_only",
   "authenticated",
   "organization_only"

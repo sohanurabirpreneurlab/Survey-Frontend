@@ -39,6 +39,7 @@ export const questionTypeLabels: Record<QuestionType, string> = {
 
 export const accessModeLabels: Record<SurveyAccessMode, string> = {
   authenticated: "Authenticated users",
+  hybrid: "Public + tracked invitations",
   invite_only: "Invitation only",
   organization_only: "Organization only",
   public: "Public link"

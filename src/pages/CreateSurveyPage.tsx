@@ -19,7 +19,7 @@ import { pageTw, surveyTw } from "../lib/page-tailwind";
 
 const createSurveySchema = z
   .object({
-    accessMode: z.enum(["public", "invite_only", "authenticated", "organization_only"]),
+    accessMode: z.enum(["public", "hybrid", "invite_only", "authenticated", "organization_only"]),
     closesAt: z.string().optional(),
     confirmationMessage: z.string().trim().min(1).max(500),
     description: z.string().max(1000).optional(),
@@ -184,6 +184,7 @@ export const CreateSurveyPage = () => {
             <div className={surveyTw.radioGrid}>
               {[
                 { hint: "Anyone with the share link can open the survey.", label: "Public link", value: "public" },
+                { hint: "Use a public link and also track invited respondents by email.", label: "Public + invitations", value: "hybrid" },
                 { hint: "Best for invited respondents.", label: "Invitation only", value: "invite_only" },
                 { hint: "Requires sign-in first.", label: "Authenticated users", value: "authenticated" },
                 { hint: "Only members of the organization can respond.", label: "Organization only", value: "organization_only" }
