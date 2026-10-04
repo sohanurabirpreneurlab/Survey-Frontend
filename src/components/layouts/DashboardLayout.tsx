@@ -43,7 +43,7 @@ const NavigationContent = () => {
   const linkClassName = (itemTo: string, exact = false) => {
     const isActive = exact ? location.pathname === itemTo : location.pathname === itemTo || location.pathname.startsWith(`${itemTo}/`);
     return cn(
-      "flex min-h-12 items-center gap-3 rounded-[14px] border border-transparent [border-style:solid] px-3.5 text-app-text-soft transition-[background-color,border-color,color,transform] duration-[160ms] hover:translate-x-0.5 hover:bg-white hover:no-underline",
+      "sidebar-nav-link flex min-h-12 items-center gap-3 rounded-[14px] border border-transparent [border-style:solid] px-3.5 text-sm font-normal leading-5 text-app-text-soft transition-[background-color,border-color,color,transform] duration-[160ms] hover:translate-x-0.5 hover:bg-white",
       isActive && "border-app-border bg-white text-app-primary"
     );
   };

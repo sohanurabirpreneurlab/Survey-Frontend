@@ -1,3 +1,5 @@
+import { YesNoAnswerField } from "../features/surveys/YesNoAnswerField";
+import { readYesNoAnswer, normalizeYesNoAnswer, missingYesNoDescription } from "../features/surveys/yes-no-description";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
@@ -148,7 +150,7 @@ const normalizeAnswerForSubmit = (question: PublicSurveyQuestion, rawValue: unkn
   }
 
   if (question.type === "yes_no") {
-    return typeof rawValue === "boolean" ? rawValue : null;
+    return normalizeYesNoAnswer(question.settings, rawValue);
   }
 
   if (question.type === "rating") {
@@ -175,7 +177,7 @@ const hasAnswer = (question: PublicSurveyQuestion, value: unknown) => {
   }
 
   if (question.type === "yes_no") {
-    return typeof value === "boolean";
+    return readYesNoAnswer(value) !== null;
   }
 
   if (question.type === "single_choice" && value && typeof value === "object") {
@@ -212,6 +214,7 @@ const readAnswerScore = (
 };
 
 const matchesCondition = (answer: unknown, operator: string, expected: unknown) => {
+  if (answer && typeof answer === "object" && "answer" in answer) answer = readYesNoAnswer(answer);
   if (operator === "equals") {
     return Array.isArray(answer) ? answer.includes(expected as string) : answer === expected;
   }
@@ -578,14 +581,19 @@ const RespondentSurveyRuntime = ({ accessMode }: { accessMode: AccessMode }) => 
     }
 
     setNavigationError(null);
+    if (activeQuestion.type === "yes_no" && missingYesNoDescription(activeQuestion.settings, answers[activeQuestion.id])) {
+      setNavigationError("Please provide a description before continuing.");
+      return;
+    }
     if (isLastPage) {
       const firstMissingRequiredIndex = visibleQuestions.findIndex((question) =>
-        question.required && !hasAnswer(question, normalizeAnswerForSubmit(question, answers[question.id]))
+        (question.required && !hasAnswer(question, normalizeAnswerForSubmit(question, answers[question.id]))) ||
+        (question.type === "yes_no" && missingYesNoDescription(question.settings, answers[question.id]))
       );
 
       if (firstMissingRequiredIndex >= 0) {
         setCurrentPage(firstMissingRequiredIndex);
-        setNavigationError("This required question must be answered before you can submit.");
+        setNavigationError("Please complete this question and any required description before submitting.");
         toast.danger("Required answer missing", "Please answer all required questions before submitting.");
         return;
       }
@@ -807,13 +815,7 @@ const RespondentSurveyRuntime = ({ accessMode }: { accessMode: AccessMode }) => 
                 );
               }) : null}
 
-              {activeQuestion.type === "yes_no" ? [{ label: "Yes", value: true }, { label: "No", value: false }].map((option, index) => (
-                <label className={choiceClassName} key={option.label}>
-                  <input className="sr-only" checked={answers[activeQuestion.id] === option.value} name={activeQuestion.id} onChange={() => setAnswers((current) => ({ ...current, [activeQuestion.id]: option.value }))} type="radio" />
-                  <span className="inline-flex size-7 shrink-0 items-center justify-center rounded-md border border-app-border-strong text-xs font-bold" style={answers[activeQuestion.id] === option.value ? { backgroundColor: primaryColor, borderColor: primaryColor, color: "white" } : undefined}>{String.fromCharCode(65 + index)}</span>
-                  <span className="flex-1 font-medium">{option.label}</span>
-                </label>
-              )) : null}
+              {activeQuestion.type === "yes_no" ? <YesNoAnswerField question={activeQuestion} value={answers[activeQuestion.id]} primaryColor={primaryColor} onChange={(value) => setAnswers((current) => ({ ...current, [activeQuestion.id]: value }))} /> : null}
             </div>
 
             {navigationError ? <p className="m-0 text-sm font-semibold text-app-danger" role="alert">{navigationError}</p> : null}

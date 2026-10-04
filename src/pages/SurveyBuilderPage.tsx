@@ -1,3 +1,6 @@
+import { PublishSurveyDialog } from "../features/surveys/PublishSurveyDialog";
+import { toast } from "../state/toast-store";
+import { readDescriptionMode } from "../features/surveys/yes-no-description";
 import * as AlertDialog from "@radix-ui/react-alert-dialog";
 import * as Dialog from "@radix-ui/react-dialog";
 import { Calculator, CheckCircle2, Eye, GripVertical, MoveDown, MoveUp, Plus, Settings2, Trash2 } from "lucide-react";
@@ -391,6 +394,7 @@ const SettingsPanel = ({
             />
             <span>Required question</span>
           </label>
+          {question.type === "yes_no" ? <YesNoDescriptionSettings question={question} builder={builder} /> : null}
         </div>
       ) : null}
 
@@ -900,6 +904,34 @@ const CalculatedScoreCard = ({
   );
 };
 
+const YesNoDescriptionSettings = ({ question, builder }: { question: Question; builder: ReturnType<typeof useSurveyBuilder> }) => {
+  const mode = readDescriptionMode(question.settings);
+  const update = (settings: Record<string, unknown>) => builder.updateQuestion(question.id, { settings: { ...question.settings, ...settings } });
+  return (
+    <div className="grid gap-3">
+      <label className={builderFieldClassName}>
+        <span className={builderFieldLabelClassName}>Show description box</span>
+        <select className={builderSelectClassName} value={mode} onChange={(event) => update({ descriptionWhen: event.target.value })}>
+          <option value="off">Off</option>
+          <option value="yes">When Yes is selected</option>
+          <option value="no">When No is selected</option>
+          <option value="both">When either Yes or No is selected</option>
+        </select>
+      </label>
+      {mode !== "off" ? <>
+        <label className={builderFieldClassName}>
+          <span className={builderFieldLabelClassName}>Description box label</span>
+          <Input maxLength={200} placeholder="Please describe" value={typeof question.settings.descriptionLabel === "string" ? question.settings.descriptionLabel : ""} onChange={(event) => update({ descriptionLabel: event.target.value })} />
+        </label>
+        <label className={builderSwitchClassName}>
+          <input type="checkbox" checked={question.settings.descriptionRequired === true} onChange={(event) => update({ descriptionRequired: event.target.checked })} />
+          <span>Require description when shown</span>
+        </label>
+      </> : null}
+    </div>
+  );
+};
+
 const SURVEY_TAB_ID = "survey";
 
 const QuestionCard = ({
@@ -920,7 +952,7 @@ const QuestionCard = ({
   const scoringEligible = isScoringEligibleQuestion(question);
 
   return (
-    <Card className={cn("grid gap-4 p-[18px]", selected && "border-app-primary shadow-[0_0_0_4px_rgba(24,79,190,0.1)]")}>
+    <Card id={`question-${question.id}`} className={cn("grid gap-4 p-[18px]", selected && "border-app-primary shadow-[0_0_0_4px_rgba(24,79,190,0.1)]")}>
       <button
         className="flex cursor-pointer items-center justify-between border-0 bg-transparent p-0 text-app-text-soft"
         onClick={() => builder.setSelectedQuestionId(question.id)}
@@ -998,6 +1030,8 @@ const QuestionCard = ({
           <span>Required</span>
         </label>
       </div>
+
+      {question.type === "yes_no" ? <YesNoDescriptionSettings question={question} builder={builder} /> : null}
 
       {scoringEligible ? (
         <label className={builderSwitchClassName}>
@@ -1142,7 +1176,7 @@ export const SurveyBuilderPage = () => {
   const navigate = useNavigate();
   const builder = useSurveyBuilder(surveyId);
   const [showMobileSettings, setShowMobileSettings] = useState(false);
-  const [publishErrors, setPublishErrors] = useState<string[]>([]);
+  const [openingPreview, setOpeningPreview] = useState(false);
   const [activeWorkspaceTab, setActiveWorkspaceTab] = useState<string>(SURVEY_TAB_ID);
 
   const orderedSections = useMemo(
@@ -1240,24 +1274,24 @@ export const SurveyBuilderPage = () => {
     );
   }
 
-  const onPublish = async () => {
-    setPublishErrors([]);
-    await builder.flushPendingSaves();
-
+  const onPreview = async () => {
+    setOpeningPreview(true);
     try {
-      await builder.publishMutation.mutateAsync();
-      navigate(`/app/surveys/${surveyId}/preview`, { replace: true });
+      await builder.flushPendingSaves();
+      navigate(`/app/surveys/${surveyId}/preview`);
     } catch (error) {
-      if (error instanceof Error && "details" in error && Array.isArray((error as { details: unknown }).details)) {
-        setPublishErrors(
-          ((error as { details: Array<{ message: string }> }).details ?? []).map((item) => item.message)
-        );
-      } else {
-        setPublishErrors(["The draft is not ready to publish yet."]);
-      }
+      toast.danger("Could not open preview", error instanceof Error ? error.message : "Please save your changes and try again.");
+    } finally {
+      setOpeningPreview(false);
     }
   };
-  
+
+  const onPublish = async () => {
+    await builder.flushPendingSaves();
+    await builder.publishMutation.mutateAsync();
+    navigate(`/app/surveys/${surveyId}/preview`, { replace: true });
+  };
+
   return (
     <div className="grid gap-5">
       <header className="sticky top-4 z-10 flex items-center justify-between gap-3 rounded-app-lg border border-app-border [border-style:solid] bg-white/90 px-[22px] py-[18px] max-app-tablet:top-auto max-app-mobile:static max-app-mobile:flex-col max-app-mobile:items-stretch">
@@ -1286,74 +1320,28 @@ export const SurveyBuilderPage = () => {
             Settings
           </Button>
           <Button
-            asChild
-            onClick={() => void builder.flushPendingSaves()}
+            disabled={openingPreview}
+            onClick={() => void onPreview()}
             size="sm"
             variant="secondary"
           >
-            <Link to={`/app/surveys/${surveyId}/preview`}>
-              <Eye size={16} />
-              Preview
-            </Link>
+            <Eye size={16} />
+            {openingPreview ? "Saving..." : "Preview"}
           </Button>
           {builder.isEditable ? (
-            <AlertDialog.Root>
-              <AlertDialog.Trigger asChild>
-                <Button size="sm">Publish</Button>
-              </AlertDialog.Trigger>
-              <AlertDialog.Portal>
-                <AlertDialog.Overlay className={builderDialogOverlayClassName} />
-                <AlertDialog.Content className={builderDialogClassName}>
-                  <AlertDialog.Title>Publish survey</AlertDialog.Title>
-                  <AlertDialog.Description className="m-0 text-app-text-soft">
-                    Your survey will become available to respondents after the current draft is published.
-                  </AlertDialog.Description>
-                  <dl className="my-[18px] flex flex-wrap items-start justify-between gap-3 [&>div]:min-w-[140px] [&_dt]:mb-1 [&_dt]:text-[0.84rem] [&_dt]:text-app-text-faint [&_dd]:m-0">
-                    <div>
-                      <dt>Access</dt>
-                      <dd>{accessModeLabels[builder.survey.accessMode]}</dd>
-                    </div>
-                    <div>
-                      <dt>Opens</dt>
-                      <dd>{formatDateTime(builder.survey.opensAt) ?? "Immediately"}</dd>
-                    </div>
-                    <div>
-                      <dt>Closes</dt>
-                      <dd>{formatDateTime(builder.survey.closesAt) ?? "No closing date"}</dd>
-                    </div>
-                    <div>
-                      <dt>Sections</dt>
-                      <dd>{definition.sections.length}</dd>
-                    </div>
-                    <div>
-                      <dt>Questions</dt>
-                      <dd>{definition.questions.length}</dd>
-                    </div>
-                  </dl>
-                  {publishErrors.length > 0 ? (
-                    <InlineNotice tone="danger">
-                      <ul className="m-0 pl-[18px]">
-                        {publishErrors.map((error) => (
-                          <li key={error}>{error}</li>
-                        ))}
-                      </ul>
-                    </InlineNotice>
-                  ) : null}
-                  <div className={builderDialogActionsClassName}>
-                    <AlertDialog.Cancel asChild>
-                      <Button size="sm" variant="secondary">
-                        Cancel
-                      </Button>
-                    </AlertDialog.Cancel>
-                    <AlertDialog.Action asChild>
-                      <Button onClick={() => void onPublish()} size="sm">
-                        {builder.publishMutation.isPending ? "Publishing..." : "Publish survey"}
-                      </Button>
-                    </AlertDialog.Action>
-                  </div>
-                </AlertDialog.Content>
-              </AlertDialog.Portal>
-            </AlertDialog.Root>
+            <PublishSurveyDialog
+              definition={definition}
+              onPublish={onPublish}
+              onEdit={(issue) => {
+                if (issue.questionId && issue.sectionId) {
+                  selectSectionTab(issue.sectionId);
+                  builder.setSelectedQuestionId(issue.questionId);
+                  window.setTimeout(() => document.getElementById(`question-${issue.questionId}`)?.scrollIntoView({ behavior: "smooth", block: "center" }), 0);
+                } else if (issue.scoreId) {
+                  setActiveWorkspaceTab(CALCULATED_SCORES_TAB_ID);
+                }
+              }}
+            />
           ) : builder.survey.access.canEdit ? (
                <Button
                  disabled={builder.createDraftMutation.isPending}

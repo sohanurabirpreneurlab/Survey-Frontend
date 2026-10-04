@@ -1,3 +1,5 @@
+import { YesNoAnswerField } from "../features/surveys/YesNoAnswerField";
+import { readYesNoAnswer, missingYesNoDescription } from "../features/surveys/yes-no-description";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, ArrowRight, Check, CheckCircle2, MonitorSmartphone, RotateCcw, Smartphone } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -15,6 +17,7 @@ import { cn } from "../lib/cn";
 import { pageTw, surveyTw } from "../lib/page-tailwind";
 
 const matchesCondition = (answer: unknown, operator: string, expected: unknown) => {
+  if (answer && typeof answer === "object" && "answer" in answer) answer = readYesNoAnswer(answer);
   if (operator === "equals") {
     return Array.isArray(answer) ? answer.includes(expected as string) : answer === expected;
   }
@@ -281,7 +284,7 @@ export const SurveyPreviewPage = () => {
         : Boolean(value && typeof value === "object" && Array.isArray((value as { optionIds?: unknown }).optionIds) && (value as { optionIds: unknown[] }).optionIds.length > 0);
     }
     if (question.type === "yes_no") {
-      return typeof value === "boolean";
+      return readYesNoAnswer(value) !== null;
     }
     if (question.type === "rating") {
       return typeof value === "number" || (typeof value === "string" && value.trim().length > 0);
@@ -321,8 +324,13 @@ export const SurveyPreviewPage = () => {
   }, [activeQuestion?.id]);
 
   const handleNext = () => {
+    if (activeQuestion?.type === "yes_no" && missingYesNoDescription(activeQuestion.settings, answers[activeQuestion.id])) {
+      setPreviewError("Please provide a description before continuing.");
+      return;
+    }
     if (currentQuestionIndex >= questions.length - 1) {
       const firstMissingRequiredIndex = questions.findIndex((question) => {
+        if (question.type === "yes_no" && missingYesNoDescription(question.settings, answers[question.id])) return true;
         if (!question.required) return false;
         const value = answers[question.id];
         if (question.type === "multiple_choice") {
@@ -340,7 +348,7 @@ export const SurveyPreviewPage = () => {
         if (question.type === "single_choice" && value && typeof value === "object") {
           return typeof (value as { optionId?: unknown }).optionId !== "string" || String((value as { otherText?: unknown }).otherText ?? "").trim().length === 0;
         }
-        if (question.type === "yes_no") return typeof value !== "boolean";
+        if (question.type === "yes_no") return readYesNoAnswer(value) === null;
         if (question.type === "rating") return value === "" || value === null || value === undefined;
         return typeof value !== "string" || value.trim().length === 0;
       });
@@ -619,43 +627,7 @@ export const SurveyPreviewPage = () => {
                       );
                     })}
 
-                  {activeQuestion.type === "yes_no" &&
-                    [
-                      { label: "Yes", value: true },
-                      { label: "No", value: false }
-                    ].map((option, index) => {
-                      const selected = answers[activeQuestion.id] === option.value;
-                      return (
-                        <label
-                          className="flex min-h-[52px] cursor-pointer items-center gap-3 rounded-xl border border-app-border-strong [border-style:solid] bg-white px-3.5 py-2.5 hover:border-app-primary hover:bg-app-primary-soft"
-                          key={option.label}
-                          style={
-                            selected ? { backgroundColor: `${primaryColor}12`, borderColor: primaryColor } : undefined
-                          }
-                        >
-                          <input
-                            checked={selected}
-                            className="sr-only"
-                            name={activeQuestion.id}
-                            onChange={() =>
-                              setAnswers((current) => ({ ...current, [activeQuestion.id]: option.value }))
-                            }
-                            type="radio"
-                          />
-                          <span
-                            className="inline-flex size-7 items-center justify-center rounded-md border border-app-border-strong text-xs font-bold"
-                            style={
-                              selected
-                                ? { backgroundColor: primaryColor, borderColor: primaryColor, color: "white" }
-                                : undefined
-                            }
-                          >
-                            {String.fromCharCode(65 + index)}
-                          </span>
-                          <span className="font-medium">{option.label}</span>
-                        </label>
-                      );
-                    })}
+                  {activeQuestion.type === "yes_no" ? <YesNoAnswerField question={activeQuestion} value={answers[activeQuestion.id]} primaryColor={primaryColor} onChange={(value) => setAnswers((current) => ({ ...current, [activeQuestion.id]: value }))} /> : null}
                 </div>
 
                 {previewError ? (

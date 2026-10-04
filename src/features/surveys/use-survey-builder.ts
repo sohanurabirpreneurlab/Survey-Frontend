@@ -124,6 +124,7 @@ export const useSurveyBuilder = (surveyId: string) => {
   const [saveMessage, setSaveMessage] = useState("Saved");
   const queueRef = useRef(Promise.resolve());
   const pendingTimersRef = useRef<Map<string, number>>(new Map());
+  const pendingTasksRef = useRef<Map<string, () => Promise<void>>>(new Map());
   const pendingQuestionCreatesRef = useRef<Map<string, Promise<Question>>>(new Map());
   const pendingOptionCreatesRef = useRef<Map<string, Promise<QuestionOption>>>(new Map());
   const pendingQuestionEditsRef = useRef<Map<string, Question>>(new Map());
@@ -217,9 +218,24 @@ export const useSurveyBuilder = (surveyId: string) => {
   );
 
   const flushPendingSaves = async () => {
-    pendingTimersRef.current.forEach((timerId) => window.clearTimeout(timerId));
-    pendingTimersRef.current.clear();
-    await queueRef.current;
+    // Run debounced edits instead of discarding them when leaving for preview.
+    do {
+      const saves = [queueRef.current];
+      pendingTimersRef.current.forEach((timerId) => window.clearTimeout(timerId));
+      pendingTimersRef.current.clear();
+      const tasks = [...pendingTasksRef.current.values()];
+      pendingTasksRef.current.clear();
+      tasks.forEach((task) => saves.push(enqueue(task)));
+      await Promise.all(saves);
+    } while (pendingTasksRef.current.size > 0);
+
+    if (activeVersionId) {
+      await queryClient.fetchQuery({
+        queryKey: surveyKeys.draft(surveyId, activeVersionId),
+        queryFn: () => getSurveyVersionRequest(token, surveyId, activeVersionId),
+        staleTime: 0
+      });
+    }
   };
 
   const enqueue = (task: () => Promise<void>, message = "Saved") => {
@@ -256,9 +272,11 @@ export const useSurveyBuilder = (surveyId: string) => {
     setSaveState("unsaved");
     setSaveMessage("Unsaved changes");
 
+    pendingTasksRef.current.set(key, task);
     const nextTimer = window.setTimeout(() => {
       pendingTimersRef.current.delete(key);
-      void enqueue(task);
+      pendingTasksRef.current.delete(key);
+      void enqueue(task).catch(() => undefined);
     }, delay);
 
     pendingTimersRef.current.set(key, nextTimer);
@@ -267,6 +285,7 @@ export const useSurveyBuilder = (surveyId: string) => {
   const shouldApplyServerEcho = (key: string) => !pendingTimersRef.current.has(key);
 
   const cancelPendingSave = (key: string) => {
+    pendingTasksRef.current.delete(key);
     const timerId = pendingTimersRef.current.get(key);
 
     if (timerId) {
@@ -525,6 +544,7 @@ export const useSurveyBuilder = (surveyId: string) => {
     }
 
     const sectionQuestions = definition.questions.filter((question) => question.sectionId === sectionId);
+    const nextPosition = Math.max(-1, ...sectionQuestions.map((question) => question.position)) + 1;
     const type: Question["type"] = "short_text";
     const tempId = createTempId("question");
     const optimisticQuestion: Question = {
@@ -532,7 +552,7 @@ export const useSurveyBuilder = (surveyId: string) => {
       description: null,
       displayLogic: {},
       id: tempId,
-      position: sectionQuestions.length,
+      position: nextPosition,
       required: false,
       sectionId,
       settings: {},
@@ -557,7 +577,7 @@ export const useSurveyBuilder = (surveyId: string) => {
         description: null,
         displayLogic: {},
         options: [],
-        position: sectionQuestions.length,
+        position: nextPosition,
         required: false,
         sectionId,
         settings: {},
@@ -576,6 +596,7 @@ export const useSurveyBuilder = (surveyId: string) => {
             ...localQuestion,
             createdAt: question.createdAt,
             id: question.id,
+            position: question.position,
             stableKey: question.stableKey,
             surveyVersionId: question.surveyVersionId,
             uiKey: localQuestion.uiKey ?? question.id,
@@ -754,6 +775,9 @@ export const useSurveyBuilder = (surveyId: string) => {
     if (currentIndex < 0 || nextIndex < 0 || nextIndex >= sectionQuestions.length) {
       return;
     }
+
+    // Save edits carrying the old order before changing positions.
+    await flushPendingSaves();
 
     const reordered = [...sectionQuestions];
     const [moved] = reordered.splice(currentIndex, 1);
