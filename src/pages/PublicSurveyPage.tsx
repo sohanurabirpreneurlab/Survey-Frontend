@@ -1,3 +1,4 @@
+import surveyLoadingGif from "../assets/survey-loading.gif";
 import { YesNoAnswerField } from "../features/surveys/YesNoAnswerField";
 import { readYesNoAnswer, normalizeYesNoAnswer, missingYesNoDescription } from "../features/surveys/yes-no-description";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -12,7 +13,7 @@ import { ApiError, apiRequest } from "../lib/api";
 import { env } from "../lib/env";
 import { toast } from "../state/toast-store";
 import { formatDateTime } from "../features/surveys/surveys.utils";
-import { publicSurveyTw, surveyTw } from "../lib/page-tailwind";
+import { publicSurveyTw } from "../lib/page-tailwind";
 
 type PublicSurveyQuestion = {
   description: string | null;
@@ -612,14 +613,18 @@ const RespondentSurveyRuntime = ({ accessMode }: { accessMode: AccessMode }) => 
 
   if (surveyQuery.isLoading) {
     return (
-      <div className={publicSurveyTw.shell}>
-        <div className={surveyTw.previewHeader}>
-          <div>
-            <h1>Loading survey</h1>
-            <p>The public survey is loading.</p>
+      <main className="grid min-h-[100svh] place-items-center px-6 py-10" aria-busy="true">
+        <div className="flex w-full max-w-sm flex-col items-center gap-5 rounded-app-lg border border-app-border [border-style:solid] bg-white px-8 py-10 text-center shadow-app" role="status" aria-live="polite">
+          <div className="flex size-24 items-center justify-center rounded-full border border-app-border [border-style:solid] bg-white">
+            <img src={surveyLoadingGif} alt="" aria-hidden="true" width={80} height={80} className="size-20 rounded-full motion-reduce:hidden" />
+            <span aria-hidden="true" className="hidden size-12 rounded-full border-4 border-app-primary-soft [border-style:solid] border-t-app-primary motion-reduce:block" />
+          </div>
+          <div className="grid gap-2">
+            <h1 className="m-0 text-xl font-semibold tracking-tight text-app-text">Loading…</h1>
+            <p className="m-0 text-sm leading-6 text-app-text-soft">Getting your survey ready. Please wait a moment.</p>
           </div>
         </div>
-      </div>
+      </main>
     );
   }
 

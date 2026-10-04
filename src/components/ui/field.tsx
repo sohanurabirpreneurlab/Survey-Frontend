@@ -13,7 +13,7 @@ export const Field = ({
   label: string;
 }>) => (
   <label className="grid gap-2">
-    <span className="text-[0.95rem] font-semibold">{label}</span>
+    <span className="text-sm font-normal">{label}</span>
     {children}
     {error ? <span className="text-[0.9rem] text-app-danger">{error}</span> : null}
     {!error && hint ? <span className="text-[0.9rem] text-app-text-faint">{hint}</span> : null}

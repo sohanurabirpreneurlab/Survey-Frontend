@@ -24,8 +24,8 @@
   --color-app-success-soft: var(--success-soft);
   --color-app-warning: var(--warning);
   --color-app-warning-soft: var(--warning-soft);
-  --font-sans: "Inter", ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --font-app-sans: "Inter", ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-sans: var(--app-font-family);
+  --font-app-sans: var(--app-font-family);
   --radius-app-sm: var(--radius-sm);
   --radius-app-md: var(--radius-md);
   --radius-app-lg: var(--radius-lg);
@@ -43,7 +43,8 @@
 }
 
 :root {
-  font-family: var(--font-app-sans);
+  --app-font-family: "Inter", ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: var(--app-font-family);
   color: #12304f;
   background: #f5f7fb;
   line-height: 1.5;
@@ -87,6 +88,10 @@ body,
 }
 
 body {
+  font-family: var(--app-font-family);
+  font-size: 0.875rem;
+  font-weight: 400;
+  line-height: 1.5;
   background:
     radial-gradient(circle at top left, rgba(24, 79, 190, 0.08), transparent 30%),
     linear-gradient(180deg, #f8fbff 0%, #f4f7fb 100%);
@@ -128,6 +133,7 @@ input,
 select,
 textarea {
   font: inherit;
+  font-family: var(--app-font-family);
 }
 
 @keyframes spin {

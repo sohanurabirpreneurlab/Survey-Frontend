@@ -31,7 +31,7 @@ export const adminTw = {
   searchField: "flex min-h-[50px] items-center gap-2.5 rounded-[14px] border border-app-border [border-style:solid] bg-white px-3.5",
   searchInput: "min-w-0 flex-1 border-0 bg-transparent p-0 text-app-text outline-none",
   selectField: "grid gap-2",
-  fieldLabel: "text-[0.95rem] font-semibold",
+  fieldLabel: "text-sm font-normal",
   select: "min-h-[50px] w-full appearance-none rounded-[14px] border border-app-border [border-style:solid] bg-white px-4 text-app-text outline-none focus:border-app-primary focus:shadow-[0_0_0_4px_rgba(24,79,190,0.12)]",
   tableCard: "overflow-hidden p-0",
   tableWrap: "overflow-x-auto",

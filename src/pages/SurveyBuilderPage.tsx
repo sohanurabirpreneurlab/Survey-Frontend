@@ -53,7 +53,7 @@ const workspaceTabMetaClassName = "flex items-center justify-between gap-2.5";
 const workspaceTabBadgeClassName =
   "min-w-[34px] rounded-full border border-[rgba(24,79,190,0.14)] [border-style:solid] bg-app-primary-soft px-2.5 py-1 text-center text-[0.8rem] font-bold text-app-primary-strong";
 const builderFieldClassName = "grid gap-2";
-const builderFieldLabelClassName = "text-[0.95rem] font-semibold";
+const builderFieldLabelClassName = "text-sm font-normal";
 const builderTextareaClassName =
   "min-h-[120px] w-full resize-y appearance-none rounded-[14px] border border-app-border [border-style:solid] bg-white px-4 py-3.5 text-app-text outline-none transition-[border-color,box-shadow] duration-[140ms] focus:border-app-primary focus:shadow-[0_0_0_4px_rgba(24,79,190,0.12)]";
 const builderSelectClassName =
