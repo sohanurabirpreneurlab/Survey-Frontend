@@ -369,12 +369,14 @@ const RespondentSurveyRuntime = ({ accessMode }: { accessMode: AccessMode }) => 
           })
           .filter((value): value is number => typeof value === "number" && Number.isFinite(value));
 
-        if (values.length === 0 || values.length !== score.questions.length) {
+        if (values.length === 0 || (score.requireAllAnswers && values.length !== score.questions.length)) {
           return [score.id, null] as const;
         }
 
-        const average = values.reduce((sum, value) => sum + value, 0) / values.length;
-        return [score.id, evaluateThreshold(average, score.thresholdOperator, score.thresholdValue)] as const;
+        const thresholdMatched = values.some((value) =>
+          evaluateThreshold(value, score.thresholdOperator, score.thresholdValue)
+        );
+        return [score.id, thresholdMatched] as const;
       })
     );
   }, [answers, sortedQuestions, survey]);
