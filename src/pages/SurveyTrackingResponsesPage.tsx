@@ -1,5 +1,6 @@
+import * as Dialog from "@radix-ui/react-dialog";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowDownAZ, ArrowUpAZ, Search, TableProperties } from "lucide-react";
+import { ArrowDownAZ, ArrowUpAZ, ArrowUpRight, Search, TableProperties } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
@@ -12,6 +13,37 @@ import { surveyTrackingKeys } from "../features/survey-tracking/survey-tracking.
 import { getSurveyRequest } from "../features/surveys/surveys.api";
 import { surveyKeys } from "../features/surveys/surveys.keys";
 import { formatDateTime, formatRelativeTime } from "../features/surveys/surveys.utils";
+
+const ResponseCell = ({ title, text, questionNumber, respondent }: {
+  title: string;
+  text: string;
+  questionNumber: number;
+  respondent?: string;
+}) => (
+  <Dialog.Root>
+    <Dialog.Trigger asChild>
+      <button
+        className={`group block w-full cursor-pointer appearance-none rounded-xl border-0 [border-style:none] p-3 text-left normal-case tracking-normal shadow-none outline-none transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-app-primary ${respondent ? "min-h-[72px] bg-transparent hover:bg-slate-50" : "min-h-[124px] bg-white hover:bg-slate-50"}`}
+        type="button"
+        aria-label={`Read full question ${questionNumber}${respondent ? ` and answer from ${respondent}` : ""}`}
+      >
+        {!respondent && <span className="mb-2 flex items-center justify-between"><span className="text-[11px] font-semibold tracking-wider text-slate-400">Q{questionNumber}</span><ArrowUpRight aria-hidden="true" size={13} className="text-slate-300 transition-colors group-hover:text-app-primary" /></span>}
+        <span className={`line-clamp-3 whitespace-pre-wrap break-words text-sm leading-6 ${respondent ? "font-normal text-app-text" : "font-medium text-slate-600"}`}>{text}</span>
+      </button>
+    </Dialog.Trigger>
+    <Dialog.Portal>
+      <Dialog.Overlay className="fixed inset-0 z-[60] bg-black/40" />
+      <Dialog.Content className="fixed left-1/2 top-1/2 z-[61] max-h-[85vh] w-[calc(100vw-32px)] max-w-xl -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl bg-white p-6 shadow-app">
+        <span className="text-xs font-bold uppercase tracking-wide text-app-primary">Question {questionNumber}</span>
+        <Dialog.Title className="mt-2 whitespace-pre-wrap break-words text-lg font-semibold leading-7">{title}</Dialog.Title>
+        <Dialog.Description className="mt-2 text-sm text-app-text-soft">{respondent ? `Response from ${respondent}` : "Full survey question"}</Dialog.Description>
+        {respondent && <p className="mt-5 whitespace-pre-wrap break-words rounded-xl bg-app-surface-muted p-4 text-sm leading-7">{text}</p>}
+        <div className="mt-6 flex justify-end"><Dialog.Close asChild><Button variant="secondary">Close</Button></Dialog.Close></div>
+      </Dialog.Content>
+    </Dialog.Portal>
+  </Dialog.Root>
+);
+
 export const SurveyTrackingResponsesPage = () => {
   const { surveyId = "" } = useParams();
   const auth = useAuth();
@@ -119,20 +151,24 @@ export const SurveyTrackingResponsesPage = () => {
         </div>
       </Card>
 
-      <Card className="overflow-hidden p-0">
-        <div className="overflow-x-auto">
+      <Card className="overflow-hidden rounded-2xl border-slate-200 p-0 shadow-none">
+        {viewMode === "all" && <div className="flex flex-wrap items-center justify-between gap-2 border-b border-app-border px-5 py-3 text-sm text-app-text-soft"><span>{responseItems.length} responses · {responseColumns.length} questions</span><span>Click a question or answer to read in full. Scroll sideways for more columns.</span></div>}
+        <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Survey responses">
           {viewMode === "all" ? (
-            <table className="w-full min-w-[1320px] border-collapse [&_th]:bg-app-surface-muted [&_th]:px-[18px] [&_th]:py-4 [&_th]:text-left [&_th]:text-[0.82rem] [&_th]:font-bold [&_th]:tracking-[0.06em] [&_th]:text-app-text-faint [&_th]:uppercase [&_td]:border-b [&_td]:border-app-border [&_td]:px-[18px] [&_td]:py-4 [&_td]:text-left [&_td]:align-top max-app-mobile:table max-app-mobile:min-w-[980px]">
+            <table style={{ width: 1032 + responseColumns.length * 260 }} className="table-fixed border-separate border-spacing-0 [&_th]:border-b [&_th]:border-app-border [&_th]:bg-app-surface-muted [&_th]:px-4 [&_th]:py-4 [&_th]:text-left [&_th]:align-top [&_th]:text-xs [&_th]:font-semibold [&_th]:text-app-text-soft [&_td]:border-b [&_td]:border-app-border [&_td]:px-4 [&_td]:py-4 [&_td]:text-left [&_td]:align-top [&_td]:text-sm">
+              <colgroup>
+                <col style={{ width: 88 }} />
+                <col style={{ width: 240 }} />
+                {responseColumns.map((column) => <col key={column.questionStableKey} style={{ width: 260 }} />)}
+                <col style={{ width: 160 }} /><col style={{ width: 120 }} /><col style={{ width: 212 }} /><col style={{ width: 212 }} />
+              </colgroup>
               <thead>
                 <tr>
-                  <th>Response</th>
-                  <th>Respondent</th>
+                  <th scope="col" className="sticky left-0 z-20 max-app-mobile:static">Response</th>
+                  <th scope="col" className="sticky left-[88px] z-20 border-r border-app-border max-app-mobile:static">Respondent</th>
                   {responseColumns.map((column, index) => (
-                    <th key={column.questionStableKey}>
-                      <div className="grid gap-1">
-                        <strong>Q{index + 1}</strong>
-                        <span>{column.title}</span>
-                      </div>
+                    <th scope="col" key={column.questionStableKey}>
+                      <ResponseCell title={column.title} text={column.title} questionNumber={index + 1} />
                     </th>
                   ))}
                   <th>Source</th>
@@ -148,16 +184,16 @@ export const SurveyTrackingResponsesPage = () => {
 
                   return (
                     <tr key={response.responseId}>
-                      <td data-label="Response">#{rowIndex + 1}</td>
-                      <td data-label="Respondent">
+                      <td data-label="Response" className="sticky left-0 z-10 bg-white max-app-mobile:static">#{rowIndex + 1}</td>
+                      <td data-label="Respondent" className="sticky left-[88px] z-10 border-r border-app-border bg-white max-app-mobile:static">
                         <div className="grid gap-0.5 [&_span]:text-[0.9rem] [&_span]:text-app-text-soft">
-                          <strong>{response.respondentEmail ?? "Anonymous"}</strong>
+                          <strong className="break-words">{response.respondentEmail ?? "Anonymous"}</strong>
                           <span>{response.respondentEmail ? "Specific email" : "Anonymous public respondent"}</span>
                         </div>
                       </td>
-                      {responseColumns.map((column) => (
+                      {responseColumns.map((column, index) => (
                         <td data-label={column.title} key={column.questionStableKey}>
-                          <span className="inline-block max-w-[240px] whitespace-pre-wrap [overflow-wrap:anywhere]">{answerMap.get(column.questionStableKey) ?? "No answer"}</span>
+                          <ResponseCell title={column.title} text={answerMap.get(column.questionStableKey) ?? "No answer"} questionNumber={index + 1} respondent={response.respondentEmail ?? "Anonymous"} />
                         </td>
                       ))}
                       <td data-label="Source">{response.accessSource === "invitation" ? "Invitation link" : "Public link"}</td>
