@@ -978,7 +978,7 @@ const YesNoDescriptionSettings = ({ question, builder }: { question: Question; b
 const QUESTION_ACCESS_ROLES = [
   { label: "Admin", value: "admin" },
   { label: "Business Owner", value: "business_owner" },
-  { label: "Superadmin", value: "superadmin" }
+  { label: "Super Admin", value: "super_admin" }
 ] as const;
 
 const SURVEY_TAB_ID = "survey";
