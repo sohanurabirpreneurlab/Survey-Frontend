@@ -69,6 +69,7 @@ type PublicSurvey = {
     value: string;
   }>;
   publicSlug: string;
+  respondentIdentity: { email: string | null; role: string | null; isAnonymous: boolean };
   questions: PublicSurveyQuestion[];
   sections: Array<{
     description: string | null;
@@ -672,9 +673,16 @@ const RespondentSurveyRuntime = ({ accessMode }: { accessMode: AccessMode }) => 
             </button>
           ) : <span aria-hidden="true" />}
         <strong className="min-w-0 truncate text-[0.95rem] max-app-mobile:absolute max-app-mobile:top-[25px] max-app-mobile:left-1/2 max-app-mobile:max-w-[45%] max-app-mobile:-translate-x-1/2 max-app-mobile:text-center">{survey.title}</strong>
-        {!submittedAt && visibleQuestions.length > 0 ? (
-          <span className="text-right text-sm font-medium text-app-text-soft max-app-mobile:absolute max-app-mobile:top-[68px] max-app-mobile:left-1/2 max-app-mobile:w-full max-app-mobile:-translate-x-1/2 max-app-mobile:text-center max-app-mobile:text-xs">Answered {answeredCount} of {visibleQuestions.length} · Question {currentPage + 1}</span>
-        ) : null}
+        <div className="grid justify-items-end gap-1 max-app-mobile:absolute max-app-mobile:top-[64px] max-app-mobile:left-1/2 max-app-mobile:w-full max-app-mobile:-translate-x-1/2 max-app-mobile:justify-items-center">
+          {!submittedAt && visibleQuestions.length > 0 ? (
+            <span className="text-right text-sm font-medium text-app-text-soft max-app-mobile:text-center max-app-mobile:text-xs">Answered {answeredCount} of {visibleQuestions.length} · Question {currentPage + 1}</span>
+          ) : null}
+          <span className="rounded-full border border-app-border [border-style:solid] bg-white px-3 py-1.5 text-xs font-semibold text-app-text-soft shadow-sm">
+            {survey.respondentIdentity.isAnonymous
+              ? "Anonymous respondent"
+              : `Email: ${survey.respondentIdentity.email ?? "Unavailable"} · Role: ${survey.respondentIdentity.role ? survey.respondentIdentity.role.replaceAll("_", " ") : "Not provided"}`}
+          </span>
+        </div>
       </header>
 
       {submittedAt ? (
