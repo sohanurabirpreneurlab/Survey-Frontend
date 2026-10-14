@@ -193,7 +193,13 @@ const SettingsPanel = ({
   mobile?: boolean;
   mode?: "auto" | "survey";
 }) => {
-  const [tab, setTab] = useState<"question" | "survey" | "validation">(mode === "survey" ? "survey" : builder.selectedQuestion ? "question" : "survey");
+  const [tab, setTab] = useState<"question" | "survey" | "validation" | "visibility">(mode === "survey" ? "survey" : builder.selectedQuestion ? "question" : "survey");
+
+  useEffect(() => {
+    if (mode !== "survey" && builder.selectedQuestion) {
+      setTab("question");
+    }
+  }, [builder.selectedQuestionId, mode]);
 
   const question = builder.selectedQuestion;
   const survey = builder.survey;
@@ -207,7 +213,7 @@ const SettingsPanel = ({
   return (
     <aside className={cn("grid min-w-0 gap-3.5 rounded-app-md border border-app-border [border-style:solid] bg-white/[0.94] p-[18px]", mobile && "w-full")}>
       <div className="mt-[18px] flex flex-wrap gap-2.5" role="tablist" aria-label="Builder settings tabs">
-        {(showSurveyOnly ? ["survey"] : question ? ["question", "validation"] : ["survey"]).map((item) => (
+        {(showSurveyOnly ? ["survey"] : question ? ["question", "validation", "visibility"] : ["survey"]).map((item) => (
           <button
             aria-pressed={tab === item}
             className={cn("inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-full border border-app-border [border-style:solid] bg-app-surface-muted px-3.5 text-app-text-soft", tab === item && "border-app-border-strong bg-app-primary-soft text-app-primary-strong")}
@@ -215,7 +221,7 @@ const SettingsPanel = ({
             onClick={() => setTab(item as typeof tab)}
             type="button"
           >
-            {item === "survey" ? "Survey" : item === "validation" ? "Validation" : "Question"}
+            {item === "survey" ? "Survey" : item === "validation" ? "Validation" : item === "visibility" ? "Visibility" : "Question"}
           </button>
         ))}
       </div>
@@ -395,6 +401,43 @@ const SettingsPanel = ({
             <span>Required question</span>
           </label>
           {question.type === "yes_no" ? <YesNoDescriptionSettings question={question} builder={builder} /> : null}
+        </div>
+      ) : null}
+
+      {!showSurveyOnly && question && tab === "visibility" ? (
+        <div className="grid gap-4">
+          <div>
+            <h3 className="m-0 text-base font-semibold text-app-text">Question visibility</h3>
+            <p className="m-0 mt-1 text-sm text-app-text-soft">Choose which Salthub roles can see and answer this question.</p>
+          </div>
+          <div className="grid gap-2.5 rounded-2xl border border-app-border [border-style:solid] bg-app-surface-muted p-3.5">
+            {QUESTION_ACCESS_ROLES.map((role) => {
+              const access = question.settings.access;
+              const selectedRoles = access && typeof access === "object" && !Array.isArray(access) && Array.isArray((access as { roles?: unknown }).roles)
+                ? (access as { roles: unknown[] }).roles.filter((value): value is string => typeof value === "string")
+                : [];
+              const checked = selectedRoles.includes(role.value);
+
+              return (
+                <label className="flex items-center gap-2 text-sm" key={role.value}>
+                  <input
+                    checked={checked}
+                    onChange={(event) => {
+                      const roles = event.target.checked
+                        ? [...new Set([...selectedRoles, role.value])]
+                        : selectedRoles.filter((value) => value !== role.value);
+                      builder.updateQuestion(question.id, {
+                        settings: { ...question.settings, access: { roles } }
+                      });
+                    }}
+                    type="checkbox"
+                  />
+                  <span>{role.label}</span>
+                </label>
+              );
+            })}
+          </div>
+          <p className="m-0 text-xs text-app-text-soft">If no role is selected, the question is visible to everyone.</p>
         </div>
       ) : null}
 
@@ -932,6 +975,12 @@ const YesNoDescriptionSettings = ({ question, builder }: { question: Question; b
   );
 };
 
+const QUESTION_ACCESS_ROLES = [
+  { label: "Admin", value: "admin" },
+  { label: "Business Owner", value: "business_owner" },
+  { label: "Superadmin", value: "superadmin" }
+] as const;
+
 const SURVEY_TAB_ID = "survey";
 
 const QuestionCard = ({
@@ -1311,6 +1360,7 @@ export const SurveyBuilderPage = () => {
 
         <div className="flex items-center justify-between gap-3 max-app-mobile:flex-col max-app-mobile:items-stretch">
           <Button
+            className={builder.selectedQuestionId ? "border-app-primary bg-app-primary-soft text-app-primary-strong shadow-[0_0_0_3px_rgba(24,79,190,0.12)]" : undefined}
             onClick={() => setShowMobileSettings(true)}
             size="sm"
             type="button"

@@ -188,6 +188,7 @@ export const SurveyTrackingResponsesPage = () => {
                       <td data-label="Respondent" className="sticky left-[88px] z-10 border-r border-app-border bg-white max-app-mobile:static">
                         <div className="grid gap-0.5 [&_span]:text-[0.9rem] [&_span]:text-app-text-soft">
                           <strong className="break-words">{response.respondentEmail ?? "Anonymous"}</strong>
+                          {response.respondentRole ? <span className="font-semibold capitalize text-app-primary">{response.respondentRole.replace("_", " ")}</span> : null}
                           <span>{response.respondentEmail ? "Specific email" : "Anonymous public respondent"}</span>
                         </div>
                       </td>
@@ -229,6 +230,7 @@ export const SurveyTrackingResponsesPage = () => {
                     <td data-label="Respondent">
                       <div className="grid gap-0.5 [&_span]:text-[0.9rem] [&_span]:text-app-text-soft">
                         <strong>{response.respondentEmail ?? "Anonymous public respondent"}</strong>
+                        {response.respondentRole ? <span className="font-semibold capitalize text-app-primary">{response.respondentRole.replace("_", " ")}</span> : null}
                         <span>{response.accessSource === "invitation" ? "Invitation link" : "Public link"}</span>
                       </div>
                     </td>
