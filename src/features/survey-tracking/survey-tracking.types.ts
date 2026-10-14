@@ -46,7 +46,7 @@ export type SurveyTrackingResponseItem = {
   invitationId: string | null;
   lastSavedAt: string;
   respondentEmail: string | null;
-  respondentRole: "admin" | "business_owner" | "super_admin" | null;
+  respondentRole: string | null;
   responseId: string;
   responseStatus: "in_progress" | "submitted" | "invalidated" | "deleted";
   sessionCreatedAt: string;
