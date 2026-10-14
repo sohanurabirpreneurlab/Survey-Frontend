@@ -680,7 +680,7 @@ const RespondentSurveyRuntime = ({ accessMode }: { accessMode: AccessMode }) => 
           <span className="rounded-full border border-app-border [border-style:solid] bg-white px-3 py-1.5 text-xs font-semibold text-app-text-soft shadow-sm">
             {survey.respondentIdentity.isAnonymous
               ? "Anonymous respondent"
-              : `Email: ${survey.respondentIdentity.email ?? "Unavailable"} · Role: ${survey.respondentIdentity.role ? survey.respondentIdentity.role.replaceAll("_", " ") : "Not provided"}`}
+              : `Email: ${survey.respondentIdentity.email ?? "Unavailable"} · Role: ${survey.respondentIdentity.role ? survey.respondentIdentity.role.replace(/_/g, " ") : "Not provided"}`}
           </span>
         </div>
       </header>
