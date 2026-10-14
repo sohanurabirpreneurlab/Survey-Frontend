@@ -20,9 +20,11 @@ import {
   MoreHorizontal,
   PencilLine,
   RefreshCw,
+  RotateCcw,
   Search,
   ShieldAlert,
   Sparkles,
+  Trash2,
   X
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -43,8 +45,12 @@ import {
   listOrganizationsRequest,
   listSurveyInvitationsRequest,
   listSurveysRequest,
+  listTrashSurveysRequest,
   reopenSurveyRequest,
+  restoreSurveyRequest,
+  permanentlyDeleteSurveyRequest,
   sendSurveyInvitationsRequest,
+  softDeleteSurveyRequest,
   updateSurveyRequest
 } from "../features/surveys/surveys.api";
 import { surveyKeys } from "../features/surveys/surveys.keys";
@@ -104,11 +110,11 @@ const useOrganizations = (token: string) =>
     queryKey: surveyKeys.organizations
   });
 
-const useSurveyList = (token: string, organizationId: string | undefined, page: number) =>
+const useSurveyList = (token: string, organizationId: string | undefined, page: number, isTrash: boolean) =>
   useQuery({
     enabled: Boolean(token),
-    queryFn: () => listSurveysRequest(token, { limit: 12, organizationId, page }),
-    queryKey: surveyKeys.list({ organizationId, page })
+    queryFn: () => isTrash ? listTrashSurveysRequest(token, { limit: 12, organizationId, page }) : listSurveysRequest(token, { limit: 12, organizationId, page }),
+    queryKey: surveyKeys.list({ organizationId, page, view: isTrash ? "trash" : "active" })
   });
 
 const toLocalDateTimeValue = (value: string | null) => {
@@ -123,10 +129,12 @@ const toLocalDateTimeValue = (value: string | null) => {
 
 const SurveyActions = ({
   survey,
-  token
+  token,
+  isTrash
 }: {
   survey: SurveySummary;
   token: string;
+  isTrash: boolean;
 }) => {
   const queryClient = useQueryClient();
   const [shareOpen, setShareOpen] = useState(false);
@@ -139,6 +147,7 @@ const SurveyActions = ({
   const [scheduleError, setScheduleError] = useState<string | null>(null);
   const [isSavingSchedule, setIsSavingSchedule] = useState(false);
   const [isClosingNow, setIsClosingNow] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const resetScheduleState = () => {
     setOpenMode(survey.opensAt ? "scheduled" : "immediate");
@@ -157,6 +166,39 @@ const SurveyActions = ({
     } catch (error) {
       toast.danger("Action failed", error instanceof ApiError ? error.message : "Please try again.");
     }
+  };
+
+  const onSoftDelete = async () => {
+    setIsDeleting(true);
+    try {
+      await softDeleteSurveyRequest(token, survey.id);
+      toast.success("Survey moved to Trash", "The survey is hidden from active lists and can be restored later.");
+      await queryClient.invalidateQueries({ queryKey: surveyKeys.all });
+    } catch (error) {
+      toast.danger("Delete failed", error instanceof ApiError ? error.message : "Please try again.");
+    } finally { setIsDeleting(false); }
+  };
+
+  const onRestore = async () => {
+    setIsDeleting(true);
+    try {
+      await restoreSurveyRequest(token, survey.id);
+      toast.success("Survey restored", "The survey is available in the active survey list again.");
+      await queryClient.invalidateQueries({ queryKey: surveyKeys.all });
+    } catch (error) {
+      toast.danger("Restore failed", error instanceof ApiError ? error.message : "Please try again.");
+    } finally { setIsDeleting(false); }
+  };
+
+  const onPermanentDelete = async () => {
+    setIsDeleting(true);
+    try {
+      await permanentlyDeleteSurveyRequest(token, survey.id);
+      toast.success("Survey permanently deleted", "This survey and its stored data were removed.");
+      await queryClient.invalidateQueries({ queryKey: surveyKeys.all });
+    } catch (error) {
+      toast.danger("Permanent delete failed", error instanceof ApiError ? error.message : "Please try again.");
+    } finally { setIsDeleting(false); }
   };
 
   const saveSchedule = async (options?: { closeImmediately?: boolean }) => {
@@ -233,6 +275,14 @@ const SurveyActions = ({
         </DropdownMenu.Trigger>
         <DropdownMenu.Portal>
       <DropdownMenu.Content align="end" className={surveysPageTw.menu} sideOffset={6}>
+        {isTrash ? (
+          <>
+            <DropdownMenu.Item className={surveysPageTw.menuItem} disabled={isDeleting} onSelect={() => void onRestore()}><RotateCcw size={15} /> Restore</DropdownMenu.Item>
+            <DropdownMenu.Item className={surveysPageTw.menuItem + " text-app-danger"} onSelect={() => { if (window.confirm("Permanently delete this survey? This cannot be undone.")) void onPermanentDelete(); }}><Trash2 size={15} /> Delete permanently</DropdownMenu.Item>
+          </>
+        ) : (
+          <DropdownMenu.Item className={surveysPageTw.menuItem + " text-app-danger"} onSelect={() => { if (window.confirm("Move this survey to Trash?")) void onSoftDelete(); }}><Trash2 size={15} /> Move to Trash</DropdownMenu.Item>
+        )}
         <DropdownMenu.Item asChild className={surveysPageTw.menuItem}>
               <Link to={`/app/surveys/${survey.id}/preview`}>
                 <Eye size={15} />
@@ -861,17 +911,18 @@ export const SurveysPage = () => {
   const token = auth.accessToken ?? "";
   const organizationsQuery = useOrganizations(token);
   const selectedOrganizationId = searchParams.get("organizationId") ?? organizationsQuery.data?.[0]?.organization.id;
+  const isTrash = searchParams.get("view") === "trash";
   const page = Number(searchParams.get("page") ?? "1");
   const search = searchParams.get("search") ?? "";
   const status = (searchParams.get("status") as SurveyStatus | "all" | null) ?? "all";
   const sort = searchParams.get("sort") ?? "created_desc";
 
-  const surveysQuery = useSurveyList(token, selectedOrganizationId, page);
+  const surveysQuery = useSurveyList(token, selectedOrganizationId, page, isTrash);
   const organizations = organizationsQuery.data ?? [];
   const surveys = surveysQuery.data?.items ?? [];
 
   const filteredSurveys = surveys
-    .filter((survey) => (status === "all" ? true : survey.status === status))
+    .filter((survey) => (isTrash || status === "all" ? true : survey.status === status))
     .filter((survey) => {
       if (!search.trim()) {
         return true;
@@ -903,8 +954,8 @@ export const SurveysPage = () => {
     <div className={pageTw.page}>
       <section className={`${pageTw.hero} ${pageTw.heroSplit}`}>
         <div>
-          <h1>Surveys</h1>
-          <p>Create, manage, publish, and review your surveys.</p>
+          <h1>{isTrash ? "Trash" : "Surveys"}</h1>
+          <p>{isTrash ? "Deleted surveys stay here until they are restored or permanently deleted." : "Create, manage, publish, and review your surveys."}</p>
         </div>
         <Button asChild>
           <Link to="/app/surveys/new">
@@ -1047,7 +1098,7 @@ export const SurveysPage = () => {
                 </div>
                 <div className="flex items-center justify-between gap-3 max-app-mobile:flex-col max-app-mobile:items-stretch">
                   <SurveyStatusBadge status={survey.status} />
-                  <SurveyActions survey={survey} token={token} />
+                  <SurveyActions isTrash={isTrash} survey={survey} token={token} />
                 </div>
               </div>
 

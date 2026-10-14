@@ -2,7 +2,7 @@ import * as AlertDialog from "@radix-ui/react-alert-dialog";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { z } from "zod";
 
 import { Button } from "../components/ui/button";
@@ -14,6 +14,7 @@ import { toast } from "../state/toast-store";
 import { useAuth } from "../features/auth/use-auth";
 import {
   approveAdminUserRequest,
+  deleteAdminUserRequest,
   getAdminUserRequest,
   listAdminOrganizationsRequest,
   reactivateAdminUserRequest,
@@ -41,6 +42,7 @@ const profileSchema = z.object({
 
 export const AdminUserDetailsPage = () => {
   const { userId = "" } = useParams();
+  const navigate = useNavigate();
   const auth = useAuth();
   const token = auth.accessToken ?? "";
   const queryClient = useQueryClient();
@@ -103,6 +105,16 @@ export const AdminUserDetailsPage = () => {
       await invalidate();
       toast.success("Account suspended");
     }
+  });
+  const deleteMutation = useMutation({
+    mutationFn: () => deleteAdminUserRequest(token, userId),
+    onSuccess: async () => {
+      await invalidate();
+      toast.success("User permanently deleted", "The account and its login sessions were removed.");
+      navigate("/admin/users", { replace: true });
+    },
+    onError: (error) =>
+      toast.danger("Delete failed", error instanceof ApiError ? error.message : "Please try again.")
   });
   const reactivateMutation = useMutation({
     mutationFn: () => reactivateAdminUserRequest(token, userId),
@@ -357,6 +369,27 @@ export const AdminUserDetailsPage = () => {
           </div>
         </Card>
       </section>
+
+      <Card className={pageTw.surfaceCard}>
+        <h2>Danger zone</h2>
+        <p className={adminTw.dialogCopy}>Permanently deleting a user removes the account, login sessions, profile, and memberships. This cannot be undone.</p>
+        <AlertDialog.Root>
+          <AlertDialog.Trigger asChild>
+            <Button disabled={deleteMutation.isPending || auth.user?.id === user.userId} size="sm" variant="danger">Delete permanently</Button>
+          </AlertDialog.Trigger>
+          <AlertDialog.Portal>
+            <AlertDialog.Overlay className={adminTw.dialogOverlay} />
+            <AlertDialog.Content className={adminTw.dialog}>
+              <AlertDialog.Title>Delete user permanently?</AlertDialog.Title>
+              <AlertDialog.Description className={adminTw.dialogCopy}>This action cannot be undone.</AlertDialog.Description>
+              <div className={adminTw.dialogActions}>
+                <AlertDialog.Cancel asChild><Button size="sm" type="button" variant="secondary">Cancel</Button></AlertDialog.Cancel>
+                <AlertDialog.Action asChild><Button disabled={deleteMutation.isPending} onClick={() => void deleteMutation.mutateAsync()} size="sm" variant="danger">{deleteMutation.isPending ? "Deleting..." : "Yes, delete permanently"}</Button></AlertDialog.Action>
+              </div>
+            </AlertDialog.Content>
+          </AlertDialog.Portal>
+        </AlertDialog.Root>
+      </Card>
 
       {user.platformRole === "business_owner" && user.memberships.length === 0 && user.accountStatus === "approved" ? (
         <InlineNotice tone="danger">

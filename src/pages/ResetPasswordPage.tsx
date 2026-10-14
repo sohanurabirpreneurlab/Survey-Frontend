@@ -59,7 +59,7 @@ export const ResetPasswordPage = () => {
 
         <Field
           error={form.formState.errors.password?.message}
-          hint="Use 10+ characters with uppercase, lowercase, a number, and a symbol."
+          hint="Use at least 6 characters."
           label="New password"
         >
           <Input autoComplete="new-password" type="password" {...form.register("password")} />

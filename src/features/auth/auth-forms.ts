@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 const passwordPattern =
-  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9])[\S]{10,128}$/;
+  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9])[\S]{6,128}$/;
 
 export const registerSchema = z.object({
   email: z.string().trim().min(1, "Email is required.").email("Enter a valid email address."),
@@ -14,7 +14,7 @@ export const registerSchema = z.object({
   organizationId: z.string().uuid("Select an organization."),
   password: z
     .string()
-    .min(10, "Password must be at least 10 characters.")
+    .min(6, "Password must be at least 6 characters.")
     .max(128, "Password must be 128 characters or fewer.")
     .regex(passwordPattern, "Use uppercase, lowercase, number, special character, and no spaces.")
 });
@@ -35,7 +35,7 @@ export const resetPasswordSchema = z
     confirmPassword: z.string().min(1, "Please confirm your password."),
     password: z
       .string()
-      .min(10, "Password must be at least 10 characters.")
+      .min(6, "Password must be at least 6 characters.")
       .max(128, "Password must be 128 characters or fewer.")
       .regex(passwordPattern, "Use uppercase, lowercase, number, special character, and no spaces.")
   })

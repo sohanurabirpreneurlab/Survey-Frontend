@@ -97,7 +97,7 @@ export const RegisterPage = () => {
 
         <Field
           error={form.formState.errors.password?.message}
-          hint="Use 10+ characters with uppercase, lowercase, a number, and a symbol."
+          hint="Use at least 6 characters."
           label="Password"
         >
           <PasswordInput autoComplete="new-password" placeholder="Create a secure password" {...form.register("password")} />

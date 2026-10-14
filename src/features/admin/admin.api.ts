@@ -70,6 +70,9 @@ export const suspendAdminUserRequest = (token: string, userId: string, reason: s
     token
   });
 
+export const deleteAdminUserRequest = (token: string, userId: string) =>
+  apiRequest<null>("/admin/users/" + userId, { method: "DELETE", token });
+
 export const reactivateAdminUserRequest = (token: string, userId: string) =>
   apiRequest<null>(`/admin/users/${userId}/reactivate`, {
     method: "POST",

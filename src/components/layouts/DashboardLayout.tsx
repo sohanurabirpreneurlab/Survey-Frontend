@@ -11,6 +11,7 @@ import {
   ScanSearch,
   Settings,
   ShieldCheck,
+  Trash2,
   Users,
   X
 } from "lucide-react";
@@ -33,7 +34,8 @@ const adminNavItems = [
   { to: "/admin/pending-approvals", label: "Pending Approvals", icon: Clock3 },
   { to: "/admin/users", label: "Users", icon: Users },
   { to: "/admin/organizations", label: "Organizations", icon: Building2 },
-  { to: "/admin/audit-logs", label: "Audit Logs", icon: History }
+  { to: "/admin/audit-logs", label: "Audit Logs", icon: History },
+  { to: "/app/surveys?view=trash", label: "Trash", icon: Trash2 }
 ];
 
 const NavigationContent = () => {

@@ -44,6 +44,35 @@ export const listSurveysRequest = async (
   };
 };
 
+export const listTrashSurveysRequest = async (
+  token: string,
+  params: { limit: number; organizationId?: string; page: number }
+): Promise<{ items: SurveySummary[]; pagination: PaginationMeta }> => {
+  const search = new URLSearchParams();
+  search.set("page", String(params.page));
+  search.set("limit", String(params.limit));
+
+  if (params.organizationId) {
+    search.set("organizationId", params.organizationId);
+  }
+
+  const response = await apiRequestWithMeta<SurveySummary[]>("/surveys/trash?" + search.toString(), { token });
+
+  return {
+    items: response.data,
+    pagination: response.meta.pagination as PaginationMeta
+  };
+};
+
+export const softDeleteSurveyRequest = (token: string, surveyId: string) =>
+  apiRequest<Survey>("/surveys/" + surveyId, { method: "DELETE", token });
+
+export const restoreSurveyRequest = (token: string, surveyId: string) =>
+  apiRequest<Survey>("/surveys/" + surveyId + "/restore", { method: "POST", token });
+
+export const permanentlyDeleteSurveyRequest = (token: string, surveyId: string) =>
+  apiRequest<null>("/surveys/" + surveyId + "/permanent", { method: "DELETE", token });
+
 export const createSurveyRequest = (
   token: string,
   payload: {
