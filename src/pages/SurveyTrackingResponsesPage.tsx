@@ -1,6 +1,7 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowDownAZ, ArrowUpAZ, ArrowUpRight, Search, TableProperties } from "lucide-react";
+import { ArrowDownAZ, ArrowUpAZ, ArrowUpRight, Download, FileSpreadsheet, Search, TableProperties } from "lucide-react";
+import * as XLSX from "xlsx-js-style";
 import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
@@ -13,6 +14,13 @@ import { surveyTrackingKeys } from "../features/survey-tracking/survey-tracking.
 import { getSurveyRequest } from "../features/surveys/surveys.api";
 import { surveyKeys } from "../features/surveys/surveys.keys";
 import { formatDateTime, formatRelativeTime } from "../features/surveys/surveys.utils";
+
+const csvCell = (value: unknown) => {
+  const text = value === null || value === undefined ? "" : String(value);
+  return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+};
+
+const yieldToBrowser = () => new Promise<void>((resolve) => window.setTimeout(resolve, 0));
 
 const ResponseCell = ({ title, text, questionNumber, respondent }: {
   title: string;
@@ -51,6 +59,8 @@ export const SurveyTrackingResponsesPage = () => {
   const [viewMode, setViewMode] = useState<"all" | "individual">("all");
   const [sortOrder, setSortOrder] = useState<"latest" | "earliest">("latest");
   const [emailFilter, setEmailFilter] = useState("");
+  const [isExporting, setIsExporting] = useState(false);
+  const [isExportingExcel, setIsExportingExcel] = useState(false);
 
   const surveyQuery = useQuery({
     enabled: Boolean(token),
@@ -84,6 +94,112 @@ export const SurveyTrackingResponsesPage = () => {
       return sortOrder === "latest" ? rightTime - leftTime : leftTime - rightTime;
     });
   }, [emailFilter, responseRows, sortOrder]);
+
+  const exportCsv = async () => {
+    if (isExporting || responseItems.length === 0) {
+      return;
+    }
+    setIsExporting(true);
+    try {
+      const headers = ["Response", "Respondent", ...responseColumns.map((column) => column.title), "Source", "Status", "Submitted"];
+      const chunks = [`${headers.map(csvCell).join(",")}\r\n`];
+      for (const [rowIndex, response] of responseItems.entries()) {
+        const answerMap = new Map(response.answers.map((answer) => [answer.questionStableKey, answer.displayValue]));
+        chunks.push([
+          `#${rowIndex + 1}`,
+          response.respondentEmail ?? "Anonymous",
+          ...responseColumns.map((column) => answerMap.get(column.questionStableKey) ?? "No answer"),
+          response.accessSource === "invitation" ? "Invitation link" : "Public link",
+          response.responseStatus,
+          response.submittedAt ? formatDateTime(response.submittedAt) ?? response.submittedAt : "Not submitted"
+        ].map(csvCell).join(",") + "\r\n");
+        if (rowIndex % 100 === 0) {
+          await yieldToBrowser();
+        }
+      }
+      const blob = new Blob(["\uFEFF", ...chunks], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${(surveyQuery.data?.slug ?? "survey-responses").replace(/[^a-z0-9-_]+/gi, "-")}-responses.csv`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const exportExcel = async () => {
+    if (isExportingExcel || responseItems.length === 0) {
+      return;
+    }
+    setIsExportingExcel(true);
+    try {
+      const headers = ["Response", "Respondent", ...responseColumns.map((column) => column.title), "Source", "Status", "Submitted"];
+      const rows: string[][] = [headers];
+      for (const [rowIndex, response] of responseItems.entries()) {
+        const answerMap = new Map(response.answers.map((answer) => [answer.questionStableKey, answer.displayValue]));
+        rows.push([
+          `#${rowIndex + 1}`,
+          response.respondentEmail ?? "Anonymous",
+          ...responseColumns.map((column) => answerMap.get(column.questionStableKey) ?? "No answer"),
+          response.accessSource === "invitation" ? "Invitation link" : "Public link",
+          response.responseStatus,
+          response.submittedAt ? formatDateTime(response.submittedAt) ?? response.submittedAt : "Not submitted"
+        ]);
+        if (rowIndex % 100 === 0) {
+          await yieldToBrowser();
+        }
+      }
+
+      const sheet = XLSX.utils.aoa_to_sheet(rows);
+      const lastColumn = headers.length - 1;
+      const lastRow = rows.length - 1;
+      const border = { style: "thin", color: { rgb: "D9E2F3" } };
+      const headerStyle = {
+        fill: { fgColor: { rgb: "1F4E78" } },
+        font: { bold: true, color: { rgb: "FFFFFF" } },
+        alignment: { horizontal: "center", vertical: "center", wrapText: true },
+        border: { top: border, bottom: border, left: border, right: border }
+      };
+      const bodyStyle = {
+        alignment: { vertical: "top", wrapText: true },
+        border: { top: border, bottom: border, left: border, right: border }
+      };
+      for (let columnIndex = 0; columnIndex <= lastColumn; columnIndex += 1) {
+        const headerCell = sheet[XLSX.utils.encode_cell({ r: 0, c: columnIndex })];
+        if (headerCell) {
+          headerCell.s = headerStyle;
+        }
+        for (let rowIndex = 1; rowIndex <= lastRow; rowIndex += 1) {
+          const cell = sheet[XLSX.utils.encode_cell({ r: rowIndex, c: columnIndex })];
+          if (cell) {
+            cell.s = {
+              ...bodyStyle,
+              fill: rowIndex % 2 === 0 ? { fgColor: { rgb: "F5F9FC" } } : { fgColor: { rgb: "FFFFFF" } }
+            };
+          }
+        }
+      }
+      sheet["!freeze"] = { xSplit: 0, ySplit: 1 };
+      sheet["!autofilter"] = { ref: XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: lastRow, c: lastColumn } }) };
+      sheet["!rows"] = [{ hpt: 32 }, ...rows.slice(1).map(() => ({ hpt: 42 }))];
+      sheet["!cols"] = headers.map((header, columnIndex) => {
+        const maxLength = Math.max(
+          header.length,
+          ...rows.slice(1).map((row) => Math.min(String(row[columnIndex] ?? "").replace(/\s+/g, " ").length, 55))
+        );
+        return { wch: Math.min(Math.max(maxLength + 2, 12), columnIndex === 0 ? 14 : 42) };
+      });
+
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, sheet, "Responses");
+      const filename = `${(surveyQuery.data?.slug ?? "survey-responses").replace(/[^a-z0-9-_]+/gi, "-")}-responses.xlsx`;
+      XLSX.writeFile(workbook, filename);
+    } finally {
+      setIsExportingExcel(false);
+    }
+  };
 
   if (surveyQuery.isLoading || responsesQuery.isLoading || !surveyQuery.data || !responsesQuery.data) {
     return (
@@ -147,6 +263,15 @@ export const SurveyTrackingResponsesPage = () => {
               </select>
               <span className="pointer-events-none absolute top-1/2 right-3.5 -translate-y-1/2 text-app-text-soft">{sortOrder === "latest" ? <ArrowDownAZ size={16} /> : <ArrowUpAZ size={16} />}</span>
             </div>
+
+            <Button disabled={isExporting || isExportingExcel || responseItems.length === 0} onClick={exportCsv} size="sm" variant="secondary">
+              <Download size={16} />
+              {isExporting ? "Preparing CSV..." : "Export CSV"}
+            </Button>
+            <Button disabled={isExporting || isExportingExcel || responseItems.length === 0} onClick={exportExcel} size="sm">
+              <FileSpreadsheet size={16} />
+              {isExportingExcel ? "Preparing Excel..." : "Export Excel"}
+            </Button>
           </div>
         </div>
       </Card>
