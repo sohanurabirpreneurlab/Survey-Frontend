@@ -14,6 +14,10 @@ import { env } from "../lib/env";
 import { toast } from "../state/toast-store";
 import { formatDateTime } from "../features/surveys/surveys.utils";
 import { publicSurveyTw } from "../lib/page-tailwind";
+import {
+  captureSaltHubIntegrationContext,
+  notifySaltHubOfSubmission
+} from "../features/integrations/salthub-integration";
 
 type PublicSurveyQuestion = {
   description: string | null;
@@ -306,6 +310,12 @@ const RespondentSurveyRuntime = ({ accessMode }: { accessMode: AccessMode }) => 
   const storageIdentifier = accessMode === "public" ? publicSlug ?? "" : token ?? "";
   const storageKey = storageIdentifier ? respondentStateStorageKey(accessMode, storageIdentifier) : null;
 
+  useEffect(() => {
+    if (accessMode === "invitation") {
+      captureSaltHubIntegrationContext();
+    }
+  }, [accessMode]);
+
   const surveyQuery = useQuery({
     enabled: accessMode === "public" ? Boolean(publicSlug) : Boolean(token),
     queryFn: () =>
@@ -558,6 +568,14 @@ const RespondentSurveyRuntime = ({ accessMode }: { accessMode: AccessMode }) => 
       });
     },
     onError: (error) => {
+      const isServerOrNetworkFailure =
+        (error instanceof ApiError && (error.status >= 500 || error.status === 408 || error.status === 429)) ||
+        error instanceof TypeError;
+
+      if (accessMode === "invitation" && isServerOrNetworkFailure) {
+        notifySaltHubOfSubmission();
+      }
+
       const message =
         error instanceof ApiError
           ? error.message
@@ -568,6 +586,9 @@ const RespondentSurveyRuntime = ({ accessMode }: { accessMode: AccessMode }) => 
       toast.danger("Submission failed", message);
     },
     onSuccess: (response) => {
+      if (accessMode === "invitation") {
+        notifySaltHubOfSubmission();
+      }
       if (storageKey && typeof window !== "undefined") {
         window.localStorage.removeItem(storageKey);
       }
@@ -579,7 +600,7 @@ const RespondentSurveyRuntime = ({ accessMode }: { accessMode: AccessMode }) => 
   const handleContinue = () => {
     if (!activeQuestion) {
       if (isLastPage) {
-        void submitMutation.mutateAsync();
+        submitMutation.mutate();
       }
       return;
     }
@@ -602,7 +623,7 @@ const RespondentSurveyRuntime = ({ accessMode }: { accessMode: AccessMode }) => 
         return;
       }
 
-      void submitMutation.mutateAsync();
+      submitMutation.mutate();
       return;
     }
 
