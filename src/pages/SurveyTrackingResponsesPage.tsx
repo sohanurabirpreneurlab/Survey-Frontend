@@ -1,6 +1,7 @@
+import * as AlertDialog from "@radix-ui/react-alert-dialog";
 import * as Dialog from "@radix-ui/react-dialog";
-import { useQuery } from "@tanstack/react-query";
-import { ArrowDownAZ, ArrowUpAZ, ArrowUpRight, Download, FileSpreadsheet, Search, TableProperties } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { ArrowDownAZ, ArrowUpAZ, ArrowUpRight, Download, FileSpreadsheet, Search, TableProperties, Trash2 } from "lucide-react";
 import * as XLSX from "xlsx-js-style";
 import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
@@ -9,11 +10,15 @@ import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
 import { Input } from "../components/ui/input";
 import { useAuth } from "../features/auth/use-auth";
-import { listTrackingResponsesRequest } from "../features/survey-tracking/survey-tracking.api";
+import { deleteTrackingResponseRequest, listTrackingResponsesRequest } from "../features/survey-tracking/survey-tracking.api";
 import { surveyTrackingKeys } from "../features/survey-tracking/survey-tracking.keys";
 import { getSurveyRequest } from "../features/surveys/surveys.api";
 import { surveyKeys } from "../features/surveys/surveys.keys";
+import { trashKeys } from "../features/trash/trash.keys";
 import { formatDateTime, formatRelativeTime } from "../features/surveys/surveys.utils";
+import { ApiError } from "../lib/api";
+import { surveysPageTw } from "../lib/page-tailwind";
+import { toast } from "../state/toast-store";
 
 const csvCell = (value: unknown) => {
   const text = value === null || value === undefined ? "" : String(value);
@@ -56,11 +61,13 @@ export const SurveyTrackingResponsesPage = () => {
   const { surveyId = "" } = useParams();
   const auth = useAuth();
   const token = auth.accessToken ?? "";
+  const queryClient = useQueryClient();
   const [viewMode, setViewMode] = useState<"all" | "individual">("all");
   const [sortOrder, setSortOrder] = useState<"latest" | "earliest">("latest");
   const [emailFilter, setEmailFilter] = useState("");
   const [isExporting, setIsExporting] = useState(false);
   const [isExportingExcel, setIsExportingExcel] = useState(false);
+  const [responseToDelete, setResponseToDelete] = useState<string | null>(null);
 
   const surveyQuery = useQuery({
     enabled: Boolean(token),
@@ -72,6 +79,23 @@ export const SurveyTrackingResponsesPage = () => {
     enabled: Boolean(token),
     queryFn: () => listTrackingResponsesRequest(token, surveyId),
     queryKey: surveyTrackingKeys.responses(surveyId)
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (responseId: string) => deleteTrackingResponseRequest(token, surveyId, responseId),
+    onError: (error) => {
+      toast.danger("Delete failed", error instanceof ApiError ? error.message : "Please try again.");
+    },
+    onSuccess: async () => {
+      setResponseToDelete(null);
+      toast.success("Response deleted", "The response was removed from tracking and exports.");
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: surveyTrackingKeys.responses(surveyId) }),
+        queryClient.invalidateQueries({ queryKey: surveyTrackingKeys.all }),
+        queryClient.invalidateQueries({ queryKey: surveyKeys.all }),
+        queryClient.invalidateQueries({ queryKey: trashKeys.all })
+      ]);
+    }
   });
 
   const responseRows = responsesQuery.data?.items ?? [];
@@ -280,12 +304,12 @@ export const SurveyTrackingResponsesPage = () => {
         {viewMode === "all" && <div className="flex flex-wrap items-center justify-between gap-2 border-b border-app-border px-5 py-3 text-sm text-app-text-soft"><span>{responseItems.length} responses · {responseColumns.length} questions</span><span>Click a question or answer to read in full. Scroll sideways for more columns.</span></div>}
         <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Survey responses">
           {viewMode === "all" ? (
-            <table style={{ width: 1032 + responseColumns.length * 260 }} className="table-fixed border-separate border-spacing-0 [&_th]:border-b [&_th]:border-app-border [&_th]:bg-app-surface-muted [&_th]:px-4 [&_th]:py-4 [&_th]:text-left [&_th]:align-top [&_th]:text-xs [&_th]:font-semibold [&_th]:text-app-text-soft [&_td]:border-b [&_td]:border-app-border [&_td]:px-4 [&_td]:py-4 [&_td]:text-left [&_td]:align-top [&_td]:text-sm">
+            <table style={{ width: 1172 + responseColumns.length * 260 }} className="table-fixed border-separate border-spacing-0 [&_th]:border-b [&_th]:border-app-border [&_th]:bg-app-surface-muted [&_th]:px-4 [&_th]:py-4 [&_th]:text-left [&_th]:align-top [&_th]:text-xs [&_th]:font-semibold [&_th]:text-app-text-soft [&_td]:border-b [&_td]:border-app-border [&_td]:px-4 [&_td]:py-4 [&_td]:text-left [&_td]:align-top [&_td]:text-sm">
               <colgroup>
                 <col style={{ width: 88 }} />
                 <col style={{ width: 240 }} />
                 {responseColumns.map((column) => <col key={column.questionStableKey} style={{ width: 260 }} />)}
-                <col style={{ width: 160 }} /><col style={{ width: 120 }} /><col style={{ width: 212 }} /><col style={{ width: 212 }} />
+                <col style={{ width: 160 }} /><col style={{ width: 120 }} /><col style={{ width: 212 }} /><col style={{ width: 212 }} /><col style={{ width: 140 }} />
               </colgroup>
               <thead>
                 <tr>
@@ -300,6 +324,7 @@ export const SurveyTrackingResponsesPage = () => {
                   <th>Status</th>
                   <th>Submitted</th>
                   <th>Last saved</th>
+                  <th>Action</th>
 
                 </tr>
               </thead>
@@ -330,6 +355,14 @@ export const SurveyTrackingResponsesPage = () => {
                       </td>
                       <td data-label="Submitted">{formatDateTime(response.submittedAt) ?? "Not submitted"}</td>
                       <td data-label="Last saved">{formatDateTime(response.lastSavedAt) ?? response.lastSavedAt}</td>
+                      <td data-label="Action">
+                        {surveyQuery.data.access.canEdit ? (
+                          <Button onClick={() => setResponseToDelete(response.responseId)} size="sm" variant="danger">
+                            <Trash2 size={15} />
+                            Delete
+                          </Button>
+                        ) : null}
+                      </td>
 
                     </tr>
                   );
@@ -383,12 +416,20 @@ export const SurveyTrackingResponsesPage = () => {
                       </div>
                     </td>
                     <td data-label="Action">
-                      <Button asChild size="sm">
-                        <Link to={`/app/tracking-surveys/${surveyId}/responses/${response.responseId}`}>
-                          <TableProperties size={15} />
-                          Preview
-                        </Link>
-                      </Button>
+                      <div className="flex flex-wrap gap-2">
+                        <Button asChild size="sm">
+                          <Link to={`/app/tracking-surveys/${surveyId}/responses/${response.responseId}`}>
+                            <TableProperties size={15} />
+                            Preview
+                          </Link>
+                        </Button>
+                        {surveyQuery.data.access.canEdit ? (
+                          <Button onClick={() => setResponseToDelete(response.responseId)} size="sm" variant="danger">
+                            <Trash2 size={15} />
+                            Delete
+                          </Button>
+                        ) : null}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -397,6 +438,45 @@ export const SurveyTrackingResponsesPage = () => {
           )}
         </div>
       </Card>
+
+      <AlertDialog.Root
+        open={Boolean(responseToDelete)}
+        onOpenChange={(open) => {
+          if (!open && !deleteMutation.isPending) {
+            setResponseToDelete(null);
+          }
+        }}
+      >
+        <AlertDialog.Portal>
+          <AlertDialog.Overlay className={surveysPageTw.dialogOverlay} />
+          <AlertDialog.Content className={surveysPageTw.dialog}>
+            <AlertDialog.Title>Delete response?</AlertDialog.Title>
+            <AlertDialog.Description className={surveysPageTw.dialogCopy}>
+              This response will be removed from tracking, previews, and future CSV or Excel exports. An administrator can restore it from Trash.
+            </AlertDialog.Description>
+            <div className={surveysPageTw.dialogActions}>
+              <AlertDialog.Cancel asChild>
+                <Button disabled={deleteMutation.isPending} variant="secondary">Cancel</Button>
+              </AlertDialog.Cancel>
+              <AlertDialog.Action asChild>
+                <Button
+                  disabled={deleteMutation.isPending || !responseToDelete}
+                  onClick={(event) => {
+                    event.preventDefault();
+                    if (responseToDelete) {
+                      deleteMutation.mutate(responseToDelete);
+                    }
+                  }}
+                  variant="danger"
+                >
+                  <Trash2 size={16} />
+                  {deleteMutation.isPending ? "Deleting..." : "Delete response"}
+                </Button>
+              </AlertDialog.Action>
+            </div>
+          </AlertDialog.Content>
+        </AlertDialog.Portal>
+      </AlertDialog.Root>
     </div>
   );
 };

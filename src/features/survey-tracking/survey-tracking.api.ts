@@ -41,3 +41,9 @@ export const getTrackingResponsePreviewRequest = (
     `/survey-tracking/surveys/${surveyId}/responses/${responseId}`,
     { token }
   );
+
+export const deleteTrackingResponseRequest = (token: string, surveyId: string, responseId: string) =>
+  apiRequest<null>(`/survey-tracking/surveys/${surveyId}/responses/${responseId}`, {
+    method: "DELETE",
+    token
+  });

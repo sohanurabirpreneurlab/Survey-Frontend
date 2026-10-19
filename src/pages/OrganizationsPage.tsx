@@ -25,6 +25,7 @@ import { ApiError } from "../lib/api";
 import { adminTw, pageTw } from "../lib/page-tailwind";
 import { toast } from "../state/toast-store";
 import { formatDateTime, formatRelativeTime } from "../features/surveys/surveys.utils";
+import { trashKeys } from "../features/trash/trash.keys";
 
 const organizationSchema = z.object({
   name: z.string().trim().min(2, "Organization name is required.").max(120)
@@ -77,7 +78,8 @@ export const OrganizationsPage = () => {
     mutationFn: (organizationId: string) => deleteAdminOrganizationRequest(token, organizationId),
     onSuccess: async () => {
       await invalidateOrganizationQueries();
-      toast.success("Organization deleted");
+      await queryClient.invalidateQueries({ queryKey: trashKeys.all });
+      toast.success("Organization moved to Trash");
     },
     onError: (error) =>
       toast.danger("Delete organization failed", error instanceof ApiError ? error.message : "Please try again.")
@@ -353,7 +355,7 @@ const OrganizationRow = ({
               <AlertDialog.Content className={adminTw.dialog}>
                 <AlertDialog.Title>Delete organization</AlertDialog.Title>
                 <AlertDialog.Description className={adminTw.dialogCopy}>
-                  Only empty organizations can be deleted. Organizations with members or surveys will be blocked.
+                  Only empty organizations can be moved to Trash. Organizations with members or active surveys will be blocked.
                 </AlertDialog.Description>
                 <div className={adminTw.dialogActions}>
                   <AlertDialog.Cancel asChild>
@@ -368,7 +370,7 @@ const OrganizationRow = ({
                     type="button"
                     variant="danger"
                   >
-                    {deletePending ? "Deleting..." : "Delete"}
+                    {deletePending ? "Moving..." : "Move to Trash"}
                   </Button>
                 </div>
               </AlertDialog.Content>

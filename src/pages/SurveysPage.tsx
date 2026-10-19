@@ -54,6 +54,7 @@ import {
   updateSurveyRequest
 } from "../features/surveys/surveys.api";
 import { surveyKeys } from "../features/surveys/surveys.keys";
+import { trashKeys } from "../features/trash/trash.keys";
 import { SurveyStatusBadge } from "../features/surveys/SurveyStatusBadge";
 import { accessModeLabels, ensureDateOrder, formatDateTime, formatRelativeTime } from "../features/surveys/surveys.utils";
 import type {
@@ -173,7 +174,10 @@ const SurveyActions = ({
     try {
       await softDeleteSurveyRequest(token, survey.id);
       toast.success("Survey moved to Trash", "The survey is hidden from active lists and can be restored later.");
-      await queryClient.invalidateQueries({ queryKey: surveyKeys.all });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: surveyKeys.all }),
+        queryClient.invalidateQueries({ queryKey: trashKeys.all })
+      ]);
     } catch (error) {
       toast.danger("Delete failed", error instanceof ApiError ? error.message : "Please try again.");
     } finally { setIsDeleting(false); }
@@ -184,7 +188,10 @@ const SurveyActions = ({
     try {
       await restoreSurveyRequest(token, survey.id);
       toast.success("Survey restored", "The survey is available in the active survey list again.");
-      await queryClient.invalidateQueries({ queryKey: surveyKeys.all });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: surveyKeys.all }),
+        queryClient.invalidateQueries({ queryKey: trashKeys.all })
+      ]);
     } catch (error) {
       toast.danger("Restore failed", error instanceof ApiError ? error.message : "Please try again.");
     } finally { setIsDeleting(false); }
@@ -195,7 +202,10 @@ const SurveyActions = ({
     try {
       await permanentlyDeleteSurveyRequest(token, survey.id);
       toast.success("Survey permanently deleted", "This survey and its stored data were removed.");
-      await queryClient.invalidateQueries({ queryKey: surveyKeys.all });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: surveyKeys.all }),
+        queryClient.invalidateQueries({ queryKey: trashKeys.all })
+      ]);
     } catch (error) {
       toast.danger("Permanent delete failed", error instanceof ApiError ? error.message : "Please try again.");
     } finally { setIsDeleting(false); }

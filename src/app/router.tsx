@@ -24,6 +24,7 @@ import { AdminUsersPage } from "../pages/AdminUsersPage";
 import { AdminUserDetailsPage } from "../pages/AdminUserDetailsPage";
 import { SurveyTrackingPage } from "../pages/SurveyTrackingPage";
 import { SurveysPage } from "../pages/SurveysPage";
+import { TrashPage } from "../pages/TrashPage";
 
 const SurveyBuilderPage = lazy(() =>
   import("../pages/SurveyBuilderPage").then((module) => ({ default: module.SurveyBuilderPage }))
@@ -217,7 +218,8 @@ export const appRoutes = [
           { path: "users/:userId", element: <AdminUserDetailsPage /> },
           { path: "organizations", element: <OrganizationsPage /> },
           { path: "organizations/:organizationId", element: <OrganizationDetailsPage /> },
-          { path: "audit-logs", element: <AuditLogsPage /> }
+          { path: "audit-logs", element: <AuditLogsPage /> },
+          { path: "trash", element: <TrashPage /> }
         ]
       }
     ]

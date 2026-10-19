@@ -26,6 +26,7 @@ import {
 import { adminKeys } from "../features/admin/admin.keys";
 import { adminTw, pageTw } from "../lib/page-tailwind";
 import { formatDateTime, formatRelativeTime } from "../features/surveys/surveys.utils";
+import { trashKeys } from "../features/trash/trash.keys";
 
 const approveSchema = z.object({
   organizationName: z.string().trim().min(2, "Organization name is required.").max(120)
@@ -79,7 +80,8 @@ export const AdminUserDetailsPage = () => {
       queryClient.invalidateQueries({ queryKey: adminKeys.summary() }),
       queryClient.invalidateQueries({ queryKey: adminKeys.user(userId) }),
       queryClient.invalidateQueries({ queryKey: adminKeys.users({}) }),
-      queryClient.invalidateQueries({ queryKey: adminKeys.organizations({}) })
+      queryClient.invalidateQueries({ queryKey: adminKeys.organizations({}) }),
+      queryClient.invalidateQueries({ queryKey: trashKeys.all })
     ]);
   };
 
@@ -110,7 +112,7 @@ export const AdminUserDetailsPage = () => {
     mutationFn: () => deleteAdminUserRequest(token, userId),
     onSuccess: async () => {
       await invalidate();
-      toast.success("User permanently deleted", "The account and its login sessions were removed.");
+      toast.success("User moved to Trash", "The account is suspended and can be restored from Trash.");
       navigate("/admin/users", { replace: true });
     },
     onError: (error) =>
@@ -372,19 +374,19 @@ export const AdminUserDetailsPage = () => {
 
       <Card className={pageTw.surfaceCard}>
         <h2>Danger zone</h2>
-        <p className={adminTw.dialogCopy}>Permanently deleting a user removes the account, login sessions, profile, and memberships. This cannot be undone.</p>
+        <p className={adminTw.dialogCopy}>Move this user to Trash. Their sessions will be revoked, and an administrator can restore or permanently delete the account later.</p>
         <AlertDialog.Root>
           <AlertDialog.Trigger asChild>
-            <Button disabled={deleteMutation.isPending || auth.user?.id === user.userId} size="sm" variant="danger">Delete permanently</Button>
+            <Button disabled={deleteMutation.isPending || auth.user?.id === user.userId} size="sm" variant="danger">Move to Trash</Button>
           </AlertDialog.Trigger>
           <AlertDialog.Portal>
             <AlertDialog.Overlay className={adminTw.dialogOverlay} />
             <AlertDialog.Content className={adminTw.dialog}>
-              <AlertDialog.Title>Delete user permanently?</AlertDialog.Title>
-              <AlertDialog.Description className={adminTw.dialogCopy}>This action cannot be undone.</AlertDialog.Description>
+              <AlertDialog.Title>Move user to Trash?</AlertDialog.Title>
+              <AlertDialog.Description className={adminTw.dialogCopy}>The user will lose access immediately but can be restored later.</AlertDialog.Description>
               <div className={adminTw.dialogActions}>
                 <AlertDialog.Cancel asChild><Button size="sm" type="button" variant="secondary">Cancel</Button></AlertDialog.Cancel>
-                <AlertDialog.Action asChild><Button disabled={deleteMutation.isPending} onClick={() => void deleteMutation.mutateAsync()} size="sm" variant="danger">{deleteMutation.isPending ? "Deleting..." : "Yes, delete permanently"}</Button></AlertDialog.Action>
+                <AlertDialog.Action asChild><Button disabled={deleteMutation.isPending} onClick={() => void deleteMutation.mutateAsync()} size="sm" variant="danger">{deleteMutation.isPending ? "Moving..." : "Move to Trash"}</Button></AlertDialog.Action>
               </div>
             </AlertDialog.Content>
           </AlertDialog.Portal>

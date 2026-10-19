@@ -35,7 +35,7 @@ const adminNavItems = [
   { to: "/admin/users", label: "Users", icon: Users },
   { to: "/admin/organizations", label: "Organizations", icon: Building2 },
   { to: "/admin/audit-logs", label: "Audit Logs", icon: History },
-  { to: "/app/surveys?view=trash", label: "Trash", icon: Trash2 }
+  { to: "/admin/trash", label: "Trash", icon: Trash2 }
 ];
 
 const NavigationContent = () => {
