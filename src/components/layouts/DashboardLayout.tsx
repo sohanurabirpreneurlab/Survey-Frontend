@@ -20,6 +20,7 @@ import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { BrandMark } from "../brand-mark";
 import { Button } from "../ui/button";
 import { useAuth } from "../../features/auth/use-auth";
+import { platformRoleLabel } from "../../features/auth/auth.types";
 import { cn } from "../../lib/cn";
 
 const navItems = [
@@ -88,7 +89,7 @@ const NavigationContent = () => {
               <p className="mt-0 mb-1 font-semibold text-app-text [overflow-wrap:anywhere]">{auth.user?.fullName}</p>
               <p className="my-[1em] text-app-text-faint [overflow-wrap:anywhere]">{auth.user?.email}</p>
               <p className="m-0 text-[0.78rem] font-bold tracking-[0.06em] text-app-text-faint uppercase [overflow-wrap:anywhere]">
-                {auth.platformRole === "admin" ? "Platform Admin" : "Business Owner"}
+                {platformRoleLabel(auth.platformRole)}
               </p>
             </div>
           </div>

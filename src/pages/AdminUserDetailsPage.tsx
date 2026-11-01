@@ -160,6 +160,8 @@ export const AdminUserDetailsPage = () => {
   }
 
   const user = detail.user;
+  const isProtectedSystemAdmin = user.platformRole === "system_admin";
+  const isOtherAdminViewingProtectedAccount = isProtectedSystemAdmin && auth.user?.id !== user.userId;
 
   return (
     <div className={pageTw.page}>
@@ -183,11 +185,12 @@ export const AdminUserDetailsPage = () => {
             })}
           >
             <Field error={profileForm.formState.errors.fullName?.message} label="Full name">
-              <Input {...profileForm.register("fullName")} />
+              <Input disabled={isOtherAdminViewingProtectedAccount} {...profileForm.register("fullName")} />
             </Field>
             <Field error={profileForm.formState.errors.organizationId?.message} label="Organization">
               <select
                 className={adminTw.select}
+                disabled={isOtherAdminViewingProtectedAccount}
                 {...profileForm.register("organizationId", {
                   setValueAs: (value) => (value ? value : null)
                 })}
@@ -201,7 +204,7 @@ export const AdminUserDetailsPage = () => {
               </select>
             </Field>
             <div className={adminTw.dialogActions}>
-              <Button disabled={updateProfileMutation.isPending} size="sm" type="submit">
+              <Button disabled={isOtherAdminViewingProtectedAccount || updateProfileMutation.isPending} size="sm" type="submit">
                 {updateProfileMutation.isPending ? "Saving..." : "Save profile"}
               </Button>
             </div>
@@ -213,7 +216,7 @@ export const AdminUserDetailsPage = () => {
             </div>
             <div className={adminTw.detailItem}>
               <span className={adminTw.detailLabel}>Platform role</span>
-              <strong>{user.platformRole}</strong>
+              <strong>{user.platformRole === "system_admin" ? "System Admin" : user.platformRole === "admin" ? "Platform Admin" : "Business Owner"}</strong>
             </div>
             <div className={adminTw.detailItem}>
               <span className={adminTw.detailLabel}>Organization</span>
@@ -228,8 +231,13 @@ export const AdminUserDetailsPage = () => {
 
         <Card className={pageTw.surfaceCard}>
           <h2>Actions</h2>
+          {isOtherAdminViewingProtectedAccount ? (
+            <InlineNotice>
+              Only the System Admin account itself can change this account. Other administrators cannot approve, reject, suspend, reactivate, or otherwise modify it.
+            </InlineNotice>
+          ) : null}
           <div className={adminTw.dialogActions}>
-            {user.accountStatus === "pending" ? (
+            {!isOtherAdminViewingProtectedAccount && user.accountStatus === "pending" ? (
               <>
                 <AlertDialog.Root>
                   <AlertDialog.Trigger asChild>
@@ -303,7 +311,7 @@ export const AdminUserDetailsPage = () => {
               </>
             ) : null}
 
-            {user.accountStatus === "approved" ? (
+            {!isOtherAdminViewingProtectedAccount && user.accountStatus === "approved" ? (
               <AlertDialog.Root>
                 <AlertDialog.Trigger asChild>
                   <Button size="sm" variant="danger">Suspend account</Button>
@@ -336,7 +344,7 @@ export const AdminUserDetailsPage = () => {
                 </AlertDialog.Portal>
               </AlertDialog.Root>
             ) : null}
-            {user.accountStatus === "suspended" ? (
+            {!isOtherAdminViewingProtectedAccount && user.accountStatus === "suspended" ? (
               <AlertDialog.Root>
                 <AlertDialog.Trigger asChild>
                   <Button size="sm">Reactivate account</Button>
@@ -373,9 +381,13 @@ export const AdminUserDetailsPage = () => {
       </section>
 
       <Card className={pageTw.surfaceCard}>
-        <h2>Danger zone</h2>
-        <p className={adminTw.dialogCopy}>Move this user to Trash. Their sessions will be revoked, and an administrator can restore or permanently delete the account later.</p>
-        <AlertDialog.Root>
+        <h2>{user.platformRole === "system_admin" ? "Protected account" : "Danger zone"}</h2>
+        <p className={adminTw.dialogCopy}>
+          {user.platformRole === "system_admin"
+            ? "Only the System Admin account itself can change this account. Other administrators cannot move it to Trash, permanently delete it, or reassign its role."
+            : "Move this user to Trash. Their sessions will be revoked, and an administrator can restore or permanently delete the account later."}
+        </p>
+        {user.platformRole !== "system_admin" ? <AlertDialog.Root>
           <AlertDialog.Trigger asChild>
             <Button disabled={deleteMutation.isPending || auth.user?.id === user.userId} size="sm" variant="danger">Move to Trash</Button>
           </AlertDialog.Trigger>
@@ -390,7 +402,7 @@ export const AdminUserDetailsPage = () => {
               </div>
             </AlertDialog.Content>
           </AlertDialog.Portal>
-        </AlertDialog.Root>
+        </AlertDialog.Root> : null}
       </Card>
 
       {user.platformRole === "business_owner" && user.memberships.length === 0 && user.accountStatus === "approved" ? (

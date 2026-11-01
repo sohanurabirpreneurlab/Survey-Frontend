@@ -1,6 +1,12 @@
 export type AccountStatus = "pending" | "approved" | "rejected" | "suspended";
 export type AccessState = "approved" | "pending_approval" | "rejected" | "suspended";
-export type PlatformRole = "business_owner" | "admin";
+export type PlatformRole = "business_owner" | "admin" | "system_admin";
+
+export const platformRoleLabel = (role: PlatformRole | null): string => {
+  if (role === "system_admin") return "System Admin";
+  if (role === "admin") return "Platform Admin";
+  return "Business Owner";
+};
 
 export type AuthUser = {
   id: string;

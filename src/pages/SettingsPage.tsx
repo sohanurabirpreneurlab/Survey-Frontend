@@ -2,6 +2,7 @@ import { Building2, Mail, ShieldCheck, UserCog } from "lucide-react";
 
 import { Card } from "../components/ui/card";
 import { useAuth } from "../features/auth/use-auth";
+import { platformRoleLabel } from "../features/auth/auth.types";
 import { pageTw } from "../lib/page-tailwind";
 
 export const SettingsPage = () => {
@@ -73,7 +74,7 @@ export const SettingsPage = () => {
           <div className={pageTw.details}>
             <div className={pageTw.inset}>
               <span className={pageTw.label}>Platform role</span>
-              <strong>{auth.platformRole === "admin" ? "Platform Admin" : "Business Owner"}</strong>
+              <strong>{platformRoleLabel(auth.platformRole)}</strong>
             </div>
             <div className={pageTw.inset}>
               <span className={pageTw.label}>Admin access</span>

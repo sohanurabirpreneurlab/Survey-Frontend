@@ -4,7 +4,7 @@ import { readYesNoAnswer, normalizeYesNoAnswer, missingYesNoDescription } from "
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
-import { ArrowLeft, ArrowRight, Check, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, CheckCircle2, CircleAlert } from "lucide-react";
 
 import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
@@ -653,18 +653,31 @@ const RespondentSurveyRuntime = ({ accessMode }: { accessMode: AccessMode }) => 
   }
 
   if (surveyQuery.isError || !survey) {
-    const message =
-      surveyQuery.error instanceof ApiError
-        ? surveyQuery.error.message
-        : "This survey could not be opened from the shared link.";
+    const isUsedInvitation =
+      accessMode === "invitation" &&
+      surveyQuery.error instanceof ApiError &&
+      (surveyQuery.error.code === "INVITATION_ALREADY_USED" ||
+        surveyQuery.error.message.toLowerCase().includes("already used"));
+    const title = isUsedInvitation
+      ? "This survey has already been completed"
+      : "This survey is currently unavailable";
+    const message = isUsedInvitation
+      ? "A response has already been submitted using this invitation link. No further action is required."
+      : "We’re unable to open this survey right now. Please check the link or contact the survey administrator for assistance.";
+    const StatusIcon = isUsedInvitation ? CheckCircle2 : CircleAlert;
 
     return (
-      <div className={publicSurveyTw.shell}>
-        <Card className="p-6 max-app-mobile:p-[18px]">
-          <h2>Survey unavailable</h2>
-          <p>{message}</p>
+      <main className="grid min-h-[100svh] place-items-center px-6 py-10 max-app-mobile:px-4">
+        <Card className="grid w-full max-w-[520px] justify-items-center gap-5 px-10 py-12 text-center max-app-mobile:px-6 max-app-mobile:py-9" role="status">
+          <div className="grid size-14 place-items-center rounded-full bg-app-primary-soft text-app-primary" aria-hidden="true">
+            <StatusIcon size={28} strokeWidth={1.8} />
+          </div>
+          <div className="grid gap-3">
+            <h1 className="m-0 text-[clamp(1.5rem,3vw,1.9rem)] leading-tight text-app-text">{title}</h1>
+            <p className="m-0 max-w-[420px] leading-7 text-app-text-soft">{message}</p>
+          </div>
         </Card>
-      </div>
+      </main>
     );
   }
 

@@ -1,9 +1,9 @@
 import * as AlertDialog from "@radix-ui/react-alert-dialog";
 import * as Dialog from "@radix-ui/react-dialog";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowDownAZ, ArrowUpAZ, ArrowUpRight, Download, FileSpreadsheet, Search, TableProperties, Trash2 } from "lucide-react";
+import { ArrowDownAZ, ArrowUpAZ, ArrowUpRight, Download, FileSpreadsheet, RefreshCw, Search, TableProperties, Trash2 } from "lucide-react";
 import * as XLSX from "xlsx-js-style";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
 import { Button } from "../components/ui/button";
@@ -12,6 +12,7 @@ import { Input } from "../components/ui/input";
 import { useAuth } from "../features/auth/use-auth";
 import { deleteTrackingResponseRequest, listTrackingResponsesRequest } from "../features/survey-tracking/survey-tracking.api";
 import { surveyTrackingKeys } from "../features/survey-tracking/survey-tracking.keys";
+import type { SurveyTrackingResponsesList } from "../features/survey-tracking/survey-tracking.types";
 import { getSurveyRequest } from "../features/surveys/surveys.api";
 import { surveyKeys } from "../features/surveys/surveys.keys";
 import { trashKeys } from "../features/trash/trash.keys";
@@ -68,6 +69,7 @@ export const SurveyTrackingResponsesPage = () => {
   const [isExporting, setIsExporting] = useState(false);
   const [isExportingExcel, setIsExportingExcel] = useState(false);
   const [responseToDelete, setResponseToDelete] = useState<string | null>(null);
+  const [responsePage, setResponsePage] = useState(1);
 
   const surveyQuery = useQuery({
     enabled: Boolean(token),
@@ -77,13 +79,36 @@ export const SurveyTrackingResponsesPage = () => {
 
   const responsesQuery = useQuery({
     enabled: Boolean(token),
-    queryFn: () => listTrackingResponsesRequest(token, surveyId),
-    queryKey: surveyTrackingKeys.responses(surveyId)
+    queryFn: () => listTrackingResponsesRequest(token, surveyId, { limit: 50, page: responsePage }),
+    queryKey: surveyTrackingKeys.responses(surveyId, responsePage)
   });
 
   const deleteMutation = useMutation({
     mutationFn: (responseId: string) => deleteTrackingResponseRequest(token, surveyId, responseId),
-    onError: (error) => {
+    onMutate: async (responseId) => {
+      await queryClient.cancelQueries({ queryKey: surveyTrackingKeys.responses(surveyId, responsePage) });
+
+      const queryKey = surveyTrackingKeys.responses(surveyId, responsePage);
+      const previousResponses = queryClient.getQueryData<SurveyTrackingResponsesList>(queryKey);
+
+      queryClient.setQueryData<SurveyTrackingResponsesList>(queryKey, (currentResponses) => {
+        if (!currentResponses) {
+          return currentResponses;
+        }
+
+        return {
+          ...currentResponses,
+          items: currentResponses.items.filter((response) => response.responseId !== responseId)
+        };
+      });
+
+      return { previousResponses, queryKey };
+    },
+    onError: (error, _responseId, context) => {
+      if (context?.previousResponses) {
+        queryClient.setQueryData(context.queryKey, context.previousResponses);
+      }
+      setResponseToDelete(null);
       toast.danger("Delete failed", error instanceof ApiError ? error.message : "Please try again.");
     },
     onSuccess: async () => {
@@ -100,6 +125,22 @@ export const SurveyTrackingResponsesPage = () => {
 
   const responseRows = responsesQuery.data?.items ?? [];
   const responseColumns = responsesQuery.data?.columns ?? [];
+  const responsePagination = responsesQuery.data?.pagination ?? {
+    limit: 50,
+    page: responsePage,
+    total: 0,
+    totalPages: 1
+  };
+
+  useEffect(() => {
+    if (responsePagination && responsePage > responsePagination.totalPages) {
+      setResponsePage(responsePagination.totalPages);
+    }
+  }, [responsePage, responsePagination]);
+
+  const refreshResponses = async () => {
+    await queryClient.invalidateQueries({ queryKey: surveyTrackingKeys.responses(surveyId) });
+  };
 
   const responseItems = useMemo(() => {
     const normalizedEmail = emailFilter.trim().toLowerCase();
@@ -301,8 +342,21 @@ export const SurveyTrackingResponsesPage = () => {
       </Card>
 
       <Card className="overflow-hidden rounded-2xl border-slate-200 p-0 shadow-none">
-        {viewMode === "all" && <div className="flex flex-wrap items-center justify-between gap-2 border-b border-app-border px-5 py-3 text-sm text-app-text-soft"><span>{responseItems.length} responses · {responseColumns.length} questions</span><span>Click a question or answer to read in full. Scroll sideways for more columns.</span></div>}
-        <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Survey responses">
+        <div className="flex items-center justify-between gap-3 border-b border-app-border px-5 py-3 max-app-mobile:flex-col max-app-mobile:items-stretch">
+          {responsePagination ? (
+            <div className="flex items-center gap-3 text-sm text-app-text-soft">
+              <span>Page {responsePagination.page} of {responsePagination.totalPages}</span>
+              <Button disabled={responsePage <= 1 || responsesQuery.isFetching} onClick={() => setResponsePage((page) => Math.max(1, page - 1))} size="sm" variant="secondary">Previous</Button>
+              <Button disabled={responsePage >= responsePagination.totalPages || responsesQuery.isFetching} onClick={() => setResponsePage((page) => page + 1)} size="sm" variant="secondary">Next</Button>
+            </div>
+          ) : <span />}
+          <Button disabled={responsesQuery.isFetching} onClick={() => void refreshResponses()} size="sm" variant="secondary">
+            <RefreshCw className={responsesQuery.isFetching ? "animate-spin" : undefined} size={16} />
+            {responsesQuery.isFetching ? "Refreshing..." : "Refresh"}
+          </Button>
+        </div>
+        {viewMode === "all" && <div className="flex flex-wrap items-center justify-between gap-2 border-b border-app-border px-5 py-3 text-sm text-app-text-soft"><span>{responsePagination?.total ?? responseItems.length} responses · {responseColumns.length} questions</span><span>Click a question or answer to read in full. Scroll inside the response window.</span></div>}
+        <div className="max-h-[68vh] overflow-x-auto overflow-y-auto" tabIndex={0} role="region" aria-label="Survey responses">
           {viewMode === "all" ? (
             <table style={{ width: 1172 + responseColumns.length * 260 }} className="table-fixed border-separate border-spacing-0 [&_th]:border-b [&_th]:border-app-border [&_th]:bg-app-surface-muted [&_th]:px-4 [&_th]:py-4 [&_th]:text-left [&_th]:align-top [&_th]:text-xs [&_th]:font-semibold [&_th]:text-app-text-soft [&_td]:border-b [&_td]:border-app-border [&_td]:px-4 [&_td]:py-4 [&_td]:text-left [&_td]:align-top [&_td]:text-sm">
               <colgroup>
@@ -437,6 +491,15 @@ export const SurveyTrackingResponsesPage = () => {
             </table>
           )}
         </div>
+        {false ? (
+          <div className="flex items-center justify-between gap-3 border-t border-app-border px-5 py-3 text-sm text-app-text-soft max-app-mobile:flex-col max-app-mobile:items-stretch">
+            <span>Page {responsePagination.page} of {responsePagination.totalPages} · {responsePagination.total} responses</span>
+            <div className="flex gap-2 max-app-mobile:justify-between">
+              <Button disabled={responsePage <= 1 || responsesQuery.isFetching} onClick={() => setResponsePage((page) => Math.max(1, page - 1))} size="sm" variant="secondary">Previous</Button>
+              <Button disabled={responsePage >= responsePagination.totalPages || responsesQuery.isFetching} onClick={() => setResponsePage((page) => page + 1)} size="sm" variant="secondary">Next</Button>
+            </div>
+          </div>
+        ) : null}
       </Card>
 
       <AlertDialog.Root

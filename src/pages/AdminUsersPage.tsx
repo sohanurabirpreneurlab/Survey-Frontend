@@ -184,7 +184,8 @@ const AdminUserRow = ({
   rolePending: boolean;
   user: AdminUserSummary;
 }) => {
-  const disableRoleChange = currentUserId === user.userId;
+  const isSystemAdmin = user.platformRole === "system_admin";
+  const disableRoleChange = currentUserId === user.userId || isSystemAdmin;
 
   return (
     <tr className={adminTw.tableRow}>
@@ -206,8 +207,13 @@ const AdminUserRow = ({
           >
             <option value="business_owner">Business owner</option>
             <option value="admin">Admin</option>
+            {isSystemAdmin ? <option value="system_admin">System Admin</option> : null}
           </select>
-          {disableRoleChange ? <span className="text-[0.9rem] text-app-text-faint">Current account</span> : null}
+          {isSystemAdmin ? (
+            <span className="text-[0.9rem] text-app-text-faint">Protected role</span>
+          ) : currentUserId === user.userId ? (
+            <span className="text-[0.9rem] text-app-text-faint">Current account</span>
+          ) : null}
         </div>
       </td>
       <td className={adminTw.tableCell} data-label="Updated">

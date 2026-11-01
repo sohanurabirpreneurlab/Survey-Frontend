@@ -82,6 +82,7 @@ export type SurveyTrackingAllResponsesItem = SurveyTrackingResponseItem & {
 export type SurveyTrackingResponsesList = {
   columns: SurveyTrackingAllResponsesColumn[];
   items: SurveyTrackingAllResponsesItem[];
+  pagination: PaginationMeta;
 };
 
 export type SurveyTrackingResponsePreview = {

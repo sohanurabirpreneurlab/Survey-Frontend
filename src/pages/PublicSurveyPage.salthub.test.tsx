@@ -209,4 +209,16 @@ describe("SaltHub notification in the invitation submission flow", () => {
     expect(mocks.apiRequest).toHaveBeenCalledTimes(1);
     expect(postMessage).not.toHaveBeenCalled();
   });
+
+  it("shows a professional completed message for an invitation that was already used", async () => {
+    mocks.apiRequest.mockRejectedValue(new ApiError(409, {
+      error: { code: "INVITATION_ALREADY_USED", details: null, message: "Invitation was already used." },
+      meta: { requestId: "request-3" },
+      success: false
+    }));
+    renderInvitation();
+
+    expect(await screen.findByRole("heading", { name: "This survey has already been completed" })).toBeTruthy();
+    expect(screen.getByText("A response has already been submitted using this invitation link. No further action is required.")).toBeTruthy();
+  });
 });
